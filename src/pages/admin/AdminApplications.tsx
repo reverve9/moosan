@@ -22,7 +22,7 @@ const STATUS_COLORS: Record<string, string> = {
 export default function AdminApplications() {
   const [applications, setApplications] = useState<(Application & { programs: { name: string } | null })[]>([])
   const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
 
   const fetchApplications = async () => {
     setLoading(true)
@@ -44,7 +44,7 @@ export default function AdminApplications() {
     fetchApplications()
   }, [statusFilter])
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: Application['status']) => {
     await supabase.from('applications').update({ status }).eq('id', id)
     fetchApplications()
   }
@@ -57,7 +57,7 @@ export default function AdminApplications() {
       </div>
 
       <div className={styles.filters}>
-        {['all', 'pending', 'approved', 'rejected'].map((s) => (
+        {(['all', 'pending', 'approved', 'rejected'] as const).map((s) => (
           <button
             key={s}
             className={`${styles.filterBtn} ${statusFilter === s ? styles.filterBtnActive : ''}`}
