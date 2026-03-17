@@ -69,7 +69,7 @@
   --space-24: 96px;
 
   /* ── Layout ── */
-  --max-width: 430px;
+  --max-width: 600px;
   --header-height: clamp(48px, 13vw, 56px);
   --bottom-nav-height: clamp(68px, 18.6vw, 80px);
 
