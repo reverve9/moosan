@@ -15,7 +15,7 @@
 }
 
 .subtitle {
-  font-family: var(--font-display);
+  font-family: var(--font-base);
   font-size: var(--text-base);
   color: var(--color-accent);
   margin-bottom: var(--space-8);

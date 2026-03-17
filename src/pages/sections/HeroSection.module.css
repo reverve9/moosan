@@ -29,7 +29,7 @@
 }
 
 .subtitle {
-  font-family: var(--font-display);
+  font-family: var(--font-base);
   font-size: var(--text-xl);
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -38,7 +38,7 @@
 }
 
 .title {
-  font-family: var(--font-heading);
+  font-family: var(--font-base);
   font-size: var(--text-3xl);
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -46,7 +46,7 @@
 }
 
 .date {
-  font-family: var(--font-display);
+  font-family: var(--font-base);
   font-size: var(--text-base);
   font-weight: 400;
   letter-spacing: 0.1em;
@@ -73,7 +73,7 @@
 }
 
 .countdownNumber {
-  font-family: var(--font-display);
+  font-family: var(--font-base);
   font-size: var(--text-2xl);
   font-weight: 700;
   line-height: 1;

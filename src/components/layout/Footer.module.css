@@ -12,7 +12,7 @@
 }
 
 .org {
-  font-family: var(--font-heading);
+  font-family: var(--font-base);
   font-size: var(--text-base);
   font-weight: 600;
   margin-bottom: var(--space-1);
