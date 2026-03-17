@@ -1,0 +1,97 @@
+/* ============================================
+   Design Tokens — 2026 설악무산문화축전
+   키비주얼 확정 후 컬러 팔레트 업데이트 예정
+   ============================================ */
+
+:root {
+  /* ── Colors ── */
+  --color-primary: #1E3A2F;
+  --color-primary-light: #2A5040;
+  --color-primary-dark: #142820;
+
+  --color-accent: #C9932A;
+  --color-accent-light: #D4A94E;
+  --color-accent-dark: #A87820;
+
+  --color-bg: #FDFBF7;
+  --color-bg-secondary: #F5F0E8;
+  --color-surface: #FFFFFF;
+
+  --color-text: #2C2C2C;
+  --color-text-secondary: #6A6A6A;
+  --color-text-inverse: #FFFFFF;
+  --color-text-muted: #999999;
+
+  --color-border: #E0D8CC;
+  --color-border-light: #EDE8E0;
+
+  --color-success: #2E7D32;
+  --color-error: #C62828;
+  --color-warning: #F9A825;
+
+  /* ── Typography ── */
+  --font-heading: 'Noto Serif KR', serif;
+  --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Cormorant Garamond', 'Playfair Display', serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+  --text-4xl: 2.5rem;
+  --text-5xl: 3rem;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.875;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* ── Layout ── */
+  --max-width: 1200px;
+  --max-width-narrow: 800px;
+  --header-height: 64px;
+
+  /* ── Border Radius ── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+  /* ── Transitions ── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 500ms ease;
+
+  /* ── Z-index ── */
+  --z-header: 100;
+  --z-modal: 200;
+  --z-overlay: 150;
+  --z-toast: 300;
+}

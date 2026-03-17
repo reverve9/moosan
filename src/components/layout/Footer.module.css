@@ -1,0 +1,52 @@
+.footer {
+  background-color: var(--color-primary-dark);
+  color: var(--color-text-inverse);
+  padding: var(--space-16) 0 var(--space-8);
+}
+
+.inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.org {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-2);
+}
+
+.address {
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sponsors {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sponsorLabel {
+  font-weight: var(--weight-semibold);
+  color: var(--color-accent);
+}
+
+.copyright {
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.4);
+  padding-top: var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 768px) {
+  .sponsors {
+    flex-wrap: wrap;
+  }
+}
