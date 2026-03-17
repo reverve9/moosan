@@ -103,6 +103,10 @@ export default function AdminLayout() {
           })}
         </nav>
         <div className={styles.sidebarFooter}>
+          <button className={styles.logoutBtn} onClick={() => window.open('/', '_blank')}>
+            <ArrowRightOnRectangleIcon className={styles.navIcon} />
+            <span>사이트로 이동</span>
+          </button>
           <button className={styles.logoutBtn} onClick={handleLogout}>
             <ArrowRightOnRectangleIcon className={styles.navIcon} />
             <span>로그아웃</span>
