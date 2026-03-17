@@ -45,12 +45,12 @@
 }
 
 .icon {
-  width: 20px;
-  height: 20px;
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 .label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 500;
 }
 

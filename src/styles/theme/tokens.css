@@ -1,6 +1,7 @@
 /* ============================================
    Design Tokens — 2026 설악무산문화축전
    키비주얼 확정 후 컬러 팔레트 업데이트 예정
+   clamp 기준: min(320px) → preferred(3.5vw) → max(430px)
    ============================================ */
 
 :root {
@@ -32,14 +33,26 @@
   /* ── Typography ── */
   --font-base: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 15px;
-  --text-lg: 17px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
-  --text-3xl: 32px;
-  --text-4xl: 40px;
+  --text-xs: clamp(10px, 2.6vw, 11px);
+  --text-sm: clamp(12px, 3.0vw, 13px);
+  --text-base: clamp(13px, 3.5vw, 15px);
+  --text-lg: clamp(15px, 4.0vw, 17px);
+  --text-xl: clamp(17px, 4.7vw, 20px);
+  --text-2xl: clamp(20px, 5.6vw, 24px);
+  --text-3xl: clamp(26px, 7.4vw, 32px);
+  --text-4xl: clamp(32px, 9.3vw, 40px);
+
+  /* ── Button ── */
+  --btn-height-sm: clamp(32px, 8.4vw, 36px);
+  --btn-height-md: clamp(40px, 10.5vw, 44px);
+  --btn-height-lg: clamp(46px, 12.1vw, 52px);
+  --btn-padding-x: clamp(14px, 3.7vw, 16px);
+  --btn-font-size: clamp(13px, 3.5vw, 15px);
+
+  /* ── Icon ── */
+  --icon-sm: clamp(16px, 4.2vw, 18px);
+  --icon-md: clamp(20px, 5.2vw, 22px);
+  --icon-lg: clamp(24px, 6.3vw, 28px);
 
   /* ── Spacing ── */
   --space-1: 4px;
@@ -57,8 +70,8 @@
 
   /* ── Layout ── */
   --max-width: 430px;
-  --header-height: 56px;
-  --bottom-nav-height: 80px;
+  --header-height: clamp(48px, 13vw, 56px);
+  --bottom-nav-height: clamp(68px, 18.6vw, 80px);
 
   /* ── Border Radius ── */
   --radius-sm: 4px;
