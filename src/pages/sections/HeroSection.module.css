@@ -31,7 +31,7 @@
 .subtitle {
   font-family: var(--font-display);
   font-size: var(--text-xl);
-  font-weight: var(--weight-regular);
+  font-weight: 400;
   letter-spacing: 0.2em;
   color: var(--color-accent);
   margin-bottom: var(--space-3);
@@ -40,7 +40,7 @@
 .title {
   font-family: var(--font-heading);
   font-size: var(--text-3xl);
-  font-weight: var(--weight-bold);
+  font-weight: 700;
   letter-spacing: 0.05em;
   margin-bottom: var(--space-4);
 }
@@ -48,7 +48,7 @@
 .date {
   font-family: var(--font-display);
   font-size: var(--text-base);
-  font-weight: var(--weight-regular);
+  font-weight: 400;
   letter-spacing: 0.1em;
   margin-bottom: var(--space-1);
 }
@@ -75,7 +75,7 @@
 .countdownNumber {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -98,7 +98,7 @@
   padding: var(--space-4) 0;
   background-color: var(--color-accent);
   color: var(--color-text-inverse);
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   text-align: center;
@@ -115,7 +115,7 @@
   padding: var(--space-4) 0;
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--color-text-inverse);
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   font-size: var(--text-base);
   border-radius: var(--radius-lg);
   text-align: center;

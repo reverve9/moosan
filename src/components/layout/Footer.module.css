@@ -14,7 +14,7 @@
 .org {
   font-family: var(--font-heading);
   font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   margin-bottom: var(--space-1);
 }
 
@@ -33,7 +33,7 @@
 }
 
 .sponsorLabel {
-  font-weight: var(--weight-semibold);
+  font-weight: 600;
   color: var(--color-accent);
 }
 

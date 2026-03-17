@@ -33,5 +33,5 @@
   border: 2px dashed var(--color-border);
   color: var(--color-text-muted);
   text-align: center;
-  line-height: var(--leading-relaxed);
+  line-height: 1.8;
 }
