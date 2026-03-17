@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Application } from '@/types/database'
+import type { Application, Program } from '@/types/database'
 import styles from './AdminApplications.module.css'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -21,8 +21,18 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminApplications() {
   const [applications, setApplications] = useState<(Application & { programs: { name: string } | null })[]>([])
+  const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
+  const [programFilter, setProgramFilter] = useState<string>('all')
+
+  useEffect(() => {
+    supabase
+      .from('programs')
+      .select('*')
+      .order('sort_order')
+      .then(({ data }) => setPrograms(data || []))
+  }, [])
 
   const fetchApplications = async () => {
     setLoading(true)
@@ -35,6 +45,10 @@ export default function AdminApplications() {
       query = query.eq('status', statusFilter)
     }
 
+    if (programFilter !== 'all') {
+      query = query.eq('program_id', programFilter)
+    }
+
     const { data } = await query
     setApplications(data || [])
     setLoading(false)
@@ -42,7 +56,7 @@ export default function AdminApplications() {
 
   useEffect(() => {
     fetchApplications()
-  }, [statusFilter])
+  }, [statusFilter, programFilter])
 
   const updateStatus = async (id: string, status: Application['status']) => {
     await supabase.from('applications').update({ status }).eq('id', id)
@@ -54,6 +68,24 @@ export default function AdminApplications() {
       <div className={styles.header}>
         <h1 className={styles.title}>참가신청 관리</h1>
         <span className={styles.count}>{applications.length}건</span>
+      </div>
+
+      <div className={styles.programTabs}>
+        <button
+          className={`${styles.programTab} ${programFilter === 'all' ? styles.programTabActive : ''}`}
+          onClick={() => setProgramFilter('all')}
+        >
+          전체
+        </button>
+        {programs.map((p) => (
+          <button
+            key={p.id}
+            className={`${styles.programTab} ${programFilter === p.id ? styles.programTabActive : ''}`}
+            onClick={() => setProgramFilter(p.id)}
+          >
+            {p.name}
+          </button>
+        ))}
       </div>
 
       <div className={styles.filters}>
@@ -90,7 +122,7 @@ export default function AdminApplications() {
                 <small>{app.phone}</small>
               </span>
               <span className={styles.colProgram}>{app.programs?.name || '-'}</span>
-              <span className={styles.colDivision}>{app.division}</span>
+              <span className={styles.colDivision}>{app.division || '-'}</span>
               <span className={styles.colStatus}>
                 <span
                   className={styles.badge}

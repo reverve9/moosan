@@ -20,6 +20,35 @@
   border-radius: 9999px;
 }
 
+.programTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.programTab {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #9CA3AF;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.programTab:hover {
+  color: #374151;
+}
+
+.programTabActive {
+  color: #1E3A2F;
+  font-weight: 600;
+  border-bottom-color: #1E3A2F;
+}
+
 .filters {
   display: flex;
   gap: 8px;
