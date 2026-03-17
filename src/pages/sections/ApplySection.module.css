@@ -4,7 +4,7 @@
 }
 
 .container {
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-5);
   text-align: center;
 }
 
@@ -22,7 +22,7 @@
 
 .tabs {
   display: flex;
-  margin: 0 16px 24px;
+  margin: 0 20px 24px;
   border-bottom: 1px solid #E5E7EB;
 }
 
@@ -51,7 +51,7 @@
 
 .placeholder {
   padding: var(--space-12);
-  margin: 0 16px;
+  margin: 0 20px;
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
   border: 2px dashed var(--color-border);
