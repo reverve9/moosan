@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { Application, Program } from '@/types/database'
+import { XMarkIcon } from '@heroicons/react/24/outline'
+import type { Application, Program, Json } from '@/types/database'
 import styles from './AdminApplications.module.css'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,12 +20,60 @@ const STATUS_COLORS: Record<string, string> = {
   waitlist: '#8B5CF6',
 }
 
+type AppWithProgram = Application & { programs: { name: string; slug: string } | null }
+
+function MetaField({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null
+  return (
+    <div className={styles.detailRow}>
+      <span className={styles.detailLabel}>{label}</span>
+      <span className={styles.detailValue}>{value}</span>
+    </div>
+  )
+}
+
+function renderMeta(app: AppWithProgram) {
+  const meta = app.meta as Record<string, Json> | null
+  if (!meta) return null
+
+  const slug = app.programs?.slug
+
+  return (
+    <>
+      <MetaField label="성별" value={meta.gender as string} />
+      <MetaField label="주소" value={meta.address as string} />
+      <MetaField label="작품 유형" value={meta.work_type as string} />
+      <MetaField label="팀 인원" value={meta.team_member_count as string} />
+      <MetaField label="팀 구성" value={meta.team_composition as string} />
+      <MetaField label="공연 시간" value={meta.performance_duration as string} />
+      <MetaField label="합창단 구성" value={meta.choir_composition as string} />
+      <MetaField label="합창단 지역" value={meta.choir_region as string} />
+      <MetaField label="단원 수" value={meta.member_count as string} />
+      <MetaField label="지휘자" value={meta.conductor_name as string} />
+      <MetaField label="반주자" value={meta.accompanist_name as string} />
+      <MetaField label="수상 주소" value={meta.award_address as string} />
+
+      {slug === 'choir' && Array.isArray(meta.songs) && (
+        <div className={styles.detailSongs}>
+          <span className={styles.detailLabel}>참가곡</span>
+          {(meta.songs as { title: string; composer: string; duration: string }[]).map((s, i) => (
+            <div key={i} className={styles.songItem}>
+              <strong>곡 {i + 1}.</strong> {s.title} — {s.composer} ({s.duration})
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
 export default function AdminApplications() {
-  const [applications, setApplications] = useState<(Application & { programs: { name: string } | null })[]>([])
+  const [applications, setApplications] = useState<AppWithProgram[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
   const [programFilter, setProgramFilter] = useState<string>('all')
+  const [selected, setSelected] = useState<AppWithProgram | null>(null)
 
   useEffect(() => {
     supabase
@@ -38,7 +87,7 @@ export default function AdminApplications() {
     setLoading(true)
     let query = supabase
       .from('applications')
-      .select('*, programs(name)')
+      .select('*, programs(name, slug)')
       .order('created_at', { ascending: false })
 
     if (statusFilter !== 'all') {
@@ -50,7 +99,7 @@ export default function AdminApplications() {
     }
 
     const { data } = await query
-    setApplications(data || [])
+    setApplications((data as AppWithProgram[]) || [])
     setLoading(false)
   }
 
@@ -61,6 +110,9 @@ export default function AdminApplications() {
   const updateStatus = async (id: string, status: Application['status']) => {
     await supabase.from('applications').update({ status }).eq('id', id)
     fetchApplications()
+    if (selected?.id === id) {
+      setSelected((prev) => prev ? { ...prev, status } : null)
+    }
   }
 
   return (
@@ -107,7 +159,6 @@ export default function AdminApplications() {
           <span className={styles.colDivision}>부문</span>
           <span className={styles.colStatus}>상태</span>
           <span className={styles.colDate}>신청일</span>
-          <span className={styles.colActions}>관리</span>
         </div>
 
         {loading ? (
@@ -116,7 +167,11 @@ export default function AdminApplications() {
           <div className={styles.empty}>신청 내역이 없습니다.</div>
         ) : (
           applications.map((app) => (
-            <div key={app.id} className={styles.tableRow}>
+            <div
+              key={app.id}
+              className={styles.tableRow}
+              onClick={() => setSelected(app)}
+            >
               <span className={styles.colName}>
                 <strong>{app.applicant_name}</strong>
                 <small>{app.phone}</small>
@@ -134,28 +189,96 @@ export default function AdminApplications() {
               <span className={styles.colDate}>
                 {new Date(app.created_at).toLocaleDateString('ko-KR')}
               </span>
-              <span className={styles.colActions}>
-                {app.status === 'pending' && (
-                  <>
-                    <button
-                      className={styles.approveBtn}
-                      onClick={() => updateStatus(app.id, 'approved')}
-                    >
-                      승인
-                    </button>
-                    <button
-                      className={styles.rejectBtn}
-                      onClick={() => updateStatus(app.id, 'rejected')}
-                    >
-                      반려
-                    </button>
-                  </>
-                )}
-              </span>
             </div>
           ))
         )}
       </div>
+
+      {selected && (
+        <div className={styles.overlay} onClick={() => setSelected(null)}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div>
+                <h2 className={styles.modalTitle}>{selected.applicant_name}</h2>
+                <p className={styles.modalSub}>
+                  {selected.programs?.name}{selected.division ? ` · ${selected.division}` : ''}
+                </p>
+              </div>
+              <button className={styles.closeBtn} onClick={() => setSelected(null)}>
+                <XMarkIcon width={20} height={20} />
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.detailSection}>
+                <h3 className={styles.detailSectionTitle}>신청 정보</h3>
+                <MetaField label="상태" value={STATUS_LABELS[selected.status]} />
+                <MetaField label="신청일" value={new Date(selected.created_at).toLocaleString('ko-KR')} />
+                <MetaField label="참가 유형" value={selected.participation_type === 'team' ? '팀' : '개인'} />
+                {selected.team_name && <MetaField label="팀명" value={selected.team_name} />}
+              </div>
+
+              <div className={styles.detailSection}>
+                <h3 className={styles.detailSectionTitle}>
+                  {selected.participation_type === 'team' ? '대표자 정보' : '참가자 정보'}
+                </h3>
+                <MetaField label="이름" value={selected.applicant_name} />
+                <MetaField label="생년월일" value={selected.applicant_birth} />
+                <MetaField label="소속" value={selected.school_name || undefined} />
+                <MetaField label="학년" value={selected.school_grade} />
+                <MetaField label="연락처" value={selected.phone} />
+                <MetaField label="이메일" value={selected.email} />
+              </div>
+
+              {(selected.parent_name || selected.parent_phone) && (
+                <div className={styles.detailSection}>
+                  <h3 className={styles.detailSectionTitle}>보호자 정보</h3>
+                  <MetaField label="이름" value={selected.parent_name} />
+                  <MetaField label="연락처" value={selected.parent_phone} />
+                  <MetaField label="관계" value={selected.parent_relation} />
+                </div>
+              )}
+
+              {(selected.teacher_name || selected.teacher_phone) && (
+                <div className={styles.detailSection}>
+                  <h3 className={styles.detailSectionTitle}>지도교사 정보</h3>
+                  <MetaField label="이름" value={selected.teacher_name} />
+                  <MetaField label="연락처" value={selected.teacher_phone} />
+                  <MetaField label="이메일" value={selected.teacher_email} />
+                </div>
+              )}
+
+              <div className={styles.detailSection}>
+                <h3 className={styles.detailSectionTitle}>프로그램별 정보</h3>
+                {renderMeta(selected)}
+              </div>
+
+              <div className={styles.detailSection}>
+                <h3 className={styles.detailSectionTitle}>동의</h3>
+                <MetaField label="개인정보 동의" value={selected.privacy_agreed ? '동의함' : '미동의'} />
+                <MetaField label="동의 일시" value={selected.privacy_agreed_at ? new Date(selected.privacy_agreed_at).toLocaleString('ko-KR') : undefined} />
+              </div>
+            </div>
+
+            {selected.status === 'pending' && (
+              <div className={styles.modalFooter}>
+                <button
+                  className={styles.approveBtn}
+                  onClick={() => updateStatus(selected.id, 'approved')}
+                >
+                  승인
+                </button>
+                <button
+                  className={styles.rejectBtn}
+                  onClick={() => updateStatus(selected.id, 'rejected')}
+                >
+                  반려
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
