@@ -65,9 +65,13 @@ const INITIAL_FORM: FormData = {
 
 const TOTAL_STEPS = 3
 
-export default function ApplyForm() {
+interface Props {
+  defaultProgramId?: string
+}
+
+export default function ApplyForm({ defaultProgramId }: Props) {
   const [step, setStep] = useState(1)
-  const [form, setForm] = useState<FormData>(INITIAL_FORM)
+  const [form, setForm] = useState<FormData>({ ...INITIAL_FORM, programId: defaultProgramId || '' })
   const [submitted, setSubmitted] = useState(false)
 
   const updateForm = (updates: Partial<FormData>) => {

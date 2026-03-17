@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import ApplyForm from './apply/ApplyForm'
 import ChoirApplyForm from './apply/choir/ChoirApplyForm'
 import WritingApplyForm from './apply/writing/WritingApplyForm'
 import ArtApplyForm from './apply/art/ArtApplyForm'
@@ -28,7 +29,7 @@ export default function ApplySection({ programSlug }: Props) {
       case 'choir':
         return <ChoirApplyForm />
       case 'dance':
-        return <div className={styles.placeholder}>준비 중입니다.</div>
+        return <ApplyForm defaultProgramId="dance" />
       default:
         return null
     }
