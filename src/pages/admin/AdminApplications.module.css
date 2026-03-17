@@ -1,0 +1,139 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.filterBtn {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6B7280;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  transition: all 150ms ease;
+}
+
+.filterBtn:hover {
+  background-color: #F9FAFB;
+}
+
+.filterBtnActive {
+  background-color: #1E3A2F;
+  border-color: #1E3A2F;
+  color: #FFFFFF;
+}
+
+.table {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.7fr 0.7fr 0.8fr 1fr;
+  padding: 12px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  background-color: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 0.7fr 0.7fr 0.8fr 1fr;
+  padding: 14px 20px;
+  font-size: 14px;
+  color: #374151;
+  border-bottom: 1px solid #F3F4F6;
+  align-items: center;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.colName strong {
+  display: block;
+  font-weight: 600;
+  color: #111827;
+}
+
+.colName small {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.colActions {
+  display: flex;
+  gap: 6px;
+}
+
+.approveBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #10B981;
+  background-color: #ECFDF5;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.approveBtn:hover {
+  background-color: #D1FAE5;
+}
+
+.rejectBtn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #EF4444;
+  background-color: #FEF2F2;
+  border-radius: 6px;
+  transition: background-color 150ms ease;
+}
+
+.rejectBtn:hover {
+  background-color: #FEE2E2;
+}
+
+.empty {
+  padding: 48px 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #9CA3AF;
+}

@@ -1,0 +1,56 @@
+.wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.wrapper:hover {
+  background-color: #F3F4F6;
+}
+
+.wrapperError {
+  border-color: #C62828;
+}
+
+.box {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border: 2px solid #D1D5DB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  transition: all 150ms ease;
+}
+
+.boxChecked {
+  background-color: #1E3A2F;
+  border-color: #1E3A2F;
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  color: #FFFFFF;
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.label {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}

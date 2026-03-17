@@ -1,0 +1,132 @@
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.notice {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: #F9FAFB;
+  border-radius: 8px;
+}
+
+.notice p + p {
+  margin-top: 12px;
+}
+
+.rulesList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: disc;
+  padding-left: 18px;
+}
+
+.rulesList li {
+  list-style: disc;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.privacyTable {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.privacyRow {
+  display: flex;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.privacyRow:last-child {
+  border-bottom: none;
+}
+
+.privacyLabel {
+  width: 80px;
+  flex-shrink: 0;
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background-color: #F9FAFB;
+  border-right: 1px solid #E5E7EB;
+}
+
+.privacyValue {
+  flex: 1;
+  padding: 12px;
+  font-size: 12px;
+  color: #6B7280;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0 24px;
+}
+
+.btnPrimary {
+  flex: 1;
+  height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: #1E3A2F;
+  border-radius: 12px;
+  transition: background-color 150ms ease;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background-color: #142820;
+}
+
+.btnPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnSecondary {
+  width: 100px;
+  height: 48px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  background-color: #F3F4F6;
+  border-radius: 12px;
+  transition: background-color 150ms ease;
+}
+
+.btnSecondary:hover {
+  background-color: #E5E7EB;
+}
