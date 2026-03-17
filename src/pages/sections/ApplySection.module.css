@@ -17,14 +17,45 @@
 .subtitle {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+.tabs {
+  display: flex;
+  margin: 0 16px 24px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #9CA3AF;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 150ms ease;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: #374151;
+}
+
+.tabActive {
+  color: #1E3A2F;
+  font-weight: 600;
+  border-bottom-color: #1E3A2F;
 }
 
 .placeholder {
   padding: var(--space-12);
+  margin: 0 16px;
   background-color: var(--color-bg-secondary);
   border-radius: var(--radius-lg);
   border: 2px dashed var(--color-border);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+  text-align: center;
 }
