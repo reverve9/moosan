@@ -31,7 +31,7 @@
 
   /* ── Typography ── */
   --font-heading: 'Noto Serif KR', serif;
-  --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-display: 'Cormorant Garamond', 'Playfair Display', serif;
 
   --text-xs: 0.75rem;
