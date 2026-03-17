@@ -6,5 +6,7 @@
 
 .main {
   flex: 1;
-  margin-top: var(--header-height);
+  padding-top: var(--header-height);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--space-6));
+  background-color: var(--color-bg);
 }

@@ -19,9 +19,18 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   color: var(--color-text);
-  background-color: var(--color-bg);
+  background-color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  background-color: var(--color-bg);
+  min-height: 100vh;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
 h1, h2, h3, h4, h5, h6 {

@@ -68,9 +68,9 @@
   --space-24: 6rem;
 
   /* ── Layout ── */
-  --max-width: 1200px;
-  --max-width-narrow: 800px;
-  --header-height: 64px;
+  --max-width: 430px;
+  --header-height: 56px;
+  --bottom-nav-height: 80px;
 
   /* ── Border Radius ── */
   --radius-sm: 4px;

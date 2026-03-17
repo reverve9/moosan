@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-height));
   background-image: url('/images/hero-bg.jpg');
   background-size: cover;
   background-position: center;
@@ -25,45 +25,45 @@
 .content {
   position: relative;
   z-index: 1;
-  padding: var(--space-8);
+  padding: var(--space-6);
 }
 
 .subtitle {
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: var(--weight-regular);
   letter-spacing: 0.2em;
   color: var(--color-accent);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .title {
   font-family: var(--font-heading);
-  font-size: var(--text-5xl);
+  font-size: var(--text-3xl);
   font-weight: var(--weight-bold);
   letter-spacing: 0.05em;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .date {
   font-family: var(--font-display);
-  font-size: var(--text-xl);
+  font-size: var(--text-base);
   font-weight: var(--weight-regular);
   letter-spacing: 0.1em;
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
 .venue {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-10);
 }
 
 .countdown {
   display: flex;
   justify-content: center;
-  gap: var(--space-8);
-  margin-bottom: var(--space-12);
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
 }
 
 .countdownItem {
@@ -74,30 +74,34 @@
 
 .countdownNumber {
   font-family: var(--font-display);
-  font-size: var(--text-4xl);
+  font-size: var(--text-2xl);
   font-weight: var(--weight-bold);
   line-height: 1;
 }
 
 .countdownLabel {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: rgba(255, 255, 255, 0.7);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .cta {
   display: flex;
-  justify-content: center;
-  gap: var(--space-4);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .ctaPrimary {
-  display: inline-block;
-  padding: var(--space-4) var(--space-8);
+  display: block;
+  width: 100%;
+  padding: var(--space-4) 0;
   background-color: var(--color-accent);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
-  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  text-align: center;
   transition: background-color var(--transition-fast);
 }
 
@@ -106,35 +110,19 @@
 }
 
 .ctaSecondary {
-  display: inline-block;
-  padding: var(--space-4) var(--space-8);
+  display: block;
+  width: 100%;
+  padding: var(--space-4) 0;
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: var(--color-text-inverse);
   font-weight: var(--weight-semibold);
-  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  text-align: center;
   transition: all var(--transition-fast);
 }
 
 .ctaSecondary:hover {
   background-color: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.8);
-}
-
-@media (max-width: 768px) {
-  .title {
-    font-size: var(--text-3xl);
-  }
-
-  .countdown {
-    gap: var(--space-4);
-  }
-
-  .countdownNumber {
-    font-size: var(--text-2xl);
-  }
-
-  .cta {
-    flex-direction: column;
-    align-items: center;
-  }
 }
