@@ -1,8 +1,6 @@
 .layout {
   display: flex;
   min-height: 100vh;
-  max-width: 1280px;
-  margin: 0 auto;
   background-color: #F9FAFB;
 }
 
@@ -15,8 +13,7 @@
   flex-direction: column;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-640px);
+  left: 0;
 }
 
 .logo {
@@ -105,11 +102,4 @@
   margin-left: 240px;
   padding: 32px;
   max-width: 1040px;
-}
-
-@media (max-width: 1280px) {
-  .sidebar {
-    left: 0;
-    transform: none;
-  }
 }
