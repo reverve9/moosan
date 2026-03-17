@@ -101,7 +101,7 @@
   flex: 1;
   margin-left: 240px;
   padding: 32px;
-  max-width: 1040px;
+  min-width: 0;
 }
 
 /* ── Login ── */
