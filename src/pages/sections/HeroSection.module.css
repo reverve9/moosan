@@ -49,7 +49,7 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  color: #FFFFFF;
+  color: var(--color-text-inverse);
   white-space: nowrap;
 }
 
@@ -66,7 +66,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3cqw;
-  color: #FFFFFF;
+  color: var(--color-text-inverse);
   pointer-events: auto;
   transition: transform var(--transition-fast), opacity var(--transition-fast);
   transform: translateY(-100%);

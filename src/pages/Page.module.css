@@ -1,0 +1,7 @@
+.page {
+  padding: var(--space-16) var(--space-5);
+}
+
+.page > * + * {
+  margin-top: var(--space-3);
+}
