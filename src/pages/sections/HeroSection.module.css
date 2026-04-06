@@ -17,17 +17,13 @@
   display: block;
 }
 
-.bg {
-  opacity: 0.9;
-}
-
 .title,
 .logo {
   pointer-events: none;
 }
 
 .title {
-  transform: translateY(-3%);
+  transform: translateY(2%);
 }
 
 .logo {
@@ -42,7 +38,7 @@
 
 .info {
   position: absolute;
-  top: 88%;
+  top: 90%;
   left: 50%;
   transform: translate(-50%, -100%);
   display: flex;

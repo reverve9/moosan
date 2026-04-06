@@ -1,18 +1,18 @@
 /* ============================================
    Design Tokens — 2026 설악무산문화축전
-   키비주얼 확정 후 컬러 팔레트 업데이트 예정
+   메인 포스터(home_bg.png) 기반 팔레트
    clamp 기준: min(320px) → preferred(3.5vw) → max(430px)
    ============================================ */
 
 :root {
   /* ── Brand ── */
-  --color-primary: #1E3A2F;
-  --color-primary-light: #2A5040;
-  --color-primary-dark: #142820;
+  --color-primary: #1E7F3A;        /* 포스터 메인 그린 (산) */
+  --color-primary-light: #2CA34C;  /* Button hover */
+  --color-primary-dark: #14321E;   /* primary 계열 섀도 (필요 시) */
 
-  --color-accent: #C9932A;
-  --color-accent-light: #D4A94E;
-  --color-accent-dark: #A87820;
+  --color-accent: #D95028;         /* 테라코타 (포스터 실루엣) */
+  --color-accent-light: #E8704C;
+  --color-accent-dark: #B23E1C;
 
   /* ── Surface ── */
   --color-bg: #FDFBF7;

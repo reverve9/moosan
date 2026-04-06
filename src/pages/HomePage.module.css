@@ -9,8 +9,5 @@
   box-shadow: var(--shadow-lg);
   position: relative;
   padding-bottom: calc(var(--bottom-nav-height) + var(--space-6));
-}
-
-.main {
-  padding-top: var(--header-height);
+  container-type: inline-size;
 }

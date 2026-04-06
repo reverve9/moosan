@@ -9,8 +9,10 @@ import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
+import YouthPage from '@/pages/program/YouthPage'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminApplications from '@/pages/admin/AdminApplications'
+import AdminFestivals from '@/pages/admin/AdminFestivals'
 import AdminPrograms from '@/pages/admin/AdminPrograms'
 import AdminNotices from '@/pages/admin/AdminNotices'
 
@@ -30,6 +32,7 @@ export default function App() {
           <Route path="/apply/:slug" element={<ApplyPage />} />
           <Route path="/location" element={<LocationPage />} />
           <Route path="/notice" element={<NoticePage />} />
+          <Route path="/program/youth" element={<YouthPage />} />
           <Route path="/program/:slug" element={<ProgramDetailPage />} />
         </Route>
 
@@ -37,6 +40,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="applications" element={<AdminApplications />} />
+          <Route path="festivals" element={<AdminFestivals />} />
           <Route path="programs" element={<AdminPrograms />} />
           <Route path="notices" element={<AdminNotices />} />
         </Route>

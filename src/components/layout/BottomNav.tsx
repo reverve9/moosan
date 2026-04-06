@@ -4,23 +4,20 @@ import {
   CalendarDaysIcon,
   RectangleGroupIcon,
   SparklesIcon,
-  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   CalendarDaysIcon as CalendarDaysIconSolid,
   RectangleGroupIcon as RectangleGroupIconSolid,
   SparklesIcon as SparklesIconSolid,
-  PencilSquareIcon as PencilSquareIconSolid,
 } from '@heroicons/react/24/solid'
 import styles from './BottomNav.module.css'
 
 const NAV_ITEMS = [
   { label: '홈', path: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
-  { label: '일정', path: '/schedule', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
-  { label: '프로그램', path: '/programs', icon: RectangleGroupIcon, activeIcon: RectangleGroupIconSolid },
-  { label: '페스티벌', path: '/festival', icon: SparklesIcon, activeIcon: SparklesIconSolid },
-  { label: '참가신청', path: '/apply', icon: PencilSquareIcon, activeIcon: PencilSquareIconSolid },
+  { label: '설악무산문화축전', path: '/schedule', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
+  { label: '청소년문화축전', path: '/program/youth', icon: RectangleGroupIcon, activeIcon: RectangleGroupIconSolid },
+  { label: '음식문화페스티벌', path: '/program/food', icon: SparklesIcon, activeIcon: SparklesIconSolid },
 ]
 
 export default function BottomNav() {

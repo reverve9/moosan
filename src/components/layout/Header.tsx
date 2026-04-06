@@ -1,21 +1,42 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bars3Icon,
   MegaphoneIcon,
   MapPinIcon,
+  PencilSquareIcon,
 } from '@heroicons/react/24/outline'
 import styles from './Header.module.css'
 
 const MENU_ITEMS = [
   { label: '공지사항', path: '/notice', icon: MegaphoneIcon },
+  { label: '참가신청', path: '/apply', icon: PencilSquareIcon },
   { label: '오시는 길', path: '/location', icon: MapPinIcon },
 ]
 
+const SCROLL_THRESHOLD = 40
+
 export default function Header() {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const isHome = location.pathname === '/'
+
+  useEffect(() => {
+    if (!isHome) {
+      setScrolled(false)
+      return
+    }
+    const handleScroll = () => {
+      setScrolled(window.scrollY > SCROLL_THRESHOLD)
+    }
+    handleScroll()
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [isHome])
 
   useEffect(() => {
     if (!open) return
@@ -33,11 +54,18 @@ export default function Header() {
     navigate(path)
   }
 
+  const transparent = isHome && !scrolled
+  const headerClass = `${styles.header} ${transparent ? styles.transparent : ''}`
+
   return (
-    <header className={styles.header}>
+    <header className={headerClass}>
       <div className={styles.inner}>
-        <Link to="/" className={styles.logo}>
-          설악무산문화축전
+        <Link to="/" className={styles.logo} aria-label="설악무산문화축전 홈">
+          <img
+            src="/images/header_logo.png"
+            alt="설악무산문화축전"
+            className={styles.logoImage}
+          />
         </Link>
         <div className={styles.menu} ref={menuRef}>
           <button

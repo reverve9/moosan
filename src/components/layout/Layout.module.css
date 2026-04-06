@@ -8,6 +8,7 @@
   background-color: var(--color-bg);
   box-shadow: var(--shadow-lg);
   position: relative;
+  container-type: inline-size;
 }
 
 .main {

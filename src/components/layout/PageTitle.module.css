@@ -1,0 +1,32 @@
+.wrapper {
+  padding: var(--space-8) var(--space-5) var(--space-6);
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 4cqw; /* 24px @ 600 — 폰트 스케일과 동일 비례 */
+}
+
+.left {
+  justify-content: flex-start;
+}
+
+.center {
+  justify-content: center;
+}
+
+/* cqw 는 가장 가까운 container 조상(.layout / .home, 최대 600px) 기준
+   .wrapper .title/.subtitle 로 specificity 높여서 Text variant 의 값 덮어씀
+   line-height 1 + flex-end 로 한/영 라인 박스 하단이 정확히 같은 y 에 정렬됨 */
+.wrapper .title {
+  font-size: 4.667cqw; /* 28px @ 600 */
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.wrapper .subtitle {
+  font-size: 3cqw; /* 18px @ 600 */
+  font-weight: 200;
+  line-height: 1;
+}

@@ -1,7 +1,6 @@
 .footer {
   background-color: var(--color-bg);
   padding: var(--space-10) 0 var(--space-6);
-  border-top: 1px solid var(--color-border-light);
 }
 
 .inner {
@@ -26,4 +25,10 @@
 
 .sponsorLabel {
   margin-right: var(--space-1);
+}
+
+.copyright {
+  margin-top: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-light);
 }

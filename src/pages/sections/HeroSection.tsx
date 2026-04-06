@@ -13,28 +13,28 @@ interface Marker {
 
 const markers: Marker[] = [
   {
-    top: '27%',
+    top: '32%',
     align: 'left',
     date: '5월 15일(금)',
     title: ['개막식'],
     to: '/program/ceremony',
   },
   {
-    top: '59%',
+    top: '64%',
     align: 'left',
     date: '5월 15일(금) - 17일(일)',
     title: ['제3회', '설악음식문화페스티벌'],
     to: '/program/food',
   },
   {
-    top: '43%',
+    top: '48%',
     align: 'right',
     date: '5월 15일(금) - 17일(일)',
     title: ['제4회', '설악청소년문화축전'],
     to: '/program/youth',
   },
   {
-    top: '75%',
+    top: '80%',
     align: 'right',
     date: '5월 17일(일)',
     title: ['폐막식'],

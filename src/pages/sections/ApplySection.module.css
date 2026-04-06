@@ -28,8 +28,8 @@
 
 .tab {
   flex: 1;
-  padding: 12px 0;
-  font-size: 14px;
+  padding: 12px 4px;
+  font-size: 12px;
   font-weight: 500;
   color: #9CA3AF;
   background: none;
@@ -37,6 +37,7 @@
   border-bottom: 2px solid transparent;
   transition: all 150ms ease;
   cursor: pointer;
+  word-break: keep-all;
 }
 
 .tab:hover {

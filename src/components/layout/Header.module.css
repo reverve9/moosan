@@ -6,25 +6,53 @@
   width: 100%;
   max-width: var(--max-width);
   height: var(--header-height);
+  z-index: var(--z-header);
+}
+
+/* bg/border 를 가상 요소의 opacity 로 전환 — `transparent` 키워드가
+   rgba(0,0,0,0) 로 해석돼서 페이드 도중 다크 회색이 비치는 이슈 회피 */
+.header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   background-color: var(--color-bg);
   border-bottom: 1px solid var(--color-border-light);
-  z-index: var(--z-header);
+  box-sizing: border-box;
+  opacity: 1;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.header.transparent::before {
+  opacity: 0;
 }
 
 .inner {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   height: 100%;
   padding: 0 var(--space-5);
 }
 
 .logo {
-  font-family: var(--font-base);
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.logoImage {
+  height: 38%;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  filter: brightness(0);
+  transition: filter var(--transition-base);
+}
+
+.header.transparent .logoImage {
+  filter: none;
 }
 
 .menu {
@@ -41,7 +69,12 @@
   width: var(--icon-lg);
   height: var(--icon-lg);
   color: var(--color-text);
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--transition-fast),
+    color var(--transition-base);
+}
+
+.header.transparent .menuButton {
+  color: var(--color-text-inverse);
 }
 
 .menuButton:active {

@@ -3,9 +3,61 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
   public: {
     Tables: {
+      festivals: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          subtitle: string | null
+          description_lead: string | null
+          description_body: string | null
+          poster_url: string | null
+          schedule: string | null
+          venue: string | null
+          theme_color: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          subtitle?: string | null
+          description_lead?: string | null
+          description_body?: string | null
+          poster_url?: string | null
+          schedule?: string | null
+          venue?: string | null
+          theme_color?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          subtitle?: string | null
+          description_lead?: string | null
+          description_body?: string | null
+          poster_url?: string | null
+          schedule?: string | null
+          venue?: string | null
+          theme_color?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       programs: {
         Row: {
           id: string
+          festival_id: string | null
           slug: string
           name: string
           category: 'writing' | 'art' | 'dance' | 'choir'
@@ -15,9 +67,16 @@ export interface Database {
           max_team_size: number | null
           description: string | null
           requirements: string | null
+          event_name: string | null
           schedule: string | null
           venue: string | null
+          target_text: string | null
           awards: Json | null
+          awards_text: string | null
+          registration_period: string | null
+          application_method: string | null
+          thumbnail_url: string | null
+          gallery_urls: Json
           registration_start: string | null
           registration_end: string | null
           max_applicants: number | null
@@ -29,6 +88,7 @@ export interface Database {
         }
         Insert: {
           id?: string
+          festival_id?: string | null
           slug: string
           name: string
           category: 'writing' | 'art' | 'dance' | 'choir'
@@ -38,9 +98,16 @@ export interface Database {
           max_team_size?: number | null
           description?: string | null
           requirements?: string | null
+          event_name?: string | null
           schedule?: string | null
           venue?: string | null
+          target_text?: string | null
           awards?: Json | null
+          awards_text?: string | null
+          registration_period?: string | null
+          application_method?: string | null
+          thumbnail_url?: string | null
+          gallery_urls?: Json
           registration_start?: string | null
           registration_end?: string | null
           max_applicants?: number | null
@@ -52,6 +119,7 @@ export interface Database {
         }
         Update: {
           id?: string
+          festival_id?: string | null
           slug?: string
           name?: string
           category?: 'writing' | 'art' | 'dance' | 'choir'
@@ -61,9 +129,16 @@ export interface Database {
           max_team_size?: number | null
           description?: string | null
           requirements?: string | null
+          event_name?: string | null
           schedule?: string | null
           venue?: string | null
+          target_text?: string | null
           awards?: Json | null
+          awards_text?: string | null
+          registration_period?: string | null
+          application_method?: string | null
+          thumbnail_url?: string | null
+          gallery_urls?: Json
           registration_start?: string | null
           registration_end?: string | null
           max_applicants?: number | null
@@ -73,7 +148,15 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: 'programs_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
       }
       applications: {
         Row: {
@@ -270,9 +353,13 @@ export interface Database {
 }
 
 // Convenience types
+export type Festival = Database['public']['Tables']['festivals']['Row']
 export type Program = Database['public']['Tables']['programs']['Row']
 export type Application = Database['public']['Tables']['applications']['Row']
 export type ApplicationInsert = Database['public']['Tables']['applications']['Insert']
 export type Participant = Database['public']['Tables']['participants']['Row']
 export type ParticipantInsert = Database['public']['Tables']['participants']['Insert']
 export type Notice = Database['public']['Tables']['notices']['Row']
+
+// Awards JSONB structure
+export type AwardItem = { rank: string; prize: string }

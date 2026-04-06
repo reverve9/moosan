@@ -6,10 +6,10 @@ import ArtApplyForm from './apply/art/ArtApplyForm'
 import styles from './ApplySection.module.css'
 
 const PROGRAMS = [
-  { slug: 'baekiljang', label: '백일장' },
-  { slug: 'saesaeng', label: '사생대회' },
-  { slug: 'dance', label: '댄스' },
-  { slug: 'choir', label: '합창' },
+  { slug: 'saesaeng', label: '전국 어린이 사생대회' },
+  { slug: 'choir', label: '전국 어린이 합창대회' },
+  { slug: 'baekiljang', label: '전국 청소년 백일장' },
+  { slug: 'dance', label: '전국 청소년 스트리트댄스' },
 ]
 
 interface Props {

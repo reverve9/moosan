@@ -1,0 +1,235 @@
+.section {
+  padding: var(--space-8) var(--space-5) var(--space-12);
+}
+
+.sectionTitle {
+  font-family: var(--font-base);
+  font-size: 4cqw; /* 24px @ 600 */
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 3.333cqw; /* 20px */
+  letter-spacing: -0.02em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2.667cqw; /* 16px */
+}
+
+/* ──────────────── 카드 ──────────────── */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.cardOpen {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ──────────────── 헤더 (항상 표시) ──────────────── */
+.header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 3cqw; /* 18px */
+  align-items: center;
+  width: 100%;
+  padding: 3cqw 3.333cqw; /* 18px 20px */
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.thumbnail {
+  width: 14cqw; /* 84px */
+  height: 14cqw;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  object-fit: cover;
+  display: block;
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-base);
+  font-size: 2.833cqw; /* 17px */
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 1cqw; /* 6px */
+  letter-spacing: -0.01em;
+}
+
+.desc {
+  font-family: var(--font-base);
+  font-size: 2.333cqw; /* 14px */
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+  word-break: keep-all;
+}
+
+.chevron {
+  width: 4cqw; /* 24px */
+  height: 4cqw;
+  color: var(--color-text-muted);
+  transition: transform 250ms ease;
+  flex-shrink: 0;
+}
+
+.cardOpen .chevron {
+  transform: rotate(180deg);
+}
+
+/* ──────────────── 펼침 영역 ──────────────── */
+.bodyWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+
+.cardOpen .bodyWrap {
+  grid-template-rows: 1fr;
+}
+
+.body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cardOpen .body {
+  /* padding 적용은 안쪽에서 처리해야 transition 자연스러움 */
+}
+
+.body > * {
+  margin: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+}
+
+.cardOpen .body {
+  padding: 0 3.333cqw 3.333cqw; /* 0 20px 20px */
+  gap: 3cqw; /* 18px */
+}
+
+/* ──────────────── 통합 상세 박스 ──────────────── */
+.detailBox {
+  padding: 3.333cqw 3.667cqw; /* 20px 22px */
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: 1.667cqw; /* 10px */
+  column-gap: 3.333cqw; /* 20px */
+  margin: 0;
+  align-items: start;
+}
+
+.infoLabel {
+  font-family: var(--font-base);
+  font-size: 2.333cqw; /* 14px */
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.55;
+  white-space: nowrap;
+}
+
+.infoValue {
+  font-family: var(--font-base);
+  font-size: 2.333cqw; /* 14px */
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+  word-break: keep-all;
+  white-space: pre-line;
+}
+
+.subList {
+  list-style: disc;
+  margin: 0;
+  padding: 0 0 0 2.667cqw; /* left 16px */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqw; /* 3px */
+}
+
+.subList li {
+  font-family: var(--font-base);
+  font-size: 2.333cqw;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ──────────────── 갤러리 ──────────────── */
+.gallerySection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.667cqw; /* 10px */
+}
+
+.galleryTitle {
+  font-family: var(--font-base);
+  font-size: 2.167cqw; /* 13px */
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.333cqw; /* 8px */
+}
+
+.galleryItem {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+}
+
+/* ──────────────── 참가신청 버튼 영역 ──────────────── */
+.applyAction {
+  display: flex;
+  justify-content: center;
+  margin-top: 1cqw; /* 6px */
+}
+
+.applyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28cqw; /* 168px */
+  padding: 2cqw 5cqw; /* 12px 30px */
+  background-color: var(--festival-accent);
+  color: var(--color-text);
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-weight: 600;
+  font-size: 2.5cqw; /* 15px */
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.applyButton:hover {
+  opacity: 0.88;
+}
+
+.applyButton:active {
+  transform: scale(0.98);
+}

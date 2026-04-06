@@ -1,0 +1,104 @@
+.page {
+  width: 100%;
+  /* 청소년문화축전 — 옐로 테마 */
+  --festival-tint: #FBF1CC;
+  --festival-accent: #E8B935;
+}
+
+.about {
+  padding: 14px var(--space-5) var(--space-10);
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 4cqw; /* 24px @ 600 */
+  align-items: center;
+}
+
+.posterWrap {
+  width: 100%;
+}
+
+.poster {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.descriptionGroup {
+  display: block;
+}
+
+.description + .description {
+  margin-top: 0.5em;
+}
+
+.description {
+  font-family: var(--font-base);
+  font-size: 2.667cqw; /* 16px @ 600 */
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--color-text-secondary);
+  margin: 0;
+  text-align: justify;
+  word-break: break-all;
+}
+
+/* 드롭캡: 정사각형 박스(2줄 높이 = 2 × line-height)로 만들고
+   float 으로 본문이 박스 우측·하단을 자연스럽게 감싸도록 정렬 */
+.dropCap {
+  float: left;
+  width: 2.8em;
+  height: 2.8em;
+  margin: 0 0.5em 0 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--festival-tint);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 1em;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.dropCapChar {
+  font-size: 2em;
+  line-height: 1;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 3.333cqw; /* 20px @ 600 */
+}
+
+.infoBox {
+  padding: 2cqw 4cqw; /* 12px 24px @ 600 */
+  background-color: var(--festival-tint);
+  border-radius: var(--radius-md);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  row-gap: 0.667cqw; /* 4px @ 600 */
+  column-gap: 4cqw; /* 24px @ 600 */
+  margin: 0;
+}
+
+.infoLabel {
+  font-family: var(--font-base);
+  font-size: 2.333cqw; /* 14px @ 600 */
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.infoValue {
+  font-family: var(--font-base);
+  font-size: 2.333cqw; /* 14px @ 600 */
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
