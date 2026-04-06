@@ -19,14 +19,14 @@
    .wrapper .title/.subtitle 로 specificity 높여서 Text variant 의 값 덮어씀
    line-height 1 + flex-end 로 한/영 라인 박스 하단이 정확히 같은 y 에 정렬됨 */
 .wrapper .title {
-  font-size: 4.667cqw; /* 28px @ 600 */
+  font-size: var(--text-cq-28);
   font-weight: 800;
   line-height: 1;
   letter-spacing: -0.03em;
 }
 
 .wrapper .subtitle {
-  font-size: 3cqw; /* 18px @ 600 */
+  font-size: var(--text-cq-18);
   font-weight: 200;
   line-height: 1;
 }

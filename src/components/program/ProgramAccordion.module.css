@@ -4,7 +4,7 @@
 
 .sectionTitle {
   font-family: var(--font-base);
-  font-size: 4cqw; /* 24px @ 600 */
+  font-size: var(--text-cq-24);
   font-weight: 700;
   color: var(--color-text);
   margin: 0 0 3.333cqw; /* 20px */
@@ -61,7 +61,7 @@
 
 .name {
   font-family: var(--font-base);
-  font-size: 2.833cqw; /* 17px */
+  font-size: var(--text-cq-17);
   font-weight: 700;
   color: var(--color-text);
   margin: 0 0 1cqw; /* 6px */
@@ -70,7 +70,7 @@
 
 .desc {
   font-family: var(--font-base);
-  font-size: 2.333cqw; /* 14px */
+  font-size: var(--text-cq-14);
   font-weight: 400;
   line-height: 1.5;
   color: var(--color-text-secondary);
@@ -142,7 +142,7 @@
 
 .infoLabel {
   font-family: var(--font-base);
-  font-size: 2.333cqw; /* 14px */
+  font-size: var(--text-cq-14);
   font-weight: 600;
   color: var(--color-text);
   line-height: 1.55;
@@ -151,7 +151,7 @@
 
 .infoValue {
   font-family: var(--font-base);
-  font-size: 2.333cqw; /* 14px */
+  font-size: var(--text-cq-14);
   font-weight: 400;
   color: var(--color-text-secondary);
   line-height: 1.55;
@@ -171,7 +171,7 @@
 
 .subList li {
   font-family: var(--font-base);
-  font-size: 2.333cqw;
+  font-size: var(--text-cq-14);
   line-height: 1.55;
   color: var(--color-text-secondary);
 }
@@ -185,7 +185,7 @@
 
 .galleryTitle {
   font-family: var(--font-base);
-  font-size: 2.167cqw; /* 13px */
+  font-size: var(--text-cq-13);
   font-weight: 600;
   color: var(--color-text);
 }
@@ -220,7 +220,7 @@
   border-radius: var(--radius-md);
   font-family: var(--font-base);
   font-weight: 600;
-  font-size: 2.5cqw; /* 15px */
+  font-size: var(--text-cq-15);
   letter-spacing: -0.01em;
   text-decoration: none;
   transition: opacity 150ms ease, transform 150ms ease;

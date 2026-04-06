@@ -66,6 +66,20 @@
   --text-3xl: clamp(26px, 7.4vw, 32px);
   --text-4xl: clamp(32px, 9.3vw, 40px);
 
+  /* ── Fluid Typography — container query 기반
+     YouthPage 등 max-width 600px container 안에서 사용.
+     600px 기준 의도된 px 값을 그대로 보존하며, 순수 cqw 로
+     container 너비에 완전 비례(줄바꿈·레이아웃 점프 없음).
+     비율 조정은 이 토큰 정의만 손보면 일괄 반영. ── */
+  --text-cq-13: 2.167cqw;   /* 13px @ 600 */
+  --text-cq-14: 2.333cqw;   /* 14px @ 600 */
+  --text-cq-15: 2.5cqw;     /* 15px @ 600 */
+  --text-cq-16: 2.667cqw;   /* 16px @ 600 */
+  --text-cq-17: 2.833cqw;   /* 17px @ 600 */
+  --text-cq-18: 3cqw;       /* 18px @ 600 */
+  --text-cq-24: 4cqw;       /* 24px @ 600 */
+  --text-cq-28: 4.667cqw;   /* 28px @ 600 */
+
   /* ── Button ── */
   --btn-height-sm: clamp(32px, 8.4vw, 36px);
   --btn-height-md: clamp(40px, 10.5vw, 44px);

@@ -35,7 +35,7 @@
 
 .description {
   font-family: var(--font-base);
-  font-size: 2.667cqw; /* 16px @ 600 */
+  font-size: var(--text-cq-16);
   font-weight: 400;
   line-height: 1.45;
   letter-spacing: -0.01em;
@@ -87,7 +87,7 @@
 
 .infoLabel {
   font-family: var(--font-base);
-  font-size: 2.333cqw; /* 14px @ 600 */
+  font-size: var(--text-cq-14);
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
@@ -96,7 +96,7 @@
 
 .infoValue {
   font-family: var(--font-base);
-  font-size: 2.333cqw; /* 14px @ 600 */
+  font-size: var(--text-cq-14);
   font-weight: 400;
   color: var(--color-text-secondary);
   margin: 0;
