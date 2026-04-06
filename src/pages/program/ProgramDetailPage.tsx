@@ -7,7 +7,7 @@ export default function ProgramDetailPage() {
   return (
     <div className={styles.page}>
       <div className={styles.container}>
-        <Link to="/#programs" className={styles.back}>
+        <Link to="/programs" className={styles.back}>
           &larr; 프로그램 목록
         </Link>
         <h1 className={styles.title}>프로그램 상세</h1>
@@ -16,6 +16,9 @@ export default function ProgramDetailPage() {
           <br />
           (세부정보 수령 후 구현 예정)
         </p>
+        <Link to={`/apply/${slug}`} className={styles.applyButton}>
+          참가신청 하기
+        </Link>
       </div>
     </div>
   )

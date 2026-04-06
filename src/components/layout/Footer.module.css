@@ -1,7 +1,8 @@
 .footer {
-  background-color: var(--color-primary-dark);
-  color: var(--color-text-inverse);
+  background-color: var(--color-bg);
+  color: var(--color-text);
   padding: var(--space-10) 0 var(--space-6);
+  border-top: 1px solid var(--color-border-light);
 }
 
 .inner {
@@ -20,7 +21,7 @@
 
 .address {
   font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
 }
 
 .sponsors {
@@ -28,18 +29,18 @@
   align-items: center;
   gap: var(--space-3);
   font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
   flex-wrap: wrap;
 }
 
 .sponsorLabel {
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--color-primary);
 }
 
 .copyright {
   font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-muted);
   padding-top: var(--space-4);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border-light);
 }
