@@ -1,6 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import PageTitle from '@/components/layout/PageTitle'
 import ProgramAccordion from '@/components/program/ProgramAccordion'
+import MusanSections from '@/components/musan/MusanSections'
+import FoodSections from '@/components/food/FoodSections'
 import { fetchFestivalBySlug, getAssetUrl } from '@/lib/festival'
 import type { Festival } from '@/types/database'
 import styles from './FestivalPage.module.css'
@@ -34,9 +36,6 @@ export default function FestivalPage({ slug }: Props) {
   const themeStyle = {
     '--festival-tint': festival.theme_color ?? '#FBF1CC',
   } as CSSProperties
-  // 청소년문화축전만 현재 ProgramAccordion 콘텐츠가 있음.
-  // musan / food 는 다른 콘텐츠가 추후 추가됨.
-  const showAccordion = slug === 'youth'
 
   return (
     <div className={styles.page} style={themeStyle}>
@@ -87,7 +86,9 @@ export default function FestivalPage({ slug }: Props) {
           </div>
         </div>
       </section>
-      {showAccordion && <ProgramAccordion />}
+      {slug === 'youth' && <ProgramAccordion />}
+      {slug === 'musan' && <MusanSections festivalId={festival.id} />}
+      {slug === 'food' && <FoodSections festival={festival} />}
     </div>
   )
 }

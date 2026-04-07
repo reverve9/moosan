@@ -1,0 +1,245 @@
+/* ──────────────── Section 공통 ──────────────── */
+.section {
+  padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.section + .section {
+  padding-top: 0;
+}
+
+.sectionTitle {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-section);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 3.333cqw; /* 20px @ 600 */
+  letter-spacing: -0.02em;
+}
+
+/* ──────────────── 부스 위치도 ──────────────── */
+.layoutWrap {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.layoutImage {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.layoutPlaceholder {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-cq-label);
+}
+
+/* ──────────────── 매장 카드 (아코디언) ──────────────── */
+.boothList {
+  display: flex;
+  flex-direction: column;
+  gap: 2.667cqw; /* 16px @ 600 */
+}
+
+.boothCard {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.boothOpen {
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.boothHeader {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 3cqw; /* 18px @ 600 */
+  align-items: center;
+  width: 100%;
+  padding: 3cqw 3.333cqw; /* 18px 20px @ 600 */
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.boothThumb {
+  width: 14cqw; /* 84px @ 600 */
+  height: 14cqw;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.boothThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.boothThumbPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.boothHeadText {
+  min-width: 0;
+}
+
+.boothNameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 1.333cqw; /* 8px @ 600 */
+  margin: 0 0 1cqw; /* 6px @ 600 */
+}
+
+.boothNo {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-caption);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.boothName {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-card-title);
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.boothDesc {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.chevron {
+  width: 4cqw; /* 24px @ 600 */
+  height: 4cqw;
+  color: var(--color-text-muted);
+  transition: transform 250ms ease;
+  flex-shrink: 0;
+}
+
+.boothOpen .chevron {
+  transform: rotate(180deg);
+}
+
+/* ──────────────── 펼침 영역 ──────────────── */
+.bodyWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+
+.boothOpen .bodyWrap {
+  grid-template-rows: 1fr;
+}
+
+.body {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.boothOpen .body {
+  padding: 0 3.333cqw 3.333cqw; /* 0 20px 20px @ 600 */
+}
+
+/* ──────────────── 메뉴 리스트 ──────────────── */
+.menuList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2cqw; /* 12px @ 600 */
+}
+
+.menuItem {
+  padding: 2cqw 0; /* 12px @ 600 */
+  border-top: 1px solid var(--color-border-light);
+}
+
+.menuItem:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.menuHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqw;
+}
+
+.menuName {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  font-weight: 600;
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 1cqw; /* 6px @ 600 */
+}
+
+.signatureMark {
+  display: inline-block;
+  font-size: var(--text-cq-caption);
+  font-weight: 700;
+  color: var(--color-text-inverse);
+  background-color: var(--color-accent);
+  padding: 0.333cqw 1cqw; /* 2px 6px @ 600 */
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.02em;
+}
+
+.menuPrice {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.menuDesc {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-caption);
+  color: var(--color-text-secondary);
+  margin: 0.667cqw 0 0;
+  line-height: 1.5;
+  word-break: keep-all;
+}
+
+.emptyMenu {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  color: var(--color-text-muted);
+  margin: 0;
+  text-align: center;
+  padding: 3cqw 0;
+}

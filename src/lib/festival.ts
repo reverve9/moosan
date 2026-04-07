@@ -1,5 +1,12 @@
 import { supabase } from './supabase'
 import type { Festival, Program } from '@/types/database'
+import type {
+  FestivalEvent,
+  FestivalGuest,
+  FoodBooth,
+  FoodBoothWithMenus,
+  FoodMenu,
+} from '@/types/festival_extras'
 
 const STORAGE_BUCKET = 'festival-assets'
 
@@ -39,4 +46,78 @@ export async function fetchFestivalBySlug(slug: string): Promise<{
   if (programsError) return { festival, programs: [] }
 
   return { festival, programs: programs ?? [] }
+}
+
+/**
+ * festival_events 조회 (musan: 개막식 / 폐막식 / 기타 프로그램)
+ * kind 필터 옵션. 미지정 시 전체.
+ */
+export async function fetchFestivalEvents(
+  festivalId: string,
+  kind?: FestivalEvent['kind'] | FestivalEvent['kind'][]
+): Promise<FestivalEvent[]> {
+  let query = supabase
+    .from('festival_events')
+    .select('*')
+    .eq('festival_id', festivalId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  if (kind) {
+    if (Array.isArray(kind)) query = query.in('kind', kind)
+    else query = query.eq('kind', kind)
+  }
+
+  const { data, error } = await query
+  if (error) return []
+  return (data ?? []) as FestivalEvent[]
+}
+
+/**
+ * festival_guests 조회 (musan: 스페셜 게스트)
+ */
+export async function fetchFestivalGuests(festivalId: string): Promise<FestivalGuest[]> {
+  const { data, error } = await supabase
+    .from('festival_guests')
+    .select('*')
+    .eq('festival_id', festivalId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+  if (error) return []
+  return (data ?? []) as FestivalGuest[]
+}
+
+/**
+ * food_booths + 각 booth 의 menus 조회 (food: 매장 안내)
+ */
+export async function fetchFoodBooths(festivalId: string): Promise<FoodBoothWithMenus[]> {
+  const { data: booths, error: boothErr } = await supabase
+    .from('food_booths')
+    .select('*')
+    .eq('festival_id', festivalId)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+  if (boothErr || !booths || booths.length === 0) return []
+
+  const boothIds = booths.map((b) => b.id)
+  const { data: menus, error: menuErr } = await supabase
+    .from('food_menus')
+    .select('*')
+    .in('booth_id', boothIds)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+
+  const menusByBooth = new Map<string, FoodMenu[]>()
+  if (!menuErr && menus) {
+    for (const m of menus as FoodMenu[]) {
+      const list = menusByBooth.get(m.booth_id) ?? []
+      list.push(m)
+      menusByBooth.set(m.booth_id, list)
+    }
+  }
+
+  return (booths as FoodBooth[]).map((b) => ({
+    ...b,
+    menus: menusByBooth.get(b.id) ?? [],
+  }))
 }

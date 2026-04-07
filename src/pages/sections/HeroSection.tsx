@@ -20,7 +20,7 @@ const markers: Marker[] = [
     inset: '7%',
     date: '5월 15일(금)',
     title: ['개막식'],
-    to: '/program/ceremony',
+    to: '/program/musan',
   },
   {
     top: '60.8%',
@@ -42,7 +42,7 @@ const markers: Marker[] = [
     inset: '7%',
     date: '5월 17일(일)',
     title: ['폐막식'],
-    to: '/program/ceremony',
+    to: '/program/musan',
   },
 ]
 
