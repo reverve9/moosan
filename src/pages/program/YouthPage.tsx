@@ -30,7 +30,26 @@ export default function YouthPage() {
 
   return (
     <div className={styles.page} style={themeStyle}>
-      <PageTitle title={festival.name} subtitle={festival.subtitle ?? ''} />
+      <PageTitle
+        title={festival.name}
+        subtitle={festival.subtitle ?? ''}
+        meta={
+          <dl className={styles.infoLine}>
+            {festival.schedule && (
+              <div className={styles.infoItem}>
+                <dt className={styles.infoLabel}>행사기간</dt>
+                <dd className={styles.infoValue}>{festival.schedule}</dd>
+              </div>
+            )}
+            {festival.venue && (
+              <div className={styles.infoItem}>
+                <dt className={styles.infoLabel}>장소</dt>
+                <dd className={styles.infoValue}>{festival.venue}</dd>
+              </div>
+            )}
+          </dl>
+        }
+      />
       <section className={styles.about}>
         <div className={styles.posterWrap}>
           <img
@@ -54,20 +73,6 @@ export default function YouthPage() {
               <p className={styles.description}>{festival.description_body}</p>
             )}
           </div>
-          <dl className={styles.infoBox}>
-            {festival.schedule && (
-              <>
-                <dt className={styles.infoLabel}>행사기간</dt>
-                <dd className={styles.infoValue}>{festival.schedule}</dd>
-              </>
-            )}
-            {festival.venue && (
-              <>
-                <dt className={styles.infoLabel}>장소</dt>
-                <dd className={styles.infoValue}>{festival.venue}</dd>
-              </>
-            )}
-          </dl>
         </div>
       </section>
       <ProgramAccordion />

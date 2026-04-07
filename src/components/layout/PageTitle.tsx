@@ -8,19 +8,23 @@ interface Props {
   title: ReactNode
   subtitle?: ReactNode
   align?: Align
+  meta?: ReactNode
 }
 
-export default function PageTitle({ title, subtitle, align = 'left' }: Props) {
+export default function PageTitle({ title, subtitle, align = 'left', meta }: Props) {
   return (
     <header className={`${styles.wrapper} ${styles[align]}`}>
-      <Text as="h1" variant="title" weight="bold" className={styles.title}>
-        {title}
-      </Text>
-      {subtitle && (
-        <Text variant="body" color="secondary" className={styles.subtitle}>
-          {subtitle}
+      <div className={styles.titleRow}>
+        <Text as="h1" variant="title" weight="bold" className={styles.title}>
+          {title}
         </Text>
-      )}
+        {subtitle && (
+          <Text variant="body" color="secondary" className={styles.subtitle}>
+            {subtitle}
+          </Text>
+        )}
+      </div>
+      {meta && <div className={styles.meta}>{meta}</div>}
     </header>
   )
 }

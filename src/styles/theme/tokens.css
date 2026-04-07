@@ -66,19 +66,19 @@
   --text-3xl: clamp(26px, 7.4vw, 32px);
   --text-4xl: clamp(32px, 9.3vw, 40px);
 
-  /* ── Fluid Typography — container query 기반
-     YouthPage 등 max-width 600px container 안에서 사용.
-     600px 기준 의도된 px 값을 그대로 보존하며, 순수 cqw 로
-     container 너비에 완전 비례(줄바꿈·레이아웃 점프 없음).
-     비율 조정은 이 토큰 정의만 손보면 일괄 반영. ── */
-  --text-cq-13: 2.167cqw;   /* 13px @ 600 */
-  --text-cq-14: 2.333cqw;   /* 14px @ 600 */
-  --text-cq-15: 2.5cqw;     /* 15px @ 600 */
-  --text-cq-16: 2.667cqw;   /* 16px @ 600 */
-  --text-cq-17: 2.833cqw;   /* 17px @ 600 */
-  --text-cq-18: 3cqw;       /* 18px @ 600 */
-  --text-cq-24: 4cqw;       /* 24px @ 600 */
-  --text-cq-28: 4.667cqw;   /* 28px @ 600 */
+  /* ── Fluid Typography — container query 기반 (festival 페이지)
+     max-width 600px container 안에서 사용. 순수 cqw 로 container 너비에
+     완전 비례(줄바꿈·레이아웃 점프 없음). clamp 금지.
+     Anchor: body = 13px @ 430 viewport (= 3.034cqw = 18.2px @ 600).
+     비율은 기존 14:16:17:18:24:28 시스템 유지 (×13/15 스케일). ── */
+  --text-cq-display:    5.2cqw;   /* 31.2 @600 / 22.4 @430 */
+  --text-cq-section:    4.622cqw; /* 27.7 @600 / 19.9 @430 */
+  --text-cq-subtitle:   3.467cqw; /* 20.8 @600 / 14.9 @430 */
+  --text-cq-card-title: 3.178cqw; /* 19.1 @600 / 13.7 @430 */
+  --text-cq-body:       3.034cqw; /* 18.2 @600 / 13.0 @430  ← anchor */
+  --text-cq-button:     2.889cqw; /* 17.3 @600 / 12.4 @430 */
+  --text-cq-label:      2.6cqw;   /* 15.6 @600 / 11.2 @430 */
+  --text-cq-caption:    2.456cqw; /* 14.7 @600 / 10.6 @430 */
 
   /* ── Button ── */
   --btn-height-sm: clamp(32px, 8.4vw, 36px);

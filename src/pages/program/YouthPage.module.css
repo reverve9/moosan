@@ -6,7 +6,7 @@
 }
 
 .about {
-  padding: 14px var(--space-5) var(--space-10);
+  padding: 0 var(--space-5) var(--space-4);
   display: grid;
   grid-template-columns: 2fr 3fr;
   gap: 4cqw; /* 24px @ 600 */
@@ -35,7 +35,7 @@
 
 .description {
   font-family: var(--font-base);
-  font-size: var(--text-cq-16);
+  font-size: var(--text-cq-body);
   font-weight: 400;
   line-height: 1.45;
   letter-spacing: -0.01em;
@@ -74,20 +74,33 @@
   gap: 3.333cqw; /* 20px @ 600 */
 }
 
-.infoBox {
-  padding: 2cqw 4cqw; /* 12px 24px @ 600 */
-  background-color: var(--festival-tint);
-  border-radius: var(--radius-md);
-  display: grid;
-  grid-template-columns: auto 1fr;
-  row-gap: 0.667cqw; /* 4px @ 600 */
-  column-gap: 4cqw; /* 24px @ 600 */
+.infoLine {
   margin: 0;
+  padding: 1.333cqw 2.667cqw; /* 8px 16px @ 600 */
+  background-color: var(--color-gray-100);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.333cqw 3cqw; /* 8px row / 18px column @ 600 */
+}
+
+.infoItem {
+  display: flex;
+  align-items: baseline;
+  gap: 1.333cqw; /* 8px @ 600 */
+  margin: 0;
+}
+
+.infoItem + .infoItem::before {
+  content: '·';
+  color: var(--color-text-muted);
 }
 
 .infoLabel {
   font-family: var(--font-base);
-  font-size: var(--text-cq-14);
+  font-size: var(--text-cq-label);
   font-weight: 600;
   color: var(--color-text);
   margin: 0;
@@ -96,7 +109,7 @@
 
 .infoValue {
   font-family: var(--font-base);
-  font-size: var(--text-cq-14);
+  font-size: var(--text-cq-label);
   font-weight: 400;
   color: var(--color-text-secondary);
   margin: 0;
