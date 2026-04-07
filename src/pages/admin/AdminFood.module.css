@@ -55,101 +55,180 @@
   font-size: 14px;
 }
 
-/* ──────────────── Booth list ──────────────── */
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.card {
+/* ──────────────── Board (게시판 형태) ──────────────── */
+.board {
   background-color: #FFFFFF;
   border: 1px solid #E5E7EB;
   border-radius: 12px;
   overflow: hidden;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
-.cardOpen {
-  border-color: #1E3A2F;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-}
-
-.cardHeader {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.boardHeaderRow {
+  display: grid;
+  grid-template-columns: 80px 110px 1fr 70px;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 12px 20px;
+  background-color: #F9FAFB;
+  border-bottom: 1px solid #E5E7EB;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.boardList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.boardList > li + li {
+  border-top: 1px solid #F3F4F6;
+}
+
+.boardRow {
+  display: grid;
+  grid-template-columns: 80px 110px 1fr 70px;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 20px;
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
+  transition: background-color 120ms ease;
 }
 
-.cardHeaderLeft {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
+.boardRow:hover {
+  background-color: #F9FAFB;
 }
 
-.cardBoothNo {
+.colNo {
   font-size: 13px;
   font-weight: 700;
   color: #6B7280;
-  background-color: #F3F4F6;
-  padding: 4px 8px;
-  border-radius: 6px;
-  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.colCategory {
+  display: flex;
+  align-items: center;
 }
 
 .cardCategory {
+  display: inline-block;
   font-size: 12px;
   font-weight: 600;
   color: #1E3A2F;
   background-color: #ECFDF5;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   white-space: nowrap;
 }
 
-.cardName {
+.uncategorized {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.colName {
   font-size: 15px;
   font-weight: 600;
   color: #111827;
-  flex: 1;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cardMeta {
+.colMeta {
   font-size: 12px;
   color: #9CA3AF;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ──────────────── 모달 ──────────────── */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 200;
+  animation: fadeIn 160ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  animation: slideUp 200ms ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.chevron {
-  width: 20px;
-  height: 20px;
-  color: #9CA3AF;
-  transition: transform 200ms ease;
+.modalClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #6B7280;
+  cursor: pointer;
   flex-shrink: 0;
+  transition: background-color 150ms ease;
 }
 
-.chevronOpen {
-  transform: rotate(180deg);
+.modalClose:hover {
+  background-color: #F3F4F6;
 }
 
-/* ──────────────── Card body (expanded) ──────────────── */
-.cardBody {
-  border-top: 1px solid #F3F4F6;
-  padding: 20px;
+.modalBody {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 24px;

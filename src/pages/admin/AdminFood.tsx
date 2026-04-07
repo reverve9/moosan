@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowUpTrayIcon,
-  ChevronDownIcon,
   PlusIcon,
   TrashIcon,
   CheckIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
@@ -80,7 +80,7 @@ export default function AdminFood() {
   const [festivalId, setFestivalId] = useState<string | null>(null)
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // 부스 폼 상태 (lazy: 펼친 카드만 채워짐)
   const [boothForms, setBoothForms] = useState<Record<string, BoothForm>>({})
@@ -125,13 +125,41 @@ export default function AdminFood() {
     init()
   }, [])
 
-  // ──────────────── booth handlers ────────────────
-  const toggleExpand = (booth: FoodBoothWithMenus) => {
-    if (expandedId === booth.id) {
-      setExpandedId(null)
-      return
+  // ESC 로 모달 닫기 + body scroll lock
+  useEffect(() => {
+    if (!selectedId) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedId(null)
     }
-    setExpandedId(booth.id)
+    document.addEventListener('keydown', handleKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [selectedId])
+
+  // refetch 후 selectedId 의 폼 상태를 최신 데이터로 동기화
+  useEffect(() => {
+    if (!selectedId) return
+    const booth = booths.find((b) => b.id === selectedId)
+    if (!booth) return
+    setBoothForms((prev) =>
+      prev[selectedId] ? prev : { ...prev, [selectedId]: boothToForm(booth) }
+    )
+    setMenuForms((prev) => {
+      const next = { ...prev }
+      for (const m of booth.menus) {
+        if (!next[m.id]) next[m.id] = menuToForm(m)
+      }
+      return next
+    })
+  }, [selectedId, booths])
+
+  // ──────────────── booth handlers ────────────────
+  const openBooth = (booth: FoodBoothWithMenus) => {
+    setSelectedId(booth.id)
     setBoothForms((prev) => ({ ...prev, [booth.id]: boothToForm(booth) }))
     setMenuForms((prev) => {
       const next = { ...prev }
@@ -141,6 +169,8 @@ export default function AdminFood() {
       return next
     })
   }
+
+  const closeModal = () => setSelectedId(null)
 
   const updateBoothField = <K extends keyof BoothForm>(
     id: string,
@@ -171,7 +201,7 @@ export default function AdminFood() {
       return
     }
     await refetch()
-    setExpandedId(data.id)
+    setSelectedId(data.id)
     setBoothForms((prev) => ({
       ...prev,
       [data.id]: {
@@ -215,7 +245,7 @@ export default function AdminFood() {
       alert('삭제 실패: ' + error.message)
       return
     }
-    if (expandedId === id) setExpandedId(null)
+    if (selectedId === id) setSelectedId(null)
     refetch()
   }
 
@@ -363,280 +393,303 @@ export default function AdminFood() {
       {booths.length === 0 ? (
         <div className={styles.empty}>등록된 매장이 없습니다. 우측 상단 ‘매장 추가’로 시작하세요.</div>
       ) : (
-        <div className={styles.list}>
-          {booths.map((booth) => {
-            const expanded = expandedId === booth.id
-            const form = boothForms[booth.id]
-            const thumbUrl = getAssetUrl(booth.thumbnail_url)
-
-            return (
-              <div
-                key={booth.id}
-                className={`${styles.card} ${expanded ? styles.cardOpen : ''}`}
-              >
+        <div className={styles.board}>
+          <div className={styles.boardHeaderRow}>
+            <span className={styles.colNo}>번호</span>
+            <span className={styles.colCategory}>카테고리</span>
+            <span className={styles.colName}>매장명</span>
+            <span className={styles.colMeta}>메뉴</span>
+          </div>
+          <ul className={styles.boardList}>
+            {booths.map((booth) => (
+              <li key={booth.id}>
                 <button
                   type="button"
-                  className={styles.cardHeader}
-                  onClick={() => toggleExpand(booth)}
-                  aria-expanded={expanded}
+                  className={styles.boardRow}
+                  onClick={() => openBooth(booth)}
                 >
-                  <div className={styles.cardHeaderLeft}>
-                    <span className={styles.cardBoothNo}>
-                      {booth.booth_no ? `#${booth.booth_no}` : '—'}
-                    </span>
-                    {booth.category && (
+                  <span className={styles.colNo}>
+                    {booth.booth_no ? `#${booth.booth_no}` : '—'}
+                  </span>
+                  <span className={styles.colCategory}>
+                    {booth.category ? (
                       <span className={styles.cardCategory}>
                         {CATEGORY_LABEL[booth.category]}
                       </span>
+                    ) : (
+                      <span className={styles.uncategorized}>미지정</span>
                     )}
-                    <span className={styles.cardName}>{booth.name}</span>
-                    <span className={styles.cardMeta}>
-                      메뉴 {booth.menus.length}개
-                    </span>
-                  </div>
-                  <ChevronDownIcon
-                    className={`${styles.chevron} ${expanded ? styles.chevronOpen : ''}`}
-                  />
+                  </span>
+                  <span className={styles.colName}>{booth.name}</span>
+                  <span className={styles.colMeta}>{booth.menus.length}개</span>
                 </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-                {expanded && form && (
-                  <div className={styles.cardBody}>
-                    {/* ───── 부스 정보 ───── */}
-                    <div className={styles.section}>
-                      <h3 className={styles.sectionTitle}>매장 정보</h3>
+      {selectedId && (() => {
+        const booth = booths.find((b) => b.id === selectedId)
+        const form = boothForms[selectedId]
+        if (!booth || !form) return null
+        const thumbUrl = getAssetUrl(booth.thumbnail_url)
+        return (
+          <div
+            className={styles.modalBackdrop}
+            onClick={closeModal}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${booth.name} 편집`}
+          >
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.modalHeader}>
+                <h2 className={styles.modalTitle}>{booth.name}</h2>
+                <button
+                  type="button"
+                  className={styles.modalClose}
+                  onClick={closeModal}
+                  aria-label="닫기"
+                >
+                  <XMarkIcon width={20} height={20} />
+                </button>
+              </div>
 
-                      <div className={styles.formRow3}>
-                        <div className={styles.field}>
-                          <label className={styles.label}>부스번호</label>
-                          <input
-                            className={styles.input}
-                            value={form.booth_no}
-                            onChange={(e) =>
-                              updateBoothField(booth.id, 'booth_no', e.target.value)
-                            }
-                            placeholder="01"
-                          />
-                        </div>
-                        <div className={styles.field}>
-                          <label className={styles.label}>카테고리</label>
-                          <select
-                            className={styles.input}
-                            value={form.category}
-                            onChange={(e) =>
-                              updateBoothField(
-                                booth.id,
-                                'category',
-                                e.target.value as BoothForm['category']
-                              )
-                            }
-                          >
-                            <option value="">선택</option>
-                            {CATEGORY_OPTIONS.map((c) => (
-                              <option key={c.value} value={c.value}>
-                                {c.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className={styles.field}>
-                          <label className={styles.label}>정렬 순서</label>
-                          <input
-                            type="number"
-                            className={styles.input}
-                            value={form.sort_order}
-                            onChange={(e) =>
-                              updateBoothField(
-                                booth.id,
-                                'sort_order',
-                                Number(e.target.value)
-                              )
-                            }
-                          />
-                        </div>
-                      </div>
+              <div className={styles.modalBody}>
+                {/* ───── 부스 정보 ───── */}
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>매장 정보</h3>
 
-                      <div className={styles.field}>
-                        <label className={styles.label}>매장명</label>
-                        <input
-                          className={styles.input}
-                          value={form.name}
-                          onChange={(e) =>
-                            updateBoothField(booth.id, 'name', e.target.value)
-                          }
-                        />
-                      </div>
-
-                      <div className={styles.field}>
-                        <label className={styles.label}>한 줄 설명</label>
-                        <input
-                          className={styles.input}
-                          value={form.description}
-                          onChange={(e) =>
-                            updateBoothField(booth.id, 'description', e.target.value)
-                          }
-                          placeholder="속초 명물 오징어순대 전문"
-                        />
-                      </div>
-
-                      <div className={styles.thumbRow}>
-                        <div className={styles.thumbPreview}>
-                          {thumbUrl ? (
-                            <img src={thumbUrl} alt={booth.name} />
-                          ) : (
-                            <div className={styles.thumbEmpty}>썸네일 없음</div>
-                          )}
-                        </div>
-                        <input
-                          ref={(el) => {
-                            fileInputs.current[booth.id] = el
-                          }}
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleUploadThumbnail(booth, file)
-                            e.target.value = ''
-                          }}
-                        />
-                        <button
-                          className={styles.uploadBtn}
-                          onClick={() => fileInputs.current[booth.id]?.click()}
-                          disabled={uploadingId === booth.id}
-                        >
-                          <ArrowUpTrayIcon width={16} height={16} />
-                          {uploadingId === booth.id ? '업로드 중...' : '썸네일 교체'}
-                        </button>
-                      </div>
-
-                      <div className={styles.boothActions}>
-                        <button
-                          className={styles.saveBtn}
-                          onClick={() => handleSaveBooth(booth.id)}
-                          disabled={savingBoothId === booth.id}
-                        >
-                          {savingBoothId === booth.id ? (
-                            '저장 중...'
-                          ) : savedBoothId === booth.id ? (
-                            <>
-                              <CheckIcon width={16} height={16} /> 저장됨
-                            </>
-                          ) : (
-                            '매장 정보 저장'
-                          )}
-                        </button>
-                        <button
-                          className={styles.deleteBtn}
-                          onClick={() => handleDeleteBooth(booth.id)}
-                        >
-                          <TrashIcon width={16} height={16} /> 매장 삭제
-                        </button>
-                      </div>
+                  <div className={styles.formRow3}>
+                    <div className={styles.field}>
+                      <label className={styles.label}>부스번호</label>
+                      <input
+                        className={styles.input}
+                        value={form.booth_no}
+                        onChange={(e) =>
+                          updateBoothField(booth.id, 'booth_no', e.target.value)
+                        }
+                        placeholder="01"
+                      />
                     </div>
+                    <div className={styles.field}>
+                      <label className={styles.label}>카테고리</label>
+                      <select
+                        className={styles.input}
+                        value={form.category}
+                        onChange={(e) =>
+                          updateBoothField(
+                            booth.id,
+                            'category',
+                            e.target.value as BoothForm['category']
+                          )
+                        }
+                      >
+                        <option value="">선택</option>
+                        {CATEGORY_OPTIONS.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.label}>정렬 순서</label>
+                      <input
+                        type="number"
+                        className={styles.input}
+                        value={form.sort_order}
+                        onChange={(e) =>
+                          updateBoothField(
+                            booth.id,
+                            'sort_order',
+                            Number(e.target.value)
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
 
-                    {/* ───── 메뉴 ───── */}
-                    <div className={styles.section}>
-                      <div className={styles.menuHeader}>
-                        <h3 className={styles.sectionTitle}>메뉴</h3>
-                        <button
-                          className={styles.addMenuBtn}
-                          onClick={() => handleAddMenu(booth)}
-                        >
-                          <PlusIcon width={14} height={14} /> 메뉴 추가
-                        </button>
-                      </div>
+                  <div className={styles.field}>
+                    <label className={styles.label}>매장명</label>
+                    <input
+                      className={styles.input}
+                      value={form.name}
+                      onChange={(e) =>
+                        updateBoothField(booth.id, 'name', e.target.value)
+                      }
+                    />
+                  </div>
 
-                      {booth.menus.length === 0 ? (
-                        <p className={styles.emptyMenus}>아직 메뉴가 없습니다</p>
+                  <div className={styles.field}>
+                    <label className={styles.label}>한 줄 설명</label>
+                    <input
+                      className={styles.input}
+                      value={form.description}
+                      onChange={(e) =>
+                        updateBoothField(booth.id, 'description', e.target.value)
+                      }
+                      placeholder="속초 명물 오징어순대 전문"
+                    />
+                  </div>
+
+                  <div className={styles.thumbRow}>
+                    <div className={styles.thumbPreview}>
+                      {thumbUrl ? (
+                        <img src={thumbUrl} alt={booth.name} />
                       ) : (
-                        <div className={styles.menuList}>
-                          {booth.menus.map((m) => {
-                            const mForm = menuForms[m.id]
-                            if (!mForm) return null
-                            return (
-                              <div key={m.id} className={styles.menuRow}>
-                                <div className={styles.menuFields}>
-                                  <input
-                                    className={`${styles.input} ${styles.menuName}`}
-                                    value={mForm.name}
-                                    onChange={(e) =>
-                                      updateMenuField(m.id, 'name', e.target.value)
-                                    }
-                                    placeholder="메뉴명"
-                                  />
-                                  <input
-                                    type="number"
-                                    className={`${styles.input} ${styles.menuPrice}`}
-                                    value={mForm.price}
-                                    onChange={(e) =>
-                                      updateMenuField(m.id, 'price', e.target.value)
-                                    }
-                                    placeholder="가격(원)"
-                                  />
-                                  <label className={styles.signatureLabel}>
-                                    <input
-                                      type="checkbox"
-                                      checked={mForm.is_signature}
-                                      onChange={(e) =>
-                                        updateMenuField(
-                                          m.id,
-                                          'is_signature',
-                                          e.target.checked
-                                        )
-                                      }
-                                    />
-                                    대표
-                                  </label>
-                                </div>
+                        <div className={styles.thumbEmpty}>썸네일 없음</div>
+                      )}
+                    </div>
+                    <input
+                      ref={(el) => {
+                        fileInputs.current[booth.id] = el
+                      }}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) handleUploadThumbnail(booth, file)
+                        e.target.value = ''
+                      }}
+                    />
+                    <button
+                      className={styles.uploadBtn}
+                      onClick={() => fileInputs.current[booth.id]?.click()}
+                      disabled={uploadingId === booth.id}
+                    >
+                      <ArrowUpTrayIcon width={16} height={16} />
+                      {uploadingId === booth.id ? '업로드 중...' : '썸네일 교체'}
+                    </button>
+                  </div>
+
+                  <div className={styles.boothActions}>
+                    <button
+                      className={styles.saveBtn}
+                      onClick={() => handleSaveBooth(booth.id)}
+                      disabled={savingBoothId === booth.id}
+                    >
+                      {savingBoothId === booth.id ? (
+                        '저장 중...'
+                      ) : savedBoothId === booth.id ? (
+                        <>
+                          <CheckIcon width={16} height={16} /> 저장됨
+                        </>
+                      ) : (
+                        '매장 정보 저장'
+                      )}
+                    </button>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => handleDeleteBooth(booth.id)}
+                    >
+                      <TrashIcon width={16} height={16} /> 매장 삭제
+                    </button>
+                  </div>
+                </div>
+
+                {/* ───── 메뉴 ───── */}
+                <div className={styles.section}>
+                  <div className={styles.menuHeader}>
+                    <h3 className={styles.sectionTitle}>메뉴</h3>
+                    <button
+                      className={styles.addMenuBtn}
+                      onClick={() => handleAddMenu(booth)}
+                    >
+                      <PlusIcon width={14} height={14} /> 메뉴 추가
+                    </button>
+                  </div>
+
+                  {booth.menus.length === 0 ? (
+                    <p className={styles.emptyMenus}>아직 메뉴가 없습니다</p>
+                  ) : (
+                    <div className={styles.menuList}>
+                      {booth.menus.map((m) => {
+                        const mForm = menuForms[m.id]
+                        if (!mForm) return null
+                        return (
+                          <div key={m.id} className={styles.menuRow}>
+                            <div className={styles.menuFields}>
+                              <input
+                                className={`${styles.input} ${styles.menuName}`}
+                                value={mForm.name}
+                                onChange={(e) =>
+                                  updateMenuField(m.id, 'name', e.target.value)
+                                }
+                                placeholder="메뉴명"
+                              />
+                              <input
+                                type="number"
+                                className={`${styles.input} ${styles.menuPrice}`}
+                                value={mForm.price}
+                                onChange={(e) =>
+                                  updateMenuField(m.id, 'price', e.target.value)
+                                }
+                                placeholder="가격(원)"
+                              />
+                              <label className={styles.signatureLabel}>
                                 <input
-                                  className={styles.input}
-                                  value={mForm.description}
+                                  type="checkbox"
+                                  checked={mForm.is_signature}
                                   onChange={(e) =>
                                     updateMenuField(
                                       m.id,
-                                      'description',
-                                      e.target.value
+                                      'is_signature',
+                                      e.target.checked
                                     )
                                   }
-                                  placeholder="메뉴 설명 (옵션)"
                                 />
-                                <div className={styles.menuActions}>
-                                  <button
-                                    className={styles.menuSaveBtn}
-                                    onClick={() => handleSaveMenu(m.id)}
-                                    disabled={savingMenuId === m.id}
-                                  >
-                                    {savingMenuId === m.id ? (
-                                      '저장 중...'
-                                    ) : savedMenuId === m.id ? (
-                                      <>
-                                        <CheckIcon width={14} height={14} /> 저장됨
-                                      </>
-                                    ) : (
-                                      '저장'
-                                    )}
-                                  </button>
-                                  <button
-                                    className={styles.menuDeleteBtn}
-                                    onClick={() => handleDeleteMenu(m.id)}
-                                    aria-label="메뉴 삭제"
-                                  >
-                                    <TrashIcon width={14} height={14} />
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                                대표
+                              </label>
+                            </div>
+                            <input
+                              className={styles.input}
+                              value={mForm.description}
+                              onChange={(e) =>
+                                updateMenuField(
+                                  m.id,
+                                  'description',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="메뉴 설명 (옵션)"
+                            />
+                            <div className={styles.menuActions}>
+                              <button
+                                className={styles.menuSaveBtn}
+                                onClick={() => handleSaveMenu(m.id)}
+                                disabled={savingMenuId === m.id}
+                              >
+                                {savingMenuId === m.id ? (
+                                  '저장 중...'
+                                ) : savedMenuId === m.id ? (
+                                  <>
+                                    <CheckIcon width={14} height={14} /> 저장됨
+                                  </>
+                                ) : (
+                                  '저장'
+                                )}
+                              </button>
+                              <button
+                                className={styles.menuDeleteBtn}
+                                onClick={() => handleDeleteMenu(m.id)}
+                                aria-label="메뉴 삭제"
+                              >
+                                <TrashIcon width={14} height={14} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            )
-          })}
-        </div>
-      )}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
