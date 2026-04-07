@@ -32,8 +32,28 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: var(--space-3);
   height: 100%;
-  padding: 0 var(--space-5);
+  padding: 0 var(--page-padding-x);
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: var(--color-text);
+  transition: opacity var(--transition-fast);
+}
+
+.backButton:active {
+  opacity: 0.6;
+}
+
+.backIcon {
+  width: var(--icon-md);
+  height: var(--icon-md);
 }
 
 .logo {
@@ -57,7 +77,7 @@
 
 .menu {
   position: absolute;
-  right: var(--space-5);
+  right: var(--page-padding-x);
   top: 50%;
   transform: translateY(-50%);
 }

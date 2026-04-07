@@ -1,5 +1,5 @@
 .wrapper {
-  padding: var(--space-8) var(--space-5) var(--space-6);
+  padding: var(--space-8) var(--page-padding-x) var(--space-6);
   display: flex;
   flex-direction: column;
   gap: 2cqw; /* 12px @ 600 — title row ↔ meta */
@@ -31,6 +31,16 @@
 
 .meta {
   width: 100%;
+}
+
+.description {
+  margin: 0;
+  font-family: var(--font-base);
+  font-size: var(--text-cq-body);
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  letter-spacing: -0.01em;
 }
 
 /* cqw 는 가장 가까운 container 조상(.layout / .home, 최대 600px) 기준

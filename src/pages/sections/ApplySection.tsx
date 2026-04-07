@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import PageTitle from '@/components/layout/PageTitle'
 import ApplyForm from './apply/ApplyForm'
 import ChoirApplyForm from './apply/choir/ChoirApplyForm'
 import WritingApplyForm from './apply/writing/WritingApplyForm'
@@ -37,10 +38,10 @@ export default function ApplySection({ programSlug }: Props) {
 
   return (
     <section className={styles.apply}>
-      <div className={styles.container}>
-        <h2 className={styles.title}>참가신청</h2>
-        <p className={styles.subtitle}>프로그램을 선택하고 참가신청서를 작성해주세요</p>
-      </div>
+      <PageTitle
+        title="참가신청"
+        description="프로그램을 선택하고 참가신청서를 작성해주세요"
+      />
 
       <div className={styles.tabs}>
         {PROGRAMS.map((p) => (

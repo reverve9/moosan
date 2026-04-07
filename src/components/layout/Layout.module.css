@@ -16,3 +16,7 @@
   padding-top: var(--header-height);
   padding-bottom: calc(var(--bottom-nav-height) + var(--space-6));
 }
+
+.mainNoBottomNav {
+  padding-bottom: var(--space-8);
+}

@@ -6,12 +6,21 @@ type Align = 'left' | 'center'
 
 interface Props {
   title: ReactNode
+  /** 영문/짧은 부제 — title 옆에 baseline 정렬으로 인라인 배치 */
   subtitle?: ReactNode
+  /** 한국어/긴 설명 텍스트 — title 하단에 별도 단락으로 배치 */
+  description?: ReactNode
   align?: Align
   meta?: ReactNode
 }
 
-export default function PageTitle({ title, subtitle, align = 'left', meta }: Props) {
+export default function PageTitle({
+  title,
+  subtitle,
+  description,
+  align = 'left',
+  meta,
+}: Props) {
   return (
     <header className={`${styles.wrapper} ${styles[align]}`}>
       <div className={styles.titleRow}>
@@ -24,6 +33,7 @@ export default function PageTitle({ title, subtitle, align = 'left', meta }: Pro
           </Text>
         )}
       </div>
+      {description && <p className={styles.description}>{description}</p>}
       {meta && <div className={styles.meta}>{meta}</div>}
     </header>
   )

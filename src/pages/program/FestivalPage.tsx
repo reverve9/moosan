@@ -3,18 +3,25 @@ import PageTitle from '@/components/layout/PageTitle'
 import ProgramAccordion from '@/components/program/ProgramAccordion'
 import { fetchFestivalBySlug, getAssetUrl } from '@/lib/festival'
 import type { Festival } from '@/types/database'
-import styles from './YouthPage.module.css'
+import styles from './FestivalPage.module.css'
 
-export default function YouthPage() {
+interface Props {
+  slug: string
+}
+
+export default function FestivalPage({ slug }: Props) {
   const [festival, setFestival] = useState<Festival | null>(null)
   const [loading, setLoading] = useState(true)
+  const [posterFailed, setPosterFailed] = useState(false)
 
   useEffect(() => {
-    fetchFestivalBySlug('youth').then((result) => {
-      if (result) setFestival(result.festival)
+    setLoading(true)
+    setPosterFailed(false)
+    fetchFestivalBySlug(slug).then((result) => {
+      setFestival(result?.festival ?? null)
       setLoading(false)
     })
-  }, [])
+  }, [slug])
 
   if (loading || !festival) {
     return <div className={styles.page} />
@@ -27,6 +34,9 @@ export default function YouthPage() {
   const themeStyle = {
     '--festival-tint': festival.theme_color ?? '#FBF1CC',
   } as CSSProperties
+  // 청소년문화축전만 현재 ProgramAccordion 콘텐츠가 있음.
+  // musan / food 는 다른 콘텐츠가 추후 추가됨.
+  const showAccordion = slug === 'youth'
 
   return (
     <div className={styles.page} style={themeStyle}>
@@ -52,14 +62,16 @@ export default function YouthPage() {
       />
       <section className={styles.about}>
         <div className={styles.posterWrap}>
-          <img
-            src={posterUrl ?? '/images/program_youth.png'}
-            alt={`${festival.name} 포스터`}
-            className={styles.poster}
-            onError={(e) => {
-              e.currentTarget.src = '/images/program_youth.png'
-            }}
-          />
+          {posterUrl && !posterFailed ? (
+            <img
+              src={posterUrl}
+              alt={`${festival.name} 포스터`}
+              className={styles.poster}
+              onError={() => setPosterFailed(true)}
+            />
+          ) : (
+            <div className={styles.posterPlaceholder} aria-hidden="true" />
+          )}
         </div>
         <div className={styles.content}>
           <div className={styles.descriptionGroup}>
@@ -75,7 +87,7 @@ export default function YouthPage() {
           </div>
         </div>
       </section>
-      <ProgramAccordion />
+      {showAccordion && <ProgramAccordion />}
     </div>
   )
 }

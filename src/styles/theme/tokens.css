@@ -110,6 +110,9 @@
   --max-width: 600px;
   --header-height: clamp(48px, 13vw, 56px);
   --bottom-nav-height: clamp(68px, 18.6vw, 80px);
+  /* 페이지 chrome (Header / PageTitle / BottomNav) 좌우 gutter 공통 토큰
+     — 셋이 같은 좌우 여백을 사용해 시각적 라인을 맞춘다. */
+  --page-padding-x: var(--space-3);
 
   /* ── Border Radius ── */
   --radius-sm: 4px;

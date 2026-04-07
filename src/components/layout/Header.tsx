@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
+  ArrowLeftIcon,
   Bars3Icon,
   MegaphoneIcon,
   MapPinIcon,
   PencilSquareIcon,
 } from '@heroicons/react/24/outline'
+import { isSubPage } from '@/lib/routing'
 import styles from './Header.module.css'
 
 const MENU_ITEMS = [
@@ -24,6 +26,7 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const isHome = location.pathname === '/'
+  const subPage = isSubPage(location.pathname)
 
   useEffect(() => {
     if (!isHome) {
@@ -60,6 +63,16 @@ export default function Header() {
   return (
     <header className={headerClass}>
       <div className={styles.inner}>
+        {subPage && (
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className={styles.backButton}
+            aria-label="이전 페이지"
+          >
+            <ArrowLeftIcon className={styles.backIcon} />
+          </button>
+        )}
         <Link to="/" className={styles.logo} aria-label="설악무산문화축전 홈">
           <img
             src="/images/header_logo.png"

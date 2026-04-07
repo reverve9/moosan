@@ -1,6 +1,8 @@
 .page {
   width: 100%;
-  /* 청소년문화축전 — 옐로 테마 */
+  /* --festival-tint 는 인라인 style 로 DB theme_color 가 주입됨.
+     --festival-accent 는 ProgramAccordion 참가신청 버튼에서만 사용 (현재 youth 전용).
+     theme_accent 컬럼 추가 전까지 기본 fallback 값 유지. */
   --festival-tint: #FBF1CC;
   --festival-accent: #E8B935;
 }
@@ -10,7 +12,7 @@
   display: grid;
   grid-template-columns: 2fr 3fr;
   gap: 4cqw; /* 24px @ 600 */
-  align-items: center;
+  align-items: start;
 }
 
 .posterWrap {
@@ -23,6 +25,14 @@
   display: block;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
+}
+
+.posterPlaceholder {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px dashed var(--color-border);
 }
 
 .descriptionGroup {

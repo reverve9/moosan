@@ -15,7 +15,7 @@ import styles from './BottomNav.module.css'
 
 const NAV_ITEMS = [
   { label: '홈', path: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
-  { label: '설악무산문화축전', path: '/schedule', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
+  { label: '설악무산문화축전', path: '/program/musan', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
   { label: '청소년문화축전', path: '/program/youth', icon: RectangleGroupIcon, activeIcon: RectangleGroupIconSolid },
   { label: '음식문화페스티벌', path: '/program/food', icon: SparklesIcon, activeIcon: SparklesIconSolid },
 ]

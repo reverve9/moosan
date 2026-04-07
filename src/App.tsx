@@ -4,12 +4,11 @@ import AdminLayout from '@/components/admin/AdminLayout'
 import HomePage from '@/pages/HomePage'
 import SchedulePage from '@/pages/SchedulePage'
 import ProgramsPage from '@/pages/ProgramsPage'
-import FestivalPage from '@/pages/FestivalPage'
 import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
-import YouthPage from '@/pages/program/YouthPage'
+import FestivalPage from '@/pages/program/FestivalPage'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminFestivals from '@/pages/admin/AdminFestivals'
@@ -27,12 +26,14 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/programs" element={<ProgramsPage />} />
-          <Route path="/festival" element={<FestivalPage />} />
           <Route path="/apply" element={<ApplyPage />} />
           <Route path="/apply/:slug" element={<ApplyPage />} />
           <Route path="/location" element={<LocationPage />} />
           <Route path="/notice" element={<NoticePage />} />
-          <Route path="/program/youth" element={<YouthPage />} />
+          {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
+          <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
+          <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
+          <Route path="/program/food" element={<FestivalPage slug="food" />} />
           <Route path="/program/:slug" element={<ProgramDetailPage />} />
         </Route>
 
