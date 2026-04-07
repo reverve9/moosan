@@ -13,6 +13,7 @@ import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminFestivals from '@/pages/admin/AdminFestivals'
 import AdminPrograms from '@/pages/admin/AdminPrograms'
+import AdminFood from '@/pages/admin/AdminFood'
 import AdminNotices from '@/pages/admin/AdminNotices'
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="applications" element={<AdminApplications />} />
           <Route path="festivals" element={<AdminFestivals />} />
           <Route path="programs" element={<AdminPrograms />} />
+          <Route path="food" element={<AdminFood />} />
           <Route path="notices" element={<AdminNotices />} />
         </Route>
       </Routes>

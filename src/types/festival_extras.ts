@@ -32,12 +32,15 @@ export interface FestivalGuest {
   updated_at: string
 }
 
+export type FoodCategory = 'korean' | 'chinese' | 'japanese' | 'fusion'
+
 export interface FoodBooth {
   id: string
   festival_id: string
   booth_no: string | null
   name: string
   description: string | null
+  category: FoodCategory | null
   thumbnail_url: string | null
   gallery_urls: string[]
   sort_order: number

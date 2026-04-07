@@ -5,6 +5,7 @@ import {
   Squares2X2Icon,
   DocumentTextIcon,
   MegaphoneIcon,
+  BuildingStorefrontIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import styles from './AdminLayout.module.css'
@@ -13,6 +14,7 @@ const NAV_ITEMS = [
   { label: '참가신청 관리', path: '/admin/applications', icon: DocumentTextIcon },
   { label: '페스티벌 관리', path: '/admin/festivals', icon: RectangleGroupIcon },
   { label: '프로그램 관리', path: '/admin/programs', icon: Squares2X2Icon },
+  { label: '참여 매장 관리', path: '/admin/food', icon: BuildingStorefrontIcon },
   { label: '공지사항 관리', path: '/admin/notices', icon: MegaphoneIcon },
 ]
 

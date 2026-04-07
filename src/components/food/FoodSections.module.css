@@ -44,6 +44,59 @@
   font-size: var(--text-cq-label);
 }
 
+/* ──────────────── 카테고리 탭 ──────────────── */
+.tabs {
+  display: flex;
+  gap: 1cqw; /* 6px @ 600 */
+  margin: 0 0 3cqw; /* bottom 18px @ 600 */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 0.5cqw;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex-shrink: 0;
+  padding: 1.667cqw 3cqw; /* 10px 18px @ 600 */
+  background-color: var(--color-bg-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabActive {
+  background-color: var(--color-text);
+  color: var(--color-text-inverse);
+  border-color: var(--color-text);
+}
+
+.tabActive:hover {
+  color: var(--color-text-inverse);
+}
+
+.emptyBooths {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 6cqw 0;
+  margin: 0;
+}
+
 /* ──────────────── 매장 카드 (아코디언) ──────────────── */
 .boothList {
   display: flex;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
-import type { FoodBoothWithMenus } from '@/types/festival_extras'
+import type { FoodBoothWithMenus, FoodCategory } from '@/types/festival_extras'
 import type { Festival } from '@/types/database'
 import styles from './FoodSections.module.css'
 
@@ -9,19 +9,45 @@ interface Props {
   festival: Festival
 }
 
+type CategoryFilter = 'all' | FoodCategory
+
+const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'korean', label: '한식' },
+  { key: 'chinese', label: '중식' },
+  { key: 'japanese', label: '일식' },
+  { key: 'fusion', label: '퓨전' },
+]
+
+/** Fisher-Yates shuffle (immutable) — 페이지 mount 마다 새 순서로 노출 편향 방지 */
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy
+}
+
 export default function FoodSections({ festival }: Props) {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
   const [openId, setOpenId] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
 
   useEffect(() => {
     let cancelled = false
     fetchFoodBooths(festival.id).then((data) => {
-      if (!cancelled) setBooths(data)
+      if (!cancelled) setBooths(shuffle(data))
     })
     return () => {
       cancelled = true
     }
   }, [festival.id])
+
+  const filteredBooths = useMemo(() => {
+    if (activeCategory === 'all') return booths
+    return booths.filter((b) => b.category === activeCategory)
+  }, [booths, activeCategory])
 
   // layout_image_url 은 05_musan_food.sql 에서 추가된 신규 컬럼
   const layoutPath = (festival as Festival & { layout_image_url?: string | null })
@@ -50,8 +76,28 @@ export default function FoodSections({ festival }: Props) {
       {booths.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>참여 매장</h2>
+          <div className={styles.tabs} role="tablist" aria-label="매장 카테고리">
+            {CATEGORY_TABS.map((t) => {
+              const active = activeCategory === t.key
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  className={`${styles.tab} ${active ? styles.tabActive : ''}`}
+                  onClick={() => setActiveCategory(t.key)}
+                >
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+          {filteredBooths.length === 0 ? (
+            <p className={styles.emptyBooths}>해당 카테고리에 매장이 없습니다</p>
+          ) : (
           <div className={styles.boothList}>
-            {booths.map((b) => {
+            {filteredBooths.map((b) => {
               const open = openId === b.id
               const thumb = getAssetUrl(b.thumbnail_url)
               return (
@@ -120,6 +166,7 @@ export default function FoodSections({ festival }: Props) {
               )
             })}
           </div>
+          )}
         </section>
       )}
     </>
