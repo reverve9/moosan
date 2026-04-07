@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import type { FoodBoothWithMenus, FoodCategory } from '@/types/festival_extras'
 import type { Festival } from '@/types/database'
@@ -19,6 +19,13 @@ const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
   { key: 'fusion', label: '퓨전' },
 ]
 
+const CATEGORY_LABEL: Record<FoodCategory, string> = {
+  korean: '한식',
+  chinese: '중식',
+  japanese: '일식',
+  fusion: '퓨전',
+}
+
 /** Fisher-Yates shuffle (immutable) — 페이지 mount 마다 새 순서로 노출 편향 방지 */
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -31,8 +38,8 @@ function shuffle<T>(arr: T[]): T[] {
 
 export default function FoodSections({ festival }: Props) {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
-  const [openId, setOpenId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
+  const [selectedBooth, setSelectedBooth] = useState<FoodBoothWithMenus | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -43,6 +50,21 @@ export default function FoodSections({ festival }: Props) {
       cancelled = true
     }
   }, [festival.id])
+
+  // ESC 로 모달 닫기 + body 스크롤 락
+  useEffect(() => {
+    if (!selectedBooth) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedBooth(null)
+    }
+    document.addEventListener('keydown', handleKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [selectedBooth])
 
   const filteredBooths = useMemo(() => {
     if (activeCategory === 'all') return booths
@@ -93,82 +115,145 @@ export default function FoodSections({ festival }: Props) {
               )
             })}
           </div>
+
           {filteredBooths.length === 0 ? (
             <p className={styles.emptyBooths}>해당 카테고리에 매장이 없습니다</p>
           ) : (
-          <div className={styles.boothList}>
-            {filteredBooths.map((b) => {
-              const open = openId === b.id
-              const thumb = getAssetUrl(b.thumbnail_url)
-              return (
-                <article
-                  key={b.id}
-                  className={`${styles.boothCard} ${open ? styles.boothOpen : ''}`}
-                >
-                  <button
-                    type="button"
-                    className={styles.boothHeader}
-                    onClick={() => setOpenId((cur) => (cur === b.id ? null : b.id))}
-                    aria-expanded={open}
-                  >
-                    <div className={styles.boothThumb}>
-                      {thumb ? (
-                        <img src={thumb} alt={b.name} />
-                      ) : (
-                        <div className={styles.boothThumbPlaceholder} aria-hidden="true" />
-                      )}
-                    </div>
-                    <div className={styles.boothHeadText}>
-                      <div className={styles.boothNameRow}>
-                        {b.booth_no && (
-                          <span className={styles.boothNo}>#{b.booth_no}</span>
+            <ul className={styles.boothList}>
+              {filteredBooths.map((b) => {
+                const thumb = getAssetUrl(b.thumbnail_url)
+                return (
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      className={styles.boothItem}
+                      onClick={() => setSelectedBooth(b)}
+                    >
+                      <div className={styles.boothThumb}>
+                        {thumb ? (
+                          <img src={thumb} alt={b.name} />
+                        ) : (
+                          <div className={styles.boothThumbPlaceholder} aria-hidden="true" />
                         )}
-                        <h3 className={styles.boothName}>{b.name}</h3>
                       </div>
-                      {b.description && (
-                        <p className={styles.boothDesc}>{b.description}</p>
-                      )}
-                    </div>
-                    <ChevronDownIcon className={styles.chevron} />
-                  </button>
-
-                  <div className={styles.bodyWrap}>
-                    <div className={styles.body}>
-                      {b.menus.length > 0 ? (
-                        <ul className={styles.menuList}>
-                          {b.menus.map((m) => (
-                            <li key={m.id} className={styles.menuItem}>
-                              <div className={styles.menuHead}>
-                                <span className={styles.menuName}>
-                                  {m.is_signature && (
-                                    <span className={styles.signatureMark}>대표</span>
-                                  )}
-                                  {m.name}
-                                </span>
-                                <span className={styles.menuPrice}>
-                                  {m.price != null
-                                    ? `${m.price.toLocaleString()}원`
-                                    : '시가'}
-                                </span>
-                              </div>
-                              {m.description && (
-                                <p className={styles.menuDesc}>{m.description}</p>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className={styles.emptyMenu}>메뉴 정보가 곧 업데이트됩니다</p>
-                      )}
-                    </div>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
+                      <div className={styles.boothInfo}>
+                        <div className={styles.boothNameRow}>
+                          {b.category && (
+                            <span className={styles.boothCategory}>
+                              {CATEGORY_LABEL[b.category]}
+                            </span>
+                          )}
+                          <h3 className={styles.boothName}>{b.name}</h3>
+                        </div>
+                        {b.description && (
+                          <p className={styles.boothDesc}>{b.description}</p>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           )}
         </section>
       )}
+
+      {selectedBooth && (
+        <BoothModal
+          booth={selectedBooth}
+          onClose={() => setSelectedBooth(null)}
+        />
+      )}
     </>
+  )
+}
+
+// ──────────────── Modal ────────────────
+function BoothModal({
+  booth,
+  onClose,
+}: {
+  booth: FoodBoothWithMenus
+  onClose: () => void
+}) {
+  const thumb = getAssetUrl(booth.thumbnail_url)
+
+  return (
+    <div
+      className={styles.modalBackdrop}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${booth.name} 상세`}
+    >
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className={styles.modalClose}
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          <XMarkIcon className={styles.modalCloseIcon} />
+        </button>
+
+        <div className={styles.modalHeader}>
+          <div className={styles.modalThumb}>
+            {thumb ? (
+              <img src={thumb} alt={booth.name} />
+            ) : (
+              <div className={styles.modalThumbPlaceholder} aria-hidden="true" />
+            )}
+          </div>
+          <div className={styles.modalHeadText}>
+            <div className={styles.modalNameRow}>
+              {booth.category && (
+                <span className={styles.boothCategory}>
+                  {CATEGORY_LABEL[booth.category]}
+                </span>
+              )}
+              {booth.booth_no && (
+                <span className={styles.modalBoothNo}>#{booth.booth_no}</span>
+              )}
+            </div>
+            <h3 className={styles.modalName}>{booth.name}</h3>
+            {booth.description && (
+              <p className={styles.modalDesc}>{booth.description}</p>
+            )}
+          </div>
+        </div>
+
+        <div className={styles.modalDivider} />
+
+        <div className={styles.modalBody}>
+          <h4 className={styles.modalSection}>메뉴</h4>
+          {booth.menus.length === 0 ? (
+            <p className={styles.emptyMenu}>메뉴 정보가 곧 업데이트됩니다</p>
+          ) : (
+            <ul className={styles.menuList}>
+              {booth.menus.map((m) => (
+                <li key={m.id} className={styles.menuItem}>
+                  <div className={styles.menuHead}>
+                    <span className={styles.menuName}>
+                      {m.is_signature && (
+                        <span className={styles.signatureMark}>대표</span>
+                      )}
+                      {m.name}
+                    </span>
+                    <span className={styles.menuPrice}>
+                      {m.price != null
+                        ? `${m.price.toLocaleString()}원`
+                        : '시가'}
+                    </span>
+                  </div>
+                  {m.description && (
+                    <p className={styles.menuDesc}>{m.description}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
