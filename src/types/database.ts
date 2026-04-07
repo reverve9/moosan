@@ -336,6 +336,212 @@ export interface Database {
         }
         Relationships: []
       }
+      festival_events: {
+        Row: {
+          id: string
+          festival_id: string
+          slug: string | null
+          name: string
+          kind: 'opening' | 'closing' | 'program'
+          schedule: string | null
+          venue: string | null
+          description: string | null
+          thumbnail_url: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          festival_id: string
+          slug?: string | null
+          name: string
+          kind?: 'opening' | 'closing' | 'program'
+          schedule?: string | null
+          venue?: string | null
+          description?: string | null
+          thumbnail_url?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          festival_id?: string
+          slug?: string | null
+          name?: string
+          kind?: 'opening' | 'closing' | 'program'
+          schedule?: string | null
+          venue?: string | null
+          description?: string | null
+          thumbnail_url?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'festival_events_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      festival_guests: {
+        Row: {
+          id: string
+          festival_id: string
+          name: string
+          description: string | null
+          photo_url: string | null
+          link_url: string | null
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          festival_id: string
+          name: string
+          description?: string | null
+          photo_url?: string | null
+          link_url?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          festival_id?: string
+          name?: string
+          description?: string | null
+          photo_url?: string | null
+          link_url?: string | null
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'festival_guests_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      food_booths: {
+        Row: {
+          id: string
+          festival_id: string
+          booth_no: string | null
+          name: string
+          description: string | null
+          category: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          thumbnail_url: string | null
+          gallery_urls: Json
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          festival_id: string
+          booth_no?: string | null
+          name: string
+          description?: string | null
+          category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          thumbnail_url?: string | null
+          gallery_urls?: Json
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          festival_id?: string
+          booth_no?: string | null
+          name?: string
+          description?: string | null
+          category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          thumbnail_url?: string | null
+          gallery_urls?: Json
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'food_booths_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      food_menus: {
+        Row: {
+          id: string
+          booth_id: string
+          name: string
+          price: number | null
+          description: string | null
+          image_url: string | null
+          is_signature: boolean
+          sort_order: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booth_id: string
+          name: string
+          price?: number | null
+          description?: string | null
+          image_url?: string | null
+          is_signature?: boolean
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          booth_id?: string
+          name?: string
+          price?: number | null
+          description?: string | null
+          image_url?: string | null
+          is_signature?: boolean
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'food_menus_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: false
+            referencedRelation: 'food_booths'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
