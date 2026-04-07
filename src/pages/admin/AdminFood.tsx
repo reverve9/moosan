@@ -474,30 +474,28 @@ export default function AdminFood() {
                   {thumbUrl ? (
                     <img src={thumbUrl} alt={booth.name} />
                   ) : (
-                    <div className={styles.gridThumbEmpty}>썸네일 없음</div>
+                    <div className={styles.gridThumbEmpty}>—</div>
                   )}
                 </div>
                 <div className={styles.gridCardBody}>
                   <div className={styles.gridCardTopRow}>
-                    <span className={styles.cardBoothNo}>
-                      {booth.booth_no ? `#${booth.booth_no}` : '—'}
-                    </span>
-                    {booth.category ? (
+                    {booth.category && (
                       <span className={styles.cardCategory}>
                         {CATEGORY_LABEL[booth.category]}
                       </span>
-                    ) : (
-                      <span className={styles.uncategorized}>미지정</span>
+                    )}
+                    <span className={styles.gridCardName}>{booth.name}</span>
+                  </div>
+                  <div className={styles.gridCardSubRow}>
+                    <span className={styles.cardBoothNo}>
+                      {booth.booth_no ? `#${booth.booth_no}` : '—'}
+                    </span>
+                    {booth.description && (
+                      <span className={styles.gridCardDesc}>{booth.description}</span>
                     )}
                   </div>
-                  <h3 className={styles.gridCardName}>{booth.name}</h3>
-                  {booth.description && (
-                    <p className={styles.gridCardDesc}>{booth.description}</p>
-                  )}
-                  <div className={styles.gridCardMeta}>
-                    메뉴 {booth.menus.length}개
-                  </div>
                 </div>
+                <div className={styles.gridCardMeta}>{booth.menus.length}</div>
               </button>
             )
           })}

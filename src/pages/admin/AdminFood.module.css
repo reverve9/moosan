@@ -108,38 +108,40 @@
   background-color: rgba(255, 255, 255, 0.18);
 }
 
-/* ──────────────── 매장 그리드 (2열 카드) ──────────────── */
+/* ──────────────── 매장 그리드 (가로형 컴팩트 카드) ──────────────── */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 10px;
 }
 
 .gridCard {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
   background-color: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 10px;
   cursor: pointer;
   text-align: left;
   font-family: inherit;
-  padding: 0;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  padding: 10px 14px 10px 10px;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 
 .gridCard:hover {
   border-color: #1E3A2F;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
+  background-color: #F9FAFB;
 }
 
 .gridThumb {
-  width: 100%;
-  aspect-ratio: 16 / 9;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
   background-color: #F3F4F6;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .gridThumb img {
@@ -155,77 +157,88 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  color: #9CA3AF;
+  font-size: 16px;
+  color: #D1D5DB;
 }
 
 .gridCardBody {
-  padding: 14px 16px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  flex: 1;
+  gap: 4px;
+  min-width: 0;
 }
 
 .gridCardTopRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.gridCardSubRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+  color: #6B7280;
 }
 
 .cardBoothNo {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: #6B7280;
   background-color: #F3F4F6;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cardCategory {
   display: inline-block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #1E3A2F;
   background-color: #ECFDF5;
-  padding: 3px 10px;
-  border-radius: 6px;
+  padding: 2px 8px;
+  border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .uncategorized {
-  font-size: 12px;
+  font-size: 11px;
   color: #9CA3AF;
 }
 
 .gridCardName {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #111827;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .gridCardDesc {
-  font-size: 13px;
-  color: #6B7280;
-  margin: 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .gridCardMeta {
-  font-size: 11px;
-  color: #9CA3AF;
-  font-weight: 600;
-  margin-top: auto;
-  padding-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 /* ──────────────── 모달 ──────────────── */
