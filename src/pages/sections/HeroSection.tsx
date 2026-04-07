@@ -6,6 +6,8 @@ type Align = 'left' | 'right'
 interface Marker {
   top: string
   align: Align
+  /** 좌/우 가장자리에서의 offset (예: '5%'). 미지정 시 .left/.right 클래스 기본값 사용 */
+  inset?: string
   date: string
   title: string[]
   to: string
@@ -13,29 +15,31 @@ interface Marker {
 
 const markers: Marker[] = [
   {
-    top: '32%',
+    top: '33.8%',
     align: 'left',
+    inset: '7%',
     date: '5월 15일(금)',
     title: ['개막식'],
     to: '/program/ceremony',
   },
   {
-    top: '64%',
+    top: '60.8%',
     align: 'left',
     date: '5월 15일(금) - 17일(일)',
     title: ['제3회', '설악음식문화페스티벌'],
     to: '/program/food',
   },
   {
-    top: '48%',
+    top: '47.3%',
     align: 'right',
     date: '5월 15일(금) - 17일(일)',
     title: ['제4회', '설악청소년문화축전'],
     to: '/program/youth',
   },
   {
-    top: '80%',
+    top: '74.3%',
     align: 'right',
+    inset: '7%',
     date: '5월 17일(일)',
     title: ['폐막식'],
     to: '/program/ceremony',
@@ -63,7 +67,10 @@ export default function HeroSection() {
             key={i}
             to={m.to}
             className={`${styles.marker} ${styles[m.align]}`}
-            style={{ top: m.top }}
+            style={{
+              top: m.top,
+              ...(m.inset ? { [m.align]: m.inset } : null),
+            }}
           >
             <span className={styles.date}>{m.date}</span>
             {m.title.map((line, i) => (
