@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowUpTrayIcon,
   PlusIcon,
@@ -31,6 +31,16 @@ const CATEGORY_LABEL: Record<FoodCategory, string> = {
   japanese: '일식',
   fusion: '퓨전',
 }
+
+type CategoryFilter = 'all' | FoodCategory
+
+const CATEGORY_FILTER_TABS: { key: CategoryFilter; label: string }[] = [
+  { key: 'all', label: '전체' },
+  { key: 'korean', label: '한식' },
+  { key: 'chinese', label: '중식' },
+  { key: 'japanese', label: '일식' },
+  { key: 'fusion', label: '퓨전' },
+]
 
 type BoothForm = {
   booth_no: string
@@ -81,6 +91,12 @@ export default function AdminFood() {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
+
+  const filteredBooths = useMemo(() => {
+    if (activeCategory === 'all') return booths
+    return booths.filter((b) => b.category === activeCategory)
+  }, [booths, activeCategory])
 
   // 부스 폼 상태 (lazy: 펼친 카드만 채워짐)
   const [boothForms, setBoothForms] = useState<Record<string, BoothForm>>({})
@@ -92,8 +108,10 @@ export default function AdminFood() {
   const [savingMenuId, setSavingMenuId] = useState<string | null>(null)
   const [savedMenuId, setSavedMenuId] = useState<string | null>(null)
   const [uploadingId, setUploadingId] = useState<string | null>(null)
+  const [uploadingMenuId, setUploadingMenuId] = useState<string | null>(null)
 
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({})
+  const menuFileInputs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const refetch = async () => {
     if (!festivalId) return
@@ -338,6 +356,30 @@ export default function AdminFood() {
     refetch()
   }
 
+  const handleUploadMenuImage = async (menuId: string, file: File) => {
+    setUploadingMenuId(menuId)
+    const ext = file.name.split('.').pop() || 'png'
+    const path = `food-menus/${menuId}/image.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, file, { upsert: true, cacheControl: '3600' })
+    if (uploadError) {
+      alert('업로드 실패: ' + uploadError.message)
+      setUploadingMenuId(null)
+      return
+    }
+    const { error: dbError } = await supabase
+      .from('food_menus')
+      .update({ image_url: path })
+      .eq('id', menuId)
+    setUploadingMenuId(null)
+    if (dbError) {
+      alert('DB 업데이트 실패: ' + dbError.message)
+      return
+    }
+    refetch()
+  }
+
   const handleDeleteMenu = async (menuId: string) => {
     if (!confirm('이 메뉴를 삭제하시겠습니까?')) return
     const { error } = await supabase.from('food_menus').delete().eq('id', menuId)
@@ -390,28 +432,56 @@ export default function AdminFood() {
         </button>
       </div>
 
+      <div className={styles.filterTabs} role="tablist" aria-label="카테고리 필터">
+        {CATEGORY_FILTER_TABS.map((t) => {
+          const active = activeCategory === t.key
+          const count =
+            t.key === 'all'
+              ? booths.length
+              : booths.filter((b) => b.category === t.key).length
+          return (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`${styles.filterTab} ${active ? styles.filterTabActive : ''}`}
+              onClick={() => setActiveCategory(t.key)}
+            >
+              {t.label}
+              <span className={styles.filterCount}>{count}</span>
+            </button>
+          )
+        })}
+      </div>
+
       {booths.length === 0 ? (
         <div className={styles.empty}>등록된 매장이 없습니다. 우측 상단 ‘매장 추가’로 시작하세요.</div>
+      ) : filteredBooths.length === 0 ? (
+        <div className={styles.empty}>해당 카테고리에 매장이 없습니다.</div>
       ) : (
-        <div className={styles.board}>
-          <div className={styles.boardHeaderRow}>
-            <span className={styles.colNo}>번호</span>
-            <span className={styles.colCategory}>카테고리</span>
-            <span className={styles.colName}>매장명</span>
-            <span className={styles.colMeta}>메뉴</span>
-          </div>
-          <ul className={styles.boardList}>
-            {booths.map((booth) => (
-              <li key={booth.id}>
-                <button
-                  type="button"
-                  className={styles.boardRow}
-                  onClick={() => openBooth(booth)}
-                >
-                  <span className={styles.colNo}>
-                    {booth.booth_no ? `#${booth.booth_no}` : '—'}
-                  </span>
-                  <span className={styles.colCategory}>
+        <div className={styles.grid}>
+          {filteredBooths.map((booth) => {
+            const thumbUrl = getAssetUrl(booth.thumbnail_url)
+            return (
+              <button
+                key={booth.id}
+                type="button"
+                className={styles.gridCard}
+                onClick={() => openBooth(booth)}
+              >
+                <div className={styles.gridThumb}>
+                  {thumbUrl ? (
+                    <img src={thumbUrl} alt={booth.name} />
+                  ) : (
+                    <div className={styles.gridThumbEmpty}>썸네일 없음</div>
+                  )}
+                </div>
+                <div className={styles.gridCardBody}>
+                  <div className={styles.gridCardTopRow}>
+                    <span className={styles.cardBoothNo}>
+                      {booth.booth_no ? `#${booth.booth_no}` : '—'}
+                    </span>
                     {booth.category ? (
                       <span className={styles.cardCategory}>
                         {CATEGORY_LABEL[booth.category]}
@@ -419,13 +489,18 @@ export default function AdminFood() {
                     ) : (
                       <span className={styles.uncategorized}>미지정</span>
                     )}
-                  </span>
-                  <span className={styles.colName}>{booth.name}</span>
-                  <span className={styles.colMeta}>{booth.menus.length}개</span>
-                </button>
-              </li>
-            ))}
-          </ul>
+                  </div>
+                  <h3 className={styles.gridCardName}>{booth.name}</h3>
+                  {booth.description && (
+                    <p className={styles.gridCardDesc}>{booth.description}</p>
+                  )}
+                  <div className={styles.gridCardMeta}>
+                    메뉴 {booth.menus.length}개
+                  </div>
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -610,6 +685,43 @@ export default function AdminFood() {
                         if (!mForm) return null
                         return (
                           <div key={m.id} className={styles.menuRow}>
+                            <div className={styles.menuThumbRow}>
+                              <div className={styles.menuThumbPreview}>
+                                {m.image_url ? (
+                                  <img
+                                    src={getAssetUrl(m.image_url) ?? ''}
+                                    alt={m.name}
+                                  />
+                                ) : (
+                                  <div className={styles.menuThumbEmpty}>없음</div>
+                                )}
+                              </div>
+                              <input
+                                ref={(el) => {
+                                  menuFileInputs.current[m.id] = el
+                                }}
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleUploadMenuImage(m.id, file)
+                                  e.target.value = ''
+                                }}
+                              />
+                              <button
+                                className={styles.menuUploadBtn}
+                                onClick={() =>
+                                  menuFileInputs.current[m.id]?.click()
+                                }
+                                disabled={uploadingMenuId === m.id}
+                              >
+                                <ArrowUpTrayIcon width={14} height={14} />
+                                {uploadingMenuId === m.id
+                                  ? '업로드 중...'
+                                  : '메뉴 사진'}
+                              </button>
+                            </div>
                             <div className={styles.menuFields}>
                               <input
                                 className={`${styles.input} ${styles.menuName}`}

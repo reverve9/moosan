@@ -377,11 +377,35 @@
 .menuItem {
   padding: 2cqw 0; /* 12px @ 600 */
   border-top: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: flex-start;
+  gap: 2.667cqw; /* 16px @ 600 */
 }
 
 .menuItem:first-child {
   border-top: none;
   padding-top: 0;
+}
+
+.menuItemThumb {
+  width: 12cqw; /* 72px @ 600 */
+  height: 12cqw;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: var(--color-bg-secondary);
+}
+
+.menuItemThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.menuItemContent {
+  flex: 1;
+  min-width: 0;
 }
 
 .menuHead {

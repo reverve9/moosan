@@ -230,26 +230,36 @@ function BoothModal({
             <p className={styles.emptyMenu}>메뉴 정보가 곧 업데이트됩니다</p>
           ) : (
             <ul className={styles.menuList}>
-              {booth.menus.map((m) => (
-                <li key={m.id} className={styles.menuItem}>
-                  <div className={styles.menuHead}>
-                    <span className={styles.menuName}>
-                      {m.is_signature && (
-                        <span className={styles.signatureMark}>대표</span>
+              {booth.menus.map((m) => {
+                const menuImg = getAssetUrl(m.image_url)
+                return (
+                  <li key={m.id} className={styles.menuItem}>
+                    {menuImg && (
+                      <div className={styles.menuItemThumb}>
+                        <img src={menuImg} alt={m.name} />
+                      </div>
+                    )}
+                    <div className={styles.menuItemContent}>
+                      <div className={styles.menuHead}>
+                        <span className={styles.menuName}>
+                          {m.is_signature && (
+                            <span className={styles.signatureMark}>대표</span>
+                          )}
+                          {m.name}
+                        </span>
+                        <span className={styles.menuPrice}>
+                          {m.price != null
+                            ? `${m.price.toLocaleString()}원`
+                            : '시가'}
+                        </span>
+                      </div>
+                      {m.description && (
+                        <p className={styles.menuDesc}>{m.description}</p>
                       )}
-                      {m.name}
-                    </span>
-                    <span className={styles.menuPrice}>
-                      {m.price != null
-                        ? `${m.price.toLocaleString()}원`
-                        : '시가'}
-                    </span>
-                  </div>
-                  {m.description && (
-                    <p className={styles.menuDesc}>{m.description}</p>
-                  )}
-                </li>
-              ))}
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
