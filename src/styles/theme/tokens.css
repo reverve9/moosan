@@ -72,13 +72,13 @@
      Anchor: body = 13px @ 430 viewport (= 3.034cqw = 18.2px @ 600).
      비율은 기존 14:16:17:18:24:28 시스템 유지 (×13/15 스케일). ── */
   --text-cq-display:    5.2cqw;   /* 31.2 @600 / 22.4 @430 */
-  --text-cq-section:    4.622cqw; /* 27.7 @600 / 19.9 @430 */
+  --text-cq-section:    4.744cqw; /* 28.5 @600 / 20.4 @430 */
   --text-cq-subtitle:   3.467cqw; /* 20.8 @600 / 14.9 @430 */
-  --text-cq-card-title: 3.178cqw; /* 19.1 @600 / 13.7 @430 */
+  --text-cq-card-title: 3.302cqw; /* 19.8 @600 / 14.2 @430 */
   --text-cq-body:       3.034cqw; /* 18.2 @600 / 13.0 @430  ← anchor */
-  --text-cq-button:     2.889cqw; /* 17.3 @600 / 12.4 @430 */
-  --text-cq-label:      2.6cqw;   /* 15.6 @600 / 11.2 @430 */
-  --text-cq-caption:    2.456cqw; /* 14.7 @600 / 10.6 @430 */
+  --text-cq-button:     3cqw;     /* 18.0 @600 / 12.9 @430 */
+  --text-cq-label:      2.721cqw; /* 16.3 @600 / 11.7 @430 */
+  --text-cq-caption:    2.581cqw; /* 15.5 @600 / 11.1 @430 */
 
   /* ── Button ── */
   --btn-height-sm: clamp(32px, 8.4vw, 36px);

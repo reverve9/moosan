@@ -75,7 +75,22 @@
   line-height: 1.5;
   color: var(--color-text-secondary);
   margin: 0;
-  word-break: keep-all;
+  text-align: justify;
+  text-align-last: justify;
+  word-break: break-all;
+  /* 닫힌 상태: 2줄 클램프 + 우측 정렬 딱 맞게 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 카드 열리면 본문 전부 표시 */
+.cardOpen .desc {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  text-align-last: auto;
 }
 
 .chevron {
