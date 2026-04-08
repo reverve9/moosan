@@ -113,7 +113,7 @@ export async function fetchOrderWithItems(orderId: string): Promise<OrderWithIte
  * 오늘 KST 자정 (UTC ISO) 을 반환.
  * 자정 ~ 익일 자정 범위 비교에 사용.
  */
-function startOfTodayKstAsUtc(): Date {
+export function startOfTodayKstAsUtc(): Date {
   const now = new Date()
   // KST 기준 YYYY-MM-DD 추출 (Intl 로 timezone 처리)
   const kstDateStr = new Intl.DateTimeFormat('en-CA', {

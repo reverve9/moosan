@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   RectangleGroupIcon,
@@ -6,15 +6,22 @@ import {
   DocumentTextIcon,
   MegaphoneIcon,
   BuildingStorefrontIcon,
+  KeyIcon,
+  SignalIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
 import styles from './AdminLayout.module.css'
 
+const MONITOR_PATH = '/admin/monitor'
+
 const NAV_ITEMS = [
+  { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
   { label: '참가신청 관리', path: '/admin/applications', icon: DocumentTextIcon },
   { label: '페스티벌 관리', path: '/admin/festivals', icon: RectangleGroupIcon },
   { label: '프로그램 관리', path: '/admin/programs', icon: Squares2X2Icon },
   { label: '참여 매장 관리', path: '/admin/food', icon: BuildingStorefrontIcon },
+  { label: '매장 계정 관리', path: '/admin/booth-accounts', icon: KeyIcon },
   { label: '공지사항 관리', path: '/admin/notices', icon: MegaphoneIcon },
 ]
 
@@ -31,6 +38,30 @@ export default function AdminLayout() {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
+  const [monitorPending, setMonitorPending] = useState(0)
+
+  // 사이드바 모니터 배지 — 인증된 동안만 fetch + Realtime 구독
+  useEffect(() => {
+    if (!authed) return
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const summaries = await fetchMonitorSummary()
+        if (cancelled) return
+        setMonitorPending(summaries.reduce((sum, s) => sum + s.count, 0))
+      } catch {
+        // 사이드바 배지는 silent fail
+      }
+    }
+    refresh()
+    const unsub = subscribeMonitor(() => {
+      void refresh()
+    }, 'admin-layout-monitor')
+    return () => {
+      cancelled = true
+      unsub()
+    }
+  }, [authed])
 
   const handleLogin = () => {
     if (id === ADMIN_ID && pw === ADMIN_PW) {
@@ -92,6 +123,7 @@ export default function AdminLayout() {
         <nav className={styles.nav}>
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon
+            const showBadge = item.path === MONITOR_PATH && monitorPending > 0
             return (
               <NavLink
                 key={item.path}
@@ -102,6 +134,9 @@ export default function AdminLayout() {
               >
                 <Icon className={styles.navIcon} />
                 <span>{item.label}</span>
+                {showBadge && (
+                  <span className={styles.navBadge}>{monitorPending}</span>
+                )}
               </NavLink>
             )
           })}

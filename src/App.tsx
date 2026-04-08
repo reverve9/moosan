@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import AdminLayout from '@/components/admin/AdminLayout'
+import BoothLayout from '@/components/booth/BoothLayout'
 import HomePage from '@/pages/HomePage'
 import SchedulePage from '@/pages/SchedulePage'
 import ProgramsPage from '@/pages/ProgramsPage'
@@ -19,7 +20,12 @@ import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminFestivals from '@/pages/admin/AdminFestivals'
 import AdminPrograms from '@/pages/admin/AdminPrograms'
 import AdminFood from '@/pages/admin/AdminFood'
+import AdminBoothAccounts from '@/pages/admin/AdminBoothAccounts'
+import AdminMonitor from '@/pages/admin/AdminMonitor'
 import AdminNotices from '@/pages/admin/AdminNotices'
+import BoothOrdersPage from '@/pages/booth/BoothOrdersPage'
+import BoothMenuPage from '@/pages/booth/BoothMenuPage'
+import BoothTodayPage from '@/pages/booth/BoothTodayPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
 import { CartProvider } from '@/store/cartStore'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -54,6 +60,13 @@ export default function App() {
               <Route path="/program/:slug" element={<ProgramDetailPage />} />
             </Route>
 
+            {/* Booth (매장 운영) */}
+            <Route path="/booth" element={<BoothLayout />}>
+              <Route index element={<BoothOrdersPage />} />
+              <Route path="menu" element={<BoothMenuPage />} />
+              <Route path="today" element={<BoothTodayPage />} />
+            </Route>
+
             {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -61,6 +74,8 @@ export default function App() {
               <Route path="festivals" element={<AdminFestivals />} />
               <Route path="programs" element={<AdminPrograms />} />
               <Route path="food" element={<AdminFood />} />
+              <Route path="booth-accounts" element={<AdminBoothAccounts />} />
+              <Route path="monitor" element={<AdminMonitor />} />
               <Route path="notices" element={<AdminNotices />} />
             </Route>
           </Routes>

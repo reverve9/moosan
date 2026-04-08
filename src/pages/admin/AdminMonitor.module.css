@@ -1,0 +1,414 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.statBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  height: 64px;
+  padding: 0 18px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  transition: all 200ms ease;
+}
+
+.statBoxAlert {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.statBoxAlert .statValue {
+  color: #DC2626;
+}
+
+.statLabel {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.statBoxAlert .statLabel {
+  color: #DC2626;
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: #1E3A2F;
+  border-radius: 10px;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background-color: #142820;
+}
+
+.refreshBtn:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.refreshIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.refreshIconSpin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorBanner {
+  padding: 14px 18px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #991B1B;
+}
+
+.placeholder {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 80px;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+/* ── Booth grid ── */
+
+.boothGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.boothCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 14px 16px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.boothCard:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.boothCard:disabled {
+  cursor: default;
+}
+
+.level_idle {
+  background-color: #FFFFFF;
+}
+
+.level_idle .countValue {
+  color: #D1D5DB;
+}
+
+.level_pending {
+  background-color: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.level_pending .countValue {
+  color: #D97706;
+}
+
+.level_alert {
+  background-color: #FEF2F2;
+  border-color: #FCA5A5;
+  animation: alertPulse 1.4s ease-in-out infinite;
+}
+
+.level_alert .countValue {
+  color: #DC2626;
+}
+
+@keyframes alertPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15);
+  }
+}
+
+.boothNo {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.level_pending .boothNo,
+.level_alert .boothNo {
+  color: inherit;
+  opacity: 0.7;
+}
+
+.boothName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.level_alert .boothName {
+  color: #991B1B;
+}
+
+.countRow {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.countValue {
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.countUnit {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.level_pending .countUnit {
+  color: #D97706;
+}
+
+.level_alert .countUnit {
+  color: #DC2626;
+}
+
+.elapsedRow {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9CA3AF;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.level_pending .elapsedRow {
+  color: #D97706;
+}
+
+.level_alert .elapsedRow {
+  color: #DC2626;
+}
+
+/* ── Modal ── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(17, 24, 39, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  z-index: 100;
+}
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 80vh;
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalSub {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.modalClose {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F3F4F6;
+  color: #6B7280;
+  border-radius: 8px;
+}
+
+.modalClose:hover {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+
+.modalClose svg {
+  width: 18px;
+  height: 18px;
+}
+
+.modalList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+}
+
+.modalItem {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+}
+
+.modalItemAlert {
+  background-color: #FEF2F2;
+  border-color: #FCA5A5;
+}
+
+.modalItemLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modalItemTime {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.modalItemOrderNo {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.modalItemBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modalItemMenu {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modalItemPhone {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.modalItemElapsed {
+  font-size: 14px;
+  font-weight: 700;
+  color: #D97706;
+  font-variant-numeric: tabular-nums;
+}
+
+.modalItemAlert .modalItemElapsed {
+  color: #DC2626;
+}
