@@ -347,7 +347,7 @@
 
 .modalItem {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
@@ -411,4 +411,26 @@
 
 .modalItemAlert .modalItemElapsed {
   color: #DC2626;
+}
+
+.modalItemConfirmBtn {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #2563EB;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+  font-variant-numeric: tabular-nums;
+}
+
+.modalItemConfirmBtn:hover:not(:disabled) {
+  background-color: #1D4ED8;
+}
+
+.modalItemConfirmBtn:disabled {
+  background-color: #93C5FD;
+  cursor: not-allowed;
 }

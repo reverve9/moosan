@@ -5,11 +5,14 @@ import {
   type MonitorBoothSummary,
   subscribeMonitor,
 } from '@/lib/boothMonitor'
+import { confirmBoothOrder } from '@/lib/boothOrders'
 import { formatPhone } from '@/lib/phone'
 import styles from './AdminMonitor.module.css'
 
 const ALERT_SECONDS = 60
 const TICK_MS = 1_000
+// 테스트 단계 한정: 어드민 모니터에서도 "확인" 가능. 운영 배포 시 자동으로 숨김.
+const ALLOW_ADMIN_CONFIRM = import.meta.env.DEV
 
 function elapsedSeconds(iso: string, nowMs: number): number {
   const t = new Date(iso).getTime()
@@ -39,6 +42,7 @@ export default function AdminMonitor() {
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [selectedBoothId, setSelectedBoothId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const refetch = useCallback(async () => {
     try {
@@ -86,6 +90,22 @@ export default function AdminMonitor() {
     await refetch()
     setRefreshing(false)
   }, [refetch])
+
+  const handleAdminConfirm = useCallback(
+    async (orderId: string) => {
+      if (!ALLOW_ADMIN_CONFIRM) return
+      setConfirmingId(orderId)
+      try {
+        await confirmBoothOrder(orderId)
+        await refetch()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '확인 처리 실패')
+      } finally {
+        setConfirmingId(null)
+      }
+    },
+    [refetch],
+  )
 
   const totalPending = useMemo(
     () => summaries.reduce((sum, s) => sum + s.count, 0),
@@ -213,6 +233,16 @@ export default function AdminMonitor() {
                       <div className={styles.modalItemPhone}>{formatPhone(order.phone)}</div>
                     </div>
                     <div className={styles.modalItemElapsed}>{formatElapsed(elapsed)}</div>
+                    {ALLOW_ADMIN_CONFIRM && (
+                      <button
+                        type="button"
+                        className={styles.modalItemConfirmBtn}
+                        onClick={() => handleAdminConfirm(order.id)}
+                        disabled={confirmingId === order.id}
+                      >
+                        {confirmingId === order.id ? '처리 중…' : '확인 (dev)'}
+                      </button>
+                    )}
                   </li>
                 )
               })}
