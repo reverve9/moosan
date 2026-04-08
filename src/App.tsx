@@ -15,10 +15,12 @@ import AdminFestivals from '@/pages/admin/AdminFestivals'
 import AdminPrograms from '@/pages/admin/AdminPrograms'
 import AdminFood from '@/pages/admin/AdminFood'
 import AdminNotices from '@/pages/admin/AdminNotices'
+import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <FloatingInstallButton />
       <Routes>
         {/* Home (standalone: hero + footer) */}
         <Route path="/" element={<HomePage />} />
