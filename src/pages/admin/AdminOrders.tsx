@@ -113,19 +113,23 @@ export default function AdminOrders() {
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = visibleRows.slice(pageStart, pageStart + PAGE_SIZE)
 
+  // 정산 기준 매출 = 손님 실지불(total_amount) + 쿠폰 할인(discount_amount).
+  // 쿠폰 할인은 플랫폼 부담, 매장 정산 시엔 원래 금액 기준으로 지급해야 함.
   const totals = useMemo(() => {
-    let paidAmount = 0
+    let grossAmount = 0
+    let discountAmount = 0
     let paidCount = 0
     let cancelledCount = 0
     for (const r of visibleRows) {
       if (r.payment.status === 'paid') {
-        paidAmount += r.payment.total_amount
+        grossAmount += r.payment.total_amount + r.payment.discount_amount
+        discountAmount += r.payment.discount_amount
         paidCount += 1
       } else if (r.payment.status === 'cancelled') {
         cancelledCount += 1
       }
     }
-    return { paidAmount, paidCount, cancelledCount }
+    return { grossAmount, discountAmount, paidCount, cancelledCount }
   }, [visibleRows])
 
   return (
@@ -141,8 +145,14 @@ export default function AdminOrders() {
             <div className={styles.statLabel}>결제</div>
           </div>
           <div className={styles.statBox}>
-            <div className={styles.statValue}>{totals.paidAmount.toLocaleString()}</div>
-            <div className={styles.statLabel}>매출(원)</div>
+            <div className={styles.statValue}>{totals.grossAmount.toLocaleString()}</div>
+            <div className={styles.statLabel}>전체 매출(원)</div>
+          </div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>
+              -{totals.discountAmount.toLocaleString()}
+            </div>
+            <div className={styles.statLabel}>쿠폰 할인(원)</div>
           </div>
           <div className={styles.statBox}>
             <div className={styles.statValue}>{totals.cancelledCount}</div>
@@ -289,12 +299,15 @@ export default function AdminOrders() {
                       {r.payment.discount_amount > 0 && (
                         <span
                           className={styles.couponBadge}
-                          title={`쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원`}
+                          title={`쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원 · 실지불 ${r.payment.total_amount.toLocaleString()}원`}
                         >
                           쿠폰
                         </span>
                       )}
-                      {r.payment.total_amount.toLocaleString()}원
+                      {(
+                        r.payment.total_amount + r.payment.discount_amount
+                      ).toLocaleString()}
+                      원
                     </td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${r.payment.status}`]}`}>
