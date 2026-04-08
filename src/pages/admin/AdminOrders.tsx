@@ -22,14 +22,27 @@ function todayKstString(): string {
 }
 
 function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat('ko-KR', {
+  // mm/dd hh:mm (KST)
+  const d = new Date(iso)
+  const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Seoul',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  }).format(new Date(iso))
+  }).formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return `${get('month')}/${get('day')} ${get('hour')}:${get('minute')}`
+}
+
+function formatMenuSummary(
+  lines: { name: string; quantity: number }[],
+): string {
+  if (lines.length === 0) return '—'
+  const head = `${lines[0].name} × ${lines[0].quantity}`
+  if (lines.length === 1) return head
+  return `${head} 외 ${lines.length - 1}`
 }
 
 const STATUS_LABEL: Record<'pending' | 'paid' | 'cancelled', string> = {
@@ -38,6 +51,7 @@ const STATUS_LABEL: Record<'pending' | 'paid' | 'cancelled', string> = {
   cancelled: '취소됨',
 }
 
+// 상세 모달의 부스별 진행상태 뱃지 (여긴 운영 상태 확인에 쓸모 있어서 유지)
 const ORDER_STATUS_LABEL: Record<
   'paid' | 'confirmed' | 'completed' | 'cancelled' | 'pending',
   string
@@ -56,6 +70,7 @@ export default function AdminOrders() {
     dateTo: todayKstString(),
     phone: '',
   }))
+  const [boothQuery, setBoothQuery] = useState('')
   const [rows, setRows] = useState<PaymentRowWithSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -78,11 +93,18 @@ export default function AdminOrders() {
     void refetch()
   }, [refetch])
 
+  // 매장 검색 — 실시간 client-side 필터 (서버 재호출 X)
+  const visibleRows = useMemo(() => {
+    const q = boothQuery.trim().toLowerCase()
+    if (q.length === 0) return rows
+    return rows.filter((r) => r.boothNames.some((n) => n.toLowerCase().includes(q)))
+  }, [rows, boothQuery])
+
   const totals = useMemo(() => {
     let paidAmount = 0
     let paidCount = 0
     let cancelledCount = 0
-    for (const r of rows) {
+    for (const r of visibleRows) {
       if (r.payment.status === 'paid') {
         paidAmount += r.payment.total_amount
         paidCount += 1
@@ -91,7 +113,7 @@ export default function AdminOrders() {
       }
     }
     return { paidAmount, paidCount, cancelledCount }
-  }, [rows])
+  }, [visibleRows])
 
   return (
     <div className={styles.page}>
@@ -140,7 +162,6 @@ export default function AdminOrders() {
             <option value="all">전체</option>
             <option value="paid">결제완료</option>
             <option value="cancelled">취소됨</option>
-            <option value="pending">결제대기</option>
           </select>
         </label>
         <label className={styles.filterItem}>
@@ -171,6 +192,16 @@ export default function AdminOrders() {
             className={styles.input}
           />
         </label>
+        <label className={`${styles.filterItem} ${styles.filterItemGrow}`}>
+          <span className={styles.filterLabel}>매장 검색</span>
+          <input
+            type="text"
+            value={boothQuery}
+            onChange={(e) => setBoothQuery(e.target.value)}
+            placeholder="매장명을 입력하면 즉시 필터링됩니다"
+            className={styles.input}
+          />
+        </label>
       </div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
@@ -179,52 +210,68 @@ export default function AdminOrders() {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th className={styles.alignCenter}>#</th>
+              <th>부스명</th>
               <th>결제시각</th>
-              <th>주문번호(Toss)</th>
-              <th>전화</th>
-              <th>부스</th>
-              <th>상태</th>
+              <th>주문번호</th>
+              <th>연락처</th>
+              <th>메뉴</th>
               <th className={styles.alignRight}>금액</th>
-              <th className={styles.alignCenter}>진행</th>
+              <th>상태</th>
+              <th>결제번호</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className={styles.tablePlaceholder}>
+                <td colSpan={9} className={styles.tablePlaceholder}>
                   불러오는 중...
                 </td>
               </tr>
-            ) : rows.length === 0 ? (
+            ) : visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.tablePlaceholder}>
-                  조회된 결제가 없습니다.
+                <td colSpan={9} className={styles.tablePlaceholder}>
+                  {rows.length === 0
+                    ? '조회된 결제가 없습니다.'
+                    : '검색어와 일치하는 매장이 없습니다.'}
                 </td>
               </tr>
             ) : (
-              rows.map((r) => {
+              visibleRows.map((r, idx) => {
                 const isCancelled = r.payment.status === 'cancelled'
+                const firstBoothName = r.boothNames[0] ?? '—'
+                const firstOrderNo = r.boothOrderNumbers[0] ?? '—'
+                const extraCount = Math.max(0, r.boothCount - 1)
                 return (
                   <tr
                     key={r.payment.id}
                     className={`${styles.row} ${isCancelled ? styles.rowCancelled : ''}`}
                     onClick={() => setSelectedId(r.payment.id)}
                   >
+                    <td className={`${styles.alignCenter} ${styles.mono}`}>{idx + 1}</td>
+                    <td>
+                      <div className={styles.boothCell}>
+                        <span className={styles.boothCellMain}>{firstBoothName}</span>
+                        {extraCount > 0 && (
+                          <span className={styles.boothCellExtra}>외 {extraCount}건</span>
+                        )}
+                      </div>
+                    </td>
                     <td className={styles.mono}>{formatDateTime(r.payment.created_at)}</td>
-                    <td className={styles.mono}>{r.payment.toss_order_id}</td>
+                    <td className={styles.mono}>{firstOrderNo}</td>
                     <td>{formatPhone(r.payment.phone)}</td>
-                    <td>{r.boothCount}건</td>
+                    <td>
+                      <span className={styles.menuCell}>{formatMenuSummary(r.menuLines)}</span>
+                    </td>
+                    <td className={`${styles.alignRight} ${styles.mono}`}>
+                      {r.payment.total_amount.toLocaleString()}원
+                    </td>
                     <td>
                       <span className={`${styles.badge} ${styles[`badge_${r.payment.status}`]}`}>
                         {STATUS_LABEL[r.payment.status]}
                       </span>
                     </td>
-                    <td className={`${styles.alignRight} ${styles.mono}`}>
-                      {r.payment.total_amount.toLocaleString()}원
-                    </td>
-                    <td className={styles.alignCenter}>
-                      {summaryText(r.orderStatusSummary)}
-                    </td>
+                    <td className={`${styles.mono} ${styles.dim}`}>{r.payment.toss_order_id}</td>
                   </tr>
                 )
               })
@@ -245,15 +292,6 @@ export default function AdminOrders() {
       )}
     </div>
   )
-}
-
-function summaryText(summary: PaymentRowWithSummary['orderStatusSummary']): string {
-  const parts: string[] = []
-  if (summary.paid > 0) parts.push(`미확인 ${summary.paid}`)
-  if (summary.confirmed > 0) parts.push(`조리 ${summary.confirmed}`)
-  if (summary.completed > 0) parts.push(`완료 ${summary.completed}`)
-  if (summary.cancelled > 0) parts.push(`취소 ${summary.cancelled}`)
-  return parts.join(' · ') || '—'
 }
 
 interface DetailModalProps {

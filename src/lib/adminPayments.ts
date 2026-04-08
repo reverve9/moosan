@@ -9,7 +9,8 @@ import type { Order, OrderItem, Payment } from '@/types/database'
  */
 
 export interface PaymentsListFilters {
-  status?: 'all' | 'pending' | 'paid' | 'cancelled'
+  /** 'all' = paid + cancelled (pending 제외). 정산 뷰라 결제대기/고아 row 는 기본 미노출 */
+  status?: 'all' | 'paid' | 'cancelled'
   /** inclusive, 로컬 'YYYY-MM-DD' (KST 해석) */
   dateFrom?: string
   dateTo?: string
@@ -19,6 +20,12 @@ export interface PaymentsListFilters {
 export interface PaymentRowWithSummary {
   payment: Payment
   boothCount: number
+  /** 부스명 리스트 (매장 검색 필터용 + 테이블 표시용) */
+  boothNames: string[]
+  /** 부스별 order_number 리스트 (booth_no 오름차순) */
+  boothOrderNumbers: string[]
+  /** 전체 order_items (부스 순 + 생성 순) — 메뉴 컬럼 표시용 */
+  menuLines: { name: string; quantity: number }[]
   /** orders 의 status 요약 — 전부 cancelled 이면 cancelled 로 렌더 */
   orderStatusSummary: {
     paid: number
@@ -37,10 +44,17 @@ function kstDateToUtc(dateStr: string, endOfDay: boolean): string {
 export async function fetchPaymentsList(
   filters: PaymentsListFilters,
 ): Promise<PaymentRowWithSummary[]> {
-  let q = supabase.from('payments').select().order('created_at', { ascending: false })
+  let q = supabase
+    .from('payments')
+    .select()
+    .order('created_at', { ascending: false })
 
   if (filters.status && filters.status !== 'all') {
+    // 단일 상태 필터
     q = q.eq('status', filters.status)
+  } else {
+    // 기본(전체) = paid + cancelled. pending 은 정산 뷰에서 제외
+    q = q.in('status', ['paid', 'cancelled'])
   }
   if (filters.dateFrom) {
     q = q.gte('created_at', kstDateToUtc(filters.dateFrom, false))
@@ -59,23 +73,58 @@ export async function fetchPaymentsList(
   const paymentIds = payments.map((p) => p.id)
   const { data: orders, error: oErr } = await supabase
     .from('orders')
-    .select('payment_id, status')
+    .select('id, payment_id, status, booth_name, booth_no, order_number')
     .in('payment_id', paymentIds)
+    .order('booth_no', { ascending: true })
   if (oErr) throw oErr
 
-  const summaryByPayment = new Map<
-    string,
-    { count: number; status: PaymentRowWithSummary['orderStatusSummary'] }
-  >()
+  const orderIds = (orders ?? []).map((o) => o.id)
+  let items: { order_id: string; menu_name: string; quantity: number; created_at: string }[] =
+    []
+  if (orderIds.length > 0) {
+    const { data: itemsData, error: iErr } = await supabase
+      .from('order_items')
+      .select('order_id, menu_name, quantity, created_at')
+      .in('order_id', orderIds)
+      .order('created_at', { ascending: true })
+    if (iErr) throw iErr
+    items = itemsData ?? []
+  }
+
+  const itemsByOrder = new Map<string, { name: string; quantity: number }[]>()
+  for (const it of items) {
+    const list = itemsByOrder.get(it.order_id) ?? []
+    list.push({ name: it.menu_name, quantity: it.quantity })
+    itemsByOrder.set(it.order_id, list)
+  }
+
+  interface Bucket {
+    count: number
+    status: PaymentRowWithSummary['orderStatusSummary']
+    boothNames: string[]
+    boothOrderNumbers: string[]
+    menuLines: { name: string; quantity: number }[]
+  }
+
+  const summaryByPayment = new Map<string, Bucket>()
   for (const o of orders ?? []) {
-    const bucket = summaryByPayment.get(o.payment_id) ?? {
-      count: 0,
-      status: { paid: 0, confirmed: 0, completed: 0, cancelled: 0 },
-    }
+    const bucket =
+      summaryByPayment.get(o.payment_id) ??
+      ({
+        count: 0,
+        status: { paid: 0, confirmed: 0, completed: 0, cancelled: 0 },
+        boothNames: [],
+        boothOrderNumbers: [],
+        menuLines: [],
+      } satisfies Bucket)
     bucket.count += 1
     if (o.status in bucket.status) {
       bucket.status[o.status as keyof typeof bucket.status] += 1
     }
+    bucket.boothNames.push(o.booth_name)
+    bucket.boothOrderNumbers.push(o.order_number)
+    const orderItems = itemsByOrder.get(o.id) ?? []
+    bucket.menuLines.push(...orderItems)
     summaryByPayment.set(o.payment_id, bucket)
   }
 
@@ -84,6 +133,9 @@ export async function fetchPaymentsList(
     return {
       payment,
       boothCount: s?.count ?? 0,
+      boothNames: s?.boothNames ?? [],
+      boothOrderNumbers: s?.boothOrderNumbers ?? [],
+      menuLines: s?.menuLines ?? [],
       orderStatusSummary: s?.status ?? {
         paid: 0,
         confirmed: 0,

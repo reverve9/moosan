@@ -117,6 +117,11 @@
   min-width: 140px;
 }
 
+.filterItemGrow {
+  flex: 1 1 220px;
+  min-width: 220px;
+}
+
 .filterLabel {
   font-size: 12px;
   font-weight: 600;
@@ -210,6 +215,44 @@
   font-variant-numeric: tabular-nums;
   font-family: 'SF Mono', 'Consolas', monospace;
   font-size: 13px;
+}
+
+.boothCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.boothCellMain {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.boothCellExtra {
+  font-size: 11px;
+  color: #6B7280;
+}
+
+.menuCell {
+  display: inline-block;
+  max-width: 260px;
+  font-size: 13px;
+  color: #374151;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.dim {
+  color: #9CA3AF;
+  font-size: 12px;
 }
 
 .tablePlaceholder {
