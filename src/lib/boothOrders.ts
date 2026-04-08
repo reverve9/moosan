@@ -101,11 +101,24 @@ export async function confirmBoothOrderItems(
 
 /**
  * 카드 단위 일괄 준비완료. is_ready false 인 row 만 업데이트.
+ * 확인을 건너뛰고 곧장 준비완료를 누르는 케이스도 있어, confirmed_at 이 NULL 이면
+ * 같은 트랜잭션 흐름으로 같이 채워준다 (두 단계 update — Supabase JS 가 단일 update 에서
+ * 다른 WHERE 조건으로 다른 값을 보내는 걸 지원하지 않음).
  */
 export async function markBoothOrderItemsReady(
   orderId: string,
   boothId: string,
 ): Promise<void> {
+  // 1) 아직 확인 안 된 item 들 confirmed_at 채움
+  const { error: confirmErr } = await supabase
+    .from('order_items')
+    .update({ confirmed_at: new Date().toISOString() })
+    .eq('order_id', orderId)
+    .eq('booth_id', boothId)
+    .is('confirmed_at', null)
+  if (confirmErr) throw new Error(`준비완료 처리 실패: ${confirmErr.message}`)
+
+  // 2) is_ready 토글
   const { error } = await supabase
     .from('order_items')
     .update({ is_ready: true })
@@ -135,12 +148,20 @@ export interface BoothOrdersSubscribeCallbacks {
   onItemInsert?: (itemId: string) => void
   /** 모든 이벤트 (INSERT/UPDATE/DELETE/orders.UPDATE) 후 호출 — 보통 refetch */
   onChange?: () => void
+  /** 두 채널 중 하나라도 SUBSCRIBED 되면 true, 끊기면 false */
+  onConnectionChange?: (connected: boolean) => void
 }
 
 export function subscribeBoothOrders(
   boothId: string,
   callbacks: BoothOrdersSubscribeCallbacks,
 ): () => void {
+  let itemsConnected = false
+  let ordersConnected = false
+  const emitConnection = () => {
+    callbacks.onConnectionChange?.(itemsConnected && ordersConnected)
+  }
+
   const itemsChannel = supabase
     .channel(`booth-orders-${boothId}-items`)
     .on(
@@ -159,7 +180,10 @@ export function subscribeBoothOrders(
         callbacks.onChange?.()
       },
     )
-    .subscribe()
+    .subscribe((status) => {
+      itemsConnected = status === 'SUBSCRIBED'
+      emitConnection()
+    })
 
   const ordersChannel = supabase
     .channel(`booth-orders-${boothId}-orders`)
@@ -177,7 +201,10 @@ export function subscribeBoothOrders(
         callbacks.onChange?.()
       },
     )
-    .subscribe()
+    .subscribe((status) => {
+      ordersConnected = status === 'SUBSCRIBED'
+      emitConnection()
+    })
 
   return () => {
     void supabase.removeChannel(itemsChannel)

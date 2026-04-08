@@ -1,7 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from '@/components/layout/Layout'
 import AdminLayout from '@/components/admin/AdminLayout'
-import BoothLayout from '@/components/booth/BoothLayout'
 import HomePage from '@/pages/HomePage'
 import SchedulePage from '@/pages/SchedulePage'
 import ProgramsPage from '@/pages/ProgramsPage'
@@ -23,9 +22,8 @@ import AdminFood from '@/pages/admin/AdminFood'
 import AdminBoothAccounts from '@/pages/admin/AdminBoothAccounts'
 import AdminMonitor from '@/pages/admin/AdminMonitor'
 import AdminNotices from '@/pages/admin/AdminNotices'
-import BoothOrdersPage from '@/pages/booth/BoothOrdersPage'
-import BoothMenuPage from '@/pages/booth/BoothMenuPage'
-import BoothTodayPage from '@/pages/booth/BoothTodayPage'
+import BoothLoginPage from '@/pages/booth/BoothLoginPage'
+import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
 import { CartProvider } from '@/store/cartStore'
 import { ToastProvider } from '@/components/ui/Toast'
@@ -60,12 +58,10 @@ export default function App() {
               <Route path="/program/:slug" element={<ProgramDetailPage />} />
             </Route>
 
-            {/* Booth (매장 운영) */}
-            <Route path="/booth" element={<BoothLayout />}>
-              <Route index element={<BoothOrdersPage />} />
-              <Route path="menu" element={<BoothMenuPage />} />
-              <Route path="today" element={<BoothTodayPage />} />
-            </Route>
+            {/* Booth (매장 운영) — 태블릿 전용, 독립 레이아웃 */}
+            <Route path="/booth" element={<Navigate to="/booth/dashboard" replace />} />
+            <Route path="/booth/login" element={<BoothLoginPage />} />
+            <Route path="/booth/dashboard" element={<BoothDashboardPage />} />
 
             {/* Admin */}
             <Route path="/admin" element={<AdminLayout />}>
