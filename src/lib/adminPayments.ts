@@ -1,0 +1,168 @@
+import { supabase } from './supabase'
+import type { Order, OrderItem, Payment } from '@/types/database'
+
+/**
+ * 어드민 결제/주문 관리용 쿼리 모음.
+ *  - 목록: payments 단위 (부스 주문 단위가 아님). status/일자/전화 필터.
+ *  - 상세: payment + 하위 orders + orders.items 전부 묶음.
+ *  - 취소: /api/payments/cancel 호출 (서버에서 Toss + DB 처리).
+ */
+
+export interface PaymentsListFilters {
+  status?: 'all' | 'pending' | 'paid' | 'cancelled'
+  /** inclusive, 로컬 'YYYY-MM-DD' (KST 해석) */
+  dateFrom?: string
+  dateTo?: string
+  phone?: string
+}
+
+export interface PaymentRowWithSummary {
+  payment: Payment
+  boothCount: number
+  /** orders 의 status 요약 — 전부 cancelled 이면 cancelled 로 렌더 */
+  orderStatusSummary: {
+    paid: number
+    confirmed: number
+    completed: number
+    cancelled: number
+  }
+}
+
+function kstDateToUtc(dateStr: string, endOfDay: boolean): string {
+  // dateStr: 'YYYY-MM-DD' → KST 자정/24시 → UTC ISO
+  const time = endOfDay ? '24:00:00' : '00:00:00'
+  return new Date(`${dateStr}T${time}+09:00`).toISOString()
+}
+
+export async function fetchPaymentsList(
+  filters: PaymentsListFilters,
+): Promise<PaymentRowWithSummary[]> {
+  let q = supabase.from('payments').select().order('created_at', { ascending: false })
+
+  if (filters.status && filters.status !== 'all') {
+    q = q.eq('status', filters.status)
+  }
+  if (filters.dateFrom) {
+    q = q.gte('created_at', kstDateToUtc(filters.dateFrom, false))
+  }
+  if (filters.dateTo) {
+    q = q.lt('created_at', kstDateToUtc(filters.dateTo, true))
+  }
+  if (filters.phone && filters.phone.trim().length > 0) {
+    q = q.ilike('phone', `%${filters.phone.trim()}%`)
+  }
+
+  const { data: payments, error } = await q.limit(300)
+  if (error) throw error
+  if (!payments || payments.length === 0) return []
+
+  const paymentIds = payments.map((p) => p.id)
+  const { data: orders, error: oErr } = await supabase
+    .from('orders')
+    .select('payment_id, status')
+    .in('payment_id', paymentIds)
+  if (oErr) throw oErr
+
+  const summaryByPayment = new Map<
+    string,
+    { count: number; status: PaymentRowWithSummary['orderStatusSummary'] }
+  >()
+  for (const o of orders ?? []) {
+    const bucket = summaryByPayment.get(o.payment_id) ?? {
+      count: 0,
+      status: { paid: 0, confirmed: 0, completed: 0, cancelled: 0 },
+    }
+    bucket.count += 1
+    if (o.status in bucket.status) {
+      bucket.status[o.status as keyof typeof bucket.status] += 1
+    }
+    summaryByPayment.set(o.payment_id, bucket)
+  }
+
+  return payments.map((payment) => {
+    const s = summaryByPayment.get(payment.id)
+    return {
+      payment,
+      boothCount: s?.count ?? 0,
+      orderStatusSummary: s?.status ?? {
+        paid: 0,
+        confirmed: 0,
+        completed: 0,
+        cancelled: 0,
+      },
+    }
+  })
+}
+
+export interface PaymentDetail {
+  payment: Payment
+  orders: { order: Order; items: OrderItem[] }[]
+}
+
+export async function fetchPaymentDetail(paymentId: string): Promise<PaymentDetail | null> {
+  const { data: payment, error: pErr } = await supabase
+    .from('payments')
+    .select()
+    .eq('id', paymentId)
+    .maybeSingle()
+  if (pErr) throw pErr
+  if (!payment) return null
+
+  const { data: orders, error: oErr } = await supabase
+    .from('orders')
+    .select()
+    .eq('payment_id', paymentId)
+    .order('booth_no', { ascending: true })
+  if (oErr) throw oErr
+
+  if (!orders || orders.length === 0) return { payment, orders: [] }
+
+  const orderIds = orders.map((o) => o.id)
+  const { data: items, error: iErr } = await supabase
+    .from('order_items')
+    .select()
+    .in('order_id', orderIds)
+    .order('created_at', { ascending: true })
+  if (iErr) throw iErr
+
+  const itemsByOrder = new Map<string, OrderItem[]>()
+  for (const it of items ?? []) {
+    const list = itemsByOrder.get(it.order_id) ?? []
+    list.push(it)
+    itemsByOrder.set(it.order_id, list)
+  }
+
+  return {
+    payment,
+    orders: orders.map((o) => ({ order: o, items: itemsByOrder.get(o.id) ?? [] })),
+  }
+}
+
+/** 환불 가능 여부 (client 측 pre-check, 서버도 동일하게 검증함) */
+export function isRefundable(detail: PaymentDetail): boolean {
+  if (detail.payment.status !== 'paid') return false
+  if (detail.orders.length === 0) return false
+  return detail.orders.every(
+    ({ order }) =>
+      order.status === 'paid' && order.confirmed_at === null && order.ready_at === null,
+  )
+}
+
+export interface CancelPaymentResponse {
+  ok: boolean
+  paymentId: string
+}
+
+export async function cancelPayment(paymentId: string, reason: string): Promise<CancelPaymentResponse> {
+  const response = await fetch('/api/payments/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentId, reason }),
+  })
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const msg = typeof json?.error === 'string' ? json.error : '취소 실패'
+    throw new Error(msg)
+  }
+  return json as CancelPaymentResponse
+}

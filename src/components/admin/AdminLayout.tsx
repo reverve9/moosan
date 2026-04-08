@@ -9,6 +9,7 @@ import {
   KeyIcon,
   SignalIcon,
   ChartBarSquareIcon,
+  ReceiptRefundIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import type { ComponentType, SVGProps } from 'react'
@@ -49,6 +50,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: '매장 관리',
     items: [
       { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
+      { label: '주문/결제 관리', path: '/orders', icon: ReceiptRefundIcon },
       { label: '참여 매장 관리', path: '/food', icon: BuildingStorefrontIcon },
       { label: '매장 계정 관리', path: '/booth-accounts', icon: KeyIcon },
     ],

@@ -139,6 +139,14 @@ export default function OrderStatusPage() {
 
   const { payment, orders } = data
   const statusInfo = STATUS_LABEL[uiStatus]
+  const cancelReason =
+    uiStatus === 'cancelled' &&
+    payment.meta &&
+    typeof payment.meta === 'object' &&
+    !Array.isArray(payment.meta) &&
+    typeof (payment.meta as { cancel_reason?: unknown }).cancel_reason === 'string'
+      ? ((payment.meta as { cancel_reason: string }).cancel_reason as string)
+      : null
   const orderTime = new Date(payment.created_at).toLocaleString('ko-KR', {
     month: 'long',
     day: 'numeric',
@@ -165,6 +173,9 @@ export default function OrderStatusPage() {
           <div className={styles.statusText}>
             <div className={styles.statusTitle}>{statusInfo.title}</div>
             <div className={styles.statusSub}>{statusInfo.sub}</div>
+            {cancelReason && (
+              <div className={styles.cancelReason}>사유: {cancelReason}</div>
+            )}
           </div>
         </div>
 

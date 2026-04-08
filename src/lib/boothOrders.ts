@@ -114,6 +114,8 @@ export async function markBoothOrderReady(orderId: string): Promise<void> {
 export interface BoothOrdersSubscribeCallbacks {
   /** 새 주문이 paid 상태로 전이됐을 때 (새 카드 등장) */
   onOrderPaid?: (orderId: string) => void
+  /** 어드민이 환불해서 주문이 cancelled 로 전이됐을 때 */
+  onOrderCancelled?: (orderId: string) => void
   /** orders 또는 order_items 변화 후 refetch 트리거 */
   onChange?: () => void
   /** 채널 연결 상태 */
@@ -144,6 +146,13 @@ export function subscribeBoothOrders(
           const oldRow = payload.old as { status?: string } | null
           if (newRow?.status === 'paid' && oldRow?.status !== 'paid' && newRow.id) {
             callbacks.onOrderPaid?.(newRow.id)
+          }
+          if (
+            newRow?.status === 'cancelled' &&
+            oldRow?.status !== 'cancelled' &&
+            newRow.id
+          ) {
+            callbacks.onOrderCancelled?.(newRow.id)
           }
         }
         callbacks.onChange?.()
