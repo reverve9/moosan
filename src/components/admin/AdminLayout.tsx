@@ -8,21 +8,55 @@ import {
   BuildingStorefrontIcon,
   KeyIcon,
   SignalIcon,
+  ChartBarSquareIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import type { ComponentType, SVGProps } from 'react'
 import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
 import styles from './AdminLayout.module.css'
 
 const MONITOR_PATH = '/admin/monitor'
 
-const NAV_ITEMS = [
-  { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
-  { label: '참가신청 관리', path: '/admin/applications', icon: DocumentTextIcon },
-  { label: '페스티벌 관리', path: '/admin/festivals', icon: RectangleGroupIcon },
-  { label: '프로그램 관리', path: '/admin/programs', icon: Squares2X2Icon },
-  { label: '참여 매장 관리', path: '/admin/food', icon: BuildingStorefrontIcon },
-  { label: '매장 계정 관리', path: '/admin/booth-accounts', icon: KeyIcon },
-  { label: '공지사항 관리', path: '/admin/notices', icon: MegaphoneIcon },
+interface NavItem {
+  label: string
+  path: string
+  icon: ComponentType<SVGProps<SVGSVGElement>>
+  end?: boolean
+}
+
+interface NavGroup {
+  title: string
+  items: NavItem[]
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: '운영',
+    items: [
+      { label: '대시보드', path: '/admin', icon: ChartBarSquareIcon, end: true },
+      { label: '참가신청 관리', path: '/admin/applications', icon: DocumentTextIcon },
+      { label: '공지사항 관리', path: '/admin/notices', icon: MegaphoneIcon },
+    ],
+  },
+  {
+    title: '콘텐츠',
+    items: [
+      { label: '페스티벌 관리', path: '/admin/festivals', icon: RectangleGroupIcon },
+      { label: '프로그램 관리', path: '/admin/programs', icon: Squares2X2Icon },
+    ],
+  },
+  {
+    title: '매장 관리',
+    items: [
+      { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
+      { label: '참여 매장 관리', path: '/admin/food', icon: BuildingStorefrontIcon },
+      { label: '매장 계정 관리', path: '/admin/booth-accounts', icon: KeyIcon },
+    ],
+  },
+  {
+    title: '설정',
+    items: [],
+  },
 ]
 
 const ADMIN_ID = 'moosanfesta'
@@ -121,25 +155,31 @@ export default function AdminLayout() {
           <span className={styles.badge}>Admin</span>
         </div>
         <nav className={styles.nav}>
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon
-            const showBadge = item.path === MONITOR_PATH && monitorPending > 0
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
-                }
-              >
-                <Icon className={styles.navIcon} />
-                <span>{item.label}</span>
-                {showBadge && (
-                  <span className={styles.navBadge}>{monitorPending}</span>
-                )}
-              </NavLink>
-            )
-          })}
+          {NAV_GROUPS.filter((g) => g.items.length > 0).map((group) => (
+            <div key={group.title} className={styles.navGroup}>
+              <div className={styles.navGroupTitle}>{group.title}</div>
+              {group.items.map((item) => {
+                const Icon = item.icon
+                const showBadge = item.path === MONITOR_PATH && monitorPending > 0
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `${styles.navItem} ${isActive ? styles.navItemActive : ''}`
+                    }
+                  >
+                    <Icon className={styles.navIcon} />
+                    <span>{item.label}</span>
+                    {showBadge && (
+                      <span className={styles.navBadge}>{monitorPending}</span>
+                    )}
+                  </NavLink>
+                )
+              })}
+            </div>
+          ))}
         </nav>
         <div className={styles.sidebarFooter}>
           <button className={styles.logoutBtn} onClick={() => window.open('/', '_blank')}>
