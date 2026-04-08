@@ -284,44 +284,44 @@ function MenuItemRow({
         </div>
       )}
       <div className={styles.menuItemContent}>
-        <div className={styles.menuHead}>
-          <span className={styles.menuName}>
-            {menu.is_signature && <span className={styles.signatureMark}>대표</span>}
-            {menu.name}
-          </span>
+        <span className={styles.menuName}>
+          {menu.is_signature && <span className={styles.signatureMark}>대표</span>}
+          {menu.name}
+        </span>
+        {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
+
+        <div className={styles.menuActions}>
           <span className={styles.menuPrice}>
             {menu.price != null ? `${menu.price.toLocaleString()}원` : '시가'}
           </span>
+          {orderable && (
+            <>
+              <div className={styles.stepper}>
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  onClick={() => setPendingQty((q) => Math.max(1, q - 1))}
+                  aria-label="수량 줄이기"
+                  disabled={pendingQty <= 1}
+                >
+                  <MinusIcon className={styles.stepIcon} />
+                </button>
+                <span className={styles.stepValue}>{pendingQty}</span>
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  onClick={() => setPendingQty((q) => q + 1)}
+                  aria-label="수량 늘리기"
+                >
+                  <PlusIcon className={styles.stepIcon} />
+                </button>
+              </div>
+              <button type="button" className={styles.addBtn} onClick={handleAdd}>
+                담기
+              </button>
+            </>
+          )}
         </div>
-        {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
-
-        {orderable && (
-          <div className={styles.menuActions}>
-            <div className={styles.stepper}>
-              <button
-                type="button"
-                className={styles.stepBtn}
-                onClick={() => setPendingQty((q) => Math.max(1, q - 1))}
-                aria-label="수량 줄이기"
-                disabled={pendingQty <= 1}
-              >
-                <MinusIcon className={styles.stepIcon} />
-              </button>
-              <span className={styles.stepValue}>{pendingQty}</span>
-              <button
-                type="button"
-                className={styles.stepBtn}
-                onClick={() => setPendingQty((q) => q + 1)}
-                aria-label="수량 늘리기"
-              >
-                <PlusIcon className={styles.stepIcon} />
-              </button>
-            </div>
-            <button type="button" className={styles.addBtn} onClick={handleAdd}>
-              담기
-            </button>
-          </div>
-        )}
 
         {inCart && (
           <p className={styles.inCartBadge}>

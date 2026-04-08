@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import type { CartItem } from '@/store/cartStore'
-import type { Order } from '@/types/database'
+import type { Order, OrderItem } from '@/types/database'
 
 export interface CreateOrderInput {
   phone: string
@@ -80,4 +80,31 @@ export async function findOrderByNumber(orderNumber: string): Promise<Order | nu
     .maybeSingle()
   if (error) throw error
   return data
+}
+
+/** 주문 헤더 + 모든 order_items 한 번에 조회 (주문 상태 페이지용) */
+export interface OrderWithItems {
+  order: Order
+  items: OrderItem[]
+}
+
+export async function fetchOrderWithItems(orderId: string): Promise<OrderWithItems | null> {
+  const [orderRes, itemsRes] = await Promise.all([
+    supabase.from('orders').select().eq('id', orderId).maybeSingle(),
+    supabase
+      .from('order_items')
+      .select()
+      .eq('order_id', orderId)
+      .order('booth_name', { ascending: true })
+      .order('created_at', { ascending: true }),
+  ])
+
+  if (orderRes.error) throw orderRes.error
+  if (itemsRes.error) throw itemsRes.error
+  if (!orderRes.data) return null
+
+  return {
+    order: orderRes.data,
+    items: itemsRes.data ?? [],
+  }
 }
