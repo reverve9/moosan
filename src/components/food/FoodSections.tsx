@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MinusIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { MinusIcon, PhotoIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
@@ -8,9 +8,14 @@ import {
   fetchBoothWaitingCount,
   getBoothBadge,
 } from '@/lib/waiting'
+import {
+  fetchFoodCategories,
+  getCategoryColorIndex,
+  type FoodCategoryRow,
+} from '@/lib/foodCategories'
 import { useCart } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
-import type { FoodBoothWithMenus, FoodCategory } from '@/types/festival_extras'
+import type { FoodBoothWithMenus } from '@/types/festival_extras'
 import type { Festival } from '@/types/database'
 import styles from './FoodSections.module.css'
 
@@ -18,22 +23,7 @@ interface Props {
   festival: Festival
 }
 
-type CategoryFilter = 'all' | FoodCategory
-
-const CATEGORY_TABS: { key: CategoryFilter; label: string }[] = [
-  { key: 'all', label: '전체' },
-  { key: 'korean', label: '한식' },
-  { key: 'chinese', label: '중식' },
-  { key: 'japanese', label: '일식' },
-  { key: 'fusion', label: '퓨전' },
-]
-
-const CATEGORY_LABEL: Record<FoodCategory, string> = {
-  korean: '한식',
-  chinese: '중식',
-  japanese: '일식',
-  fusion: '퓨전',
-}
+type CategoryFilter = 'all' | string
 
 /** Fisher-Yates shuffle (immutable) — 페이지 mount 마다 새 순서로 노출 편향 방지 */
 function shuffle<T>(arr: T[]): T[] {
@@ -47,17 +37,31 @@ function shuffle<T>(arr: T[]): T[] {
 
 export default function FoodSections({ festival }: Props) {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
+  const [categories, setCategories] = useState<FoodCategoryRow[]>([])
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
   const [selectedBooth, setSelectedBooth] = useState<FoodBoothWithMenus | null>(null)
   const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(
     () => new Map(),
   )
 
+  const categoryLabel = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of categories) map.set(c.slug, c.label)
+    return map
+  }, [categories])
+
   useEffect(() => {
     let cancelled = false
     fetchFoodBooths(festival.id).then((data) => {
       if (!cancelled) setBooths(shuffle(data))
     })
+    fetchFoodCategories()
+      .then((rows) => {
+        if (!cancelled) setCategories(rows.filter((r) => r.is_active))
+      })
+      .catch(() => {
+        /* 카테고리 fetch 실패 시 탭은 '전체' 만 노출 */
+      })
     return () => {
       cancelled = true
     }
@@ -188,7 +192,7 @@ export default function FoodSections({ festival }: Props) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>참여 매장</h2>
           <div className={styles.tabs} role="tablist" aria-label="매장 카테고리">
-            {CATEGORY_TABS.map((t) => {
+            {[{ key: 'all' as CategoryFilter, label: '전체' }, ...categories.map((c) => ({ key: c.slug, label: c.label }))].map((t) => {
               const active = activeCategory === t.key
               return (
                 <button
@@ -230,9 +234,13 @@ export default function FoodSections({ festival }: Props) {
                       </div>
                       <div className={styles.boothInfo}>
                         <div className={styles.boothNameRow}>
-                          {b.category && (
-                            <span className={styles.boothCategory}>
-                              {CATEGORY_LABEL[b.category]}
+                          {b.category && categoryLabel.get(b.category) && (
+                            <span
+                              className={`${styles.boothCategory} ${
+                                styles[`catColor${getCategoryColorIndex(b.category, categories)}`]
+                              }`}
+                            >
+                              {categoryLabel.get(b.category)}
                             </span>
                           )}
                           <h3 className={styles.boothName}>{b.name}</h3>
@@ -262,6 +270,14 @@ export default function FoodSections({ festival }: Props) {
       {selectedBooth && (
         <BoothModal
           booth={selectedBooth}
+          categoryLabel={
+            selectedBooth.category ? categoryLabel.get(selectedBooth.category) ?? null : null
+          }
+          categoryColorClass={
+            selectedBooth.category
+              ? styles[`catColor${getCategoryColorIndex(selectedBooth.category, categories)}`]
+              : ''
+          }
           waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
           onClose={() => setSelectedBooth(null)}
         />
@@ -273,10 +289,14 @@ export default function FoodSections({ festival }: Props) {
 // ──────────────── Modal ────────────────
 function BoothModal({
   booth,
+  categoryLabel,
+  categoryColorClass,
   waitingCount,
   onClose,
 }: {
   booth: FoodBoothWithMenus
+  categoryLabel: string | null
+  categoryColorClass: string
   waitingCount: number
   onClose: () => void
 }) {
@@ -311,13 +331,13 @@ function BoothModal({
           </div>
           <div className={styles.modalHeadText}>
             <div className={styles.modalNameRow}>
-              {booth.category && (
-                <span className={styles.boothCategory}>
-                  {CATEGORY_LABEL[booth.category]}
+              {categoryLabel && (
+                <span className={`${styles.boothCategory} ${categoryColorClass}`}>
+                  {categoryLabel}
                 </span>
               )}
               {booth.booth_no && (
-                <span className={styles.modalBoothNo}>#{booth.booth_no}</span>
+                <span className={styles.modalBoothNo}>{booth.booth_no}</span>
               )}
             </div>
             <h3 className={styles.modalName}>{booth.name}</h3>
@@ -412,32 +432,34 @@ function MenuItemRow({
 
   return (
     <li className={`${styles.menuItem} ${soldOut ? styles.menuItemSoldOut : ''}`}>
-      {menuImg && (
-        <div className={styles.menuItemThumb}>
+      <div className={styles.menuItemThumb}>
+        {menuImg ? (
           <img src={menuImg} alt={menu.name} />
-          {soldOut && (
-            <div className={styles.soldOutOverlay} aria-hidden="true">
-              품절
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className={styles.menuItemThumbPlaceholder} aria-hidden="true">
+            <PhotoIcon />
+          </div>
+        )}
+        {soldOut && (
+          <div className={styles.soldOutOverlay} aria-hidden="true">
+            품절
+          </div>
+        )}
+      </div>
       <div className={styles.menuItemContent}>
-        <span className={styles.menuName}>
-          {menu.is_signature && !soldOut && (
-            <span className={styles.signatureMark}>대표</span>
-          )}
-          {soldOut && <span className={styles.soldOutBadge}>품절</span>}
-          {menu.name}
-        </span>
-        {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
-
-        <div className={styles.menuActions}>
+        <div className={styles.menuLeft}>
+          <span className={styles.menuName}>
+            {soldOut && <span className={styles.soldOutBadge}>품절</span>}
+            {menu.name}
+          </span>
+          {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
+        </div>
+        <div className={styles.menuRight}>
           <span className={styles.menuPrice}>
             {menu.price != null ? `${menu.price.toLocaleString()}원` : '시가'}
           </span>
           {orderable && (
-            <>
+            <div className={styles.menuActions}>
               <div className={styles.stepper}>
                 <button
                   type="button"
@@ -461,7 +483,7 @@ function MenuItemRow({
               <button type="button" className={styles.addBtn} onClick={handleAdd}>
                 담기
               </button>
-            </>
+            </div>
           )}
         </div>
 

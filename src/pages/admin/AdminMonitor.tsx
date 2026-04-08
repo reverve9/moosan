@@ -92,12 +92,16 @@ export default function AdminMonitor() {
     [summaries],
   )
 
+  // 1분 초과 item 개수 (부스 수가 아니라 개별 item 단위 — 총 미확인과 단위 일치)
   const alertCount = useMemo(
     () =>
-      summaries.filter(
-        (s) =>
-          s.oldestCreatedAt && elapsedSeconds(s.oldestCreatedAt, now) >= ALERT_SECONDS,
-      ).length,
+      summaries.reduce(
+        (sum, s) =>
+          sum +
+          s.items.filter((it) => elapsedSeconds(it.created_at, now) >= ALERT_SECONDS)
+            .length,
+        0,
+      ),
     [summaries, now],
   )
 

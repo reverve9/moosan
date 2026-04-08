@@ -8,46 +8,26 @@ import {
 } from '@heroicons/react/24/outline'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
-import type {
-  FoodBoothWithMenus,
-  FoodCategory,
-  FoodMenu,
-} from '@/types/festival_extras'
+import {
+  createFoodCategory,
+  deleteFoodCategory,
+  fetchFoodCategories,
+  getCategoryColorIndex,
+  type FoodCategoryRow,
+} from '@/lib/foodCategories'
+import type { FoodBoothWithMenus, FoodMenu } from '@/types/festival_extras'
 import styles from './AdminFood.module.css'
 
 const STORAGE_BUCKET = 'festival-assets'
 const FOOD_SLUG = 'food'
 
-const CATEGORY_OPTIONS: { value: FoodCategory; label: string }[] = [
-  { value: 'korean', label: '한식' },
-  { value: 'chinese', label: '중식' },
-  { value: 'japanese', label: '일식' },
-  { value: 'fusion', label: '퓨전' },
-]
-
-const CATEGORY_LABEL: Record<FoodCategory, string> = {
-  korean: '한식',
-  chinese: '중식',
-  japanese: '일식',
-  fusion: '퓨전',
-}
-
-type CategoryFilter = 'all' | FoodCategory
-
-const CATEGORY_FILTER_TABS: { key: CategoryFilter; label: string }[] = [
-  { key: 'all', label: '전체' },
-  { key: 'korean', label: '한식' },
-  { key: 'chinese', label: '중식' },
-  { key: 'japanese', label: '일식' },
-  { key: 'fusion', label: '퓨전' },
-]
+type CategoryFilter = 'all' | string
 
 type BoothForm = {
   booth_no: string
   name: string
-  category: '' | FoodCategory
+  category: string
   description: string
-  sort_order: number
   avg_prep_minutes: number
 }
 
@@ -55,7 +35,6 @@ type MenuForm = {
   name: string
   price: string
   description: string
-  is_signature: boolean
   sort_order: number
 }
 
@@ -63,7 +42,6 @@ const emptyMenuForm: MenuForm = {
   name: '',
   price: '',
   description: '',
-  is_signature: false,
   sort_order: 0,
 }
 
@@ -73,7 +51,6 @@ function boothToForm(b: FoodBoothWithMenus): BoothForm {
     name: b.name,
     category: b.category ?? '',
     description: b.description ?? '',
-    sort_order: b.sort_order,
     avg_prep_minutes: b.avg_prep_minutes,
   }
 }
@@ -83,17 +60,41 @@ function menuToForm(m: FoodMenu): MenuForm {
     name: m.name,
     price: m.price != null ? String(m.price) : '',
     description: m.description ?? '',
-    is_signature: m.is_signature,
     sort_order: m.sort_order,
   }
+}
+
+function sortBoothsForAdmin(list: FoodBoothWithMenus[]): FoodBoothWithMenus[] {
+  // 부스번호 우선 (자연 정렬), 없으면 매장명 → created_at 폴백
+  return [...list].sort((a, b) => {
+    const an = a.booth_no ?? ''
+    const bn = b.booth_no ?? ''
+    if (an && bn) return an.localeCompare(bn, undefined, { numeric: true })
+    if (an) return -1
+    if (bn) return 1
+    return a.name.localeCompare(b.name)
+  })
 }
 
 export default function AdminFood() {
   const [festivalId, setFestivalId] = useState<string | null>(null)
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
+  const [categories, setCategories] = useState<FoodCategoryRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
+
+  // 카테고리 관리 입력 state
+  const [newCatSlug, setNewCatSlug] = useState('')
+  const [newCatLabel, setNewCatLabel] = useState('')
+  const [catBusy, setCatBusy] = useState(false)
+  const [catError, setCatError] = useState<string | null>(null)
+
+  const categoryLabel = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const c of categories) map.set(c.slug, c.label)
+    return map
+  }, [categories])
 
   const filteredBooths = useMemo(() => {
     if (activeCategory === 'all') return booths
@@ -118,9 +119,16 @@ export default function AdminFood() {
   const refetch = async () => {
     if (!festivalId) return
     const data = await fetchFoodBooths(festivalId)
-    // sort_order 로 정렬해 어드민에서는 결정적으로 노출
-    data.sort((a, b) => a.sort_order - b.sort_order)
-    setBooths(data)
+    setBooths(sortBoothsForAdmin(data))
+  }
+
+  const refetchCategories = async () => {
+    try {
+      const rows = await fetchFoodCategories()
+      setCategories(rows)
+    } catch (e) {
+      setCatError(e instanceof Error ? e.message : '카테고리 불러오기 실패')
+    }
   }
 
   const init = async () => {
@@ -135,9 +143,11 @@ export default function AdminFood() {
       return
     }
     setFestivalId(festival.id)
-    const data = await fetchFoodBooths(festival.id)
-    data.sort((a, b) => a.sort_order - b.sort_order)
-    setBooths(data)
+    const [data] = await Promise.all([
+      fetchFoodBooths(festival.id),
+      refetchCategories(),
+    ])
+    setBooths(sortBoothsForAdmin(data))
     setLoading(false)
   }
 
@@ -205,14 +215,11 @@ export default function AdminFood() {
 
   const handleAddBooth = async () => {
     if (!festivalId) return
-    const nextSort =
-      booths.length > 0 ? Math.max(...booths.map((b) => b.sort_order)) + 1 : 1
     const { data, error } = await supabase
       .from('food_booths')
       .insert({
         festival_id: festivalId,
         name: '새 매장',
-        sort_order: nextSort,
       })
       .select()
       .single()
@@ -229,7 +236,6 @@ export default function AdminFood() {
         name: '새 매장',
         category: '',
         description: '',
-        sort_order: nextSort,
         avg_prep_minutes: 5,
       },
     }))
@@ -246,7 +252,6 @@ export default function AdminFood() {
         name: form.name,
         category: form.category || null,
         description: form.description || null,
-        sort_order: form.sort_order,
         avg_prep_minutes: Math.max(1, Math.min(30, form.avg_prep_minutes || 5)),
       })
       .eq('id', id)
@@ -258,6 +263,53 @@ export default function AdminFood() {
     setSavedBoothId(id)
     setTimeout(() => setSavedBoothId(null), 1500)
     refetch()
+  }
+
+  // ──────────────── category handlers ────────────────
+  const handleAddCategory = async () => {
+    if (catBusy) return
+    const slug = newCatSlug.trim()
+    const label = newCatLabel.trim()
+    if (!slug || !label) {
+      setCatError('slug 와 라벨을 모두 입력하세요.')
+      return
+    }
+    if (!/^[a-z0-9_-]+$/.test(slug)) {
+      setCatError('slug 는 영문 소문자/숫자/하이픈/언더스코어만 허용됩니다.')
+      return
+    }
+    setCatBusy(true)
+    setCatError(null)
+    try {
+      const nextOrder =
+        categories.length > 0
+          ? Math.max(...categories.map((c) => c.sort_order)) + 1
+          : 1
+      await createFoodCategory({ slug, label, sort_order: nextOrder })
+      setNewCatSlug('')
+      setNewCatLabel('')
+      await refetchCategories()
+    } catch (e) {
+      setCatError(e instanceof Error ? e.message : '카테고리 추가 실패')
+    } finally {
+      setCatBusy(false)
+    }
+  }
+
+  const handleDeleteCategory = async (cat: FoodCategoryRow) => {
+    if (!confirm(`'${cat.label}' 카테고리를 삭제하시겠습니까?`)) return
+    setCatBusy(true)
+    setCatError(null)
+    try {
+      await deleteFoodCategory(cat.id, cat.slug)
+      await refetchCategories()
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : '카테고리 삭제 실패'
+      setCatError(msg)
+      alert(msg)
+    } finally {
+      setCatBusy(false)
+    }
   }
 
   const handleDeleteBooth = async (id: string) => {
@@ -346,7 +398,6 @@ export default function AdminFood() {
         name: form.name,
         price: Number.isFinite(priceNum) ? priceNum : null,
         description: form.description || null,
-        is_signature: form.is_signature,
         sort_order: form.sort_order,
       })
       .eq('id', menuId)
@@ -437,7 +488,7 @@ export default function AdminFood() {
       </div>
 
       <div className={styles.filterTabs} role="tablist" aria-label="카테고리 필터">
-        {CATEGORY_FILTER_TABS.map((t) => {
+        {[{ key: 'all' as CategoryFilter, label: '전체' }, ...categories.map((c) => ({ key: c.slug, label: c.label }))].map((t) => {
           const active = activeCategory === t.key
           const count =
             t.key === 'all'
@@ -457,6 +508,68 @@ export default function AdminFood() {
             </button>
           )
         })}
+      </div>
+
+      {/* ───── 카테고리 관리 ───── */}
+      <div className={styles.categoryManager}>
+        <div className={styles.categoryManagerHeader}>
+          <h2 className={styles.categoryManagerTitle}>카테고리 관리</h2>
+          <span className={styles.categoryManagerHint}>
+            slug 는 영문 소문자/숫자/-/_ · 라벨은 자유 (예: korean / 한식)
+          </span>
+        </div>
+        <div className={styles.categoryList}>
+          {categories.map((c) => (
+            <div key={c.id} className={styles.categoryChip}>
+              <span className={styles.categoryChipLabel}>{c.label}</span>
+              <span className={styles.categoryChipSlug}>{c.slug}</span>
+              <button
+                type="button"
+                className={styles.categoryChipDel}
+                onClick={() => handleDeleteCategory(c)}
+                disabled={catBusy}
+                aria-label={`${c.label} 삭제`}
+              >
+                <XMarkIcon width={14} height={14} />
+              </button>
+            </div>
+          ))}
+          {categories.length === 0 && (
+            <span className={styles.categoryEmpty}>카테고리가 없습니다</span>
+          )}
+        </div>
+        <div className={styles.categoryAddRow}>
+          <input
+            className={styles.input}
+            placeholder="slug (예: korean)"
+            value={newCatSlug}
+            onChange={(e) => {
+              setNewCatSlug(e.target.value)
+              setCatError(null)
+            }}
+            disabled={catBusy}
+          />
+          <input
+            className={styles.input}
+            placeholder="라벨 (예: 한식)"
+            value={newCatLabel}
+            onChange={(e) => {
+              setNewCatLabel(e.target.value)
+              setCatError(null)
+            }}
+            disabled={catBusy}
+          />
+          <button
+            type="button"
+            className={styles.categoryAddBtn}
+            onClick={handleAddCategory}
+            disabled={catBusy}
+          >
+            <PlusIcon width={14} height={14} />
+            추가
+          </button>
+        </div>
+        {catError && <p className={styles.categoryError}>{catError}</p>}
       </div>
 
       {booths.length === 0 ? (
@@ -483,16 +596,20 @@ export default function AdminFood() {
                 </div>
                 <div className={styles.gridCardBody}>
                   <div className={styles.gridCardTopRow}>
-                    {booth.category && (
-                      <span className={styles.cardCategory}>
-                        {CATEGORY_LABEL[booth.category]}
+                    {booth.category && categoryLabel.get(booth.category) && (
+                      <span
+                        className={`${styles.cardCategory} ${
+                          styles[`catColor${getCategoryColorIndex(booth.category, categories)}`]
+                        }`}
+                      >
+                        {categoryLabel.get(booth.category)}
                       </span>
                     )}
                     <span className={styles.gridCardName}>{booth.name}</span>
                   </div>
                   <div className={styles.gridCardSubRow}>
                     <span className={styles.cardBoothNo}>
-                      {booth.booth_no ? `#${booth.booth_no}` : '—'}
+                      {booth.booth_no ? booth.booth_no : '—'}
                     </span>
                     {booth.description && (
                       <span className={styles.gridCardDesc}>{booth.description}</span>
@@ -537,7 +654,7 @@ export default function AdminFood() {
                 <div className={styles.section}>
                   <h3 className={styles.sectionTitle}>매장 정보</h3>
 
-                  <div className={styles.formRow3}>
+                  <div className={styles.formRow2}>
                     <div className={styles.field}>
                       <label className={styles.label}>부스번호</label>
                       <input
@@ -546,7 +663,7 @@ export default function AdminFood() {
                         onChange={(e) =>
                           updateBoothField(booth.id, 'booth_no', e.target.value)
                         }
-                        placeholder="01"
+                        placeholder="A01"
                       />
                     </div>
                     <div className={styles.field}>
@@ -555,35 +672,16 @@ export default function AdminFood() {
                         className={styles.input}
                         value={form.category}
                         onChange={(e) =>
-                          updateBoothField(
-                            booth.id,
-                            'category',
-                            e.target.value as BoothForm['category']
-                          )
+                          updateBoothField(booth.id, 'category', e.target.value)
                         }
                       >
                         <option value="">선택</option>
-                        {CATEGORY_OPTIONS.map((c) => (
-                          <option key={c.value} value={c.value}>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.slug}>
                             {c.label}
                           </option>
                         ))}
                       </select>
-                    </div>
-                    <div className={styles.field}>
-                      <label className={styles.label}>정렬 순서</label>
-                      <input
-                        type="number"
-                        className={styles.input}
-                        value={form.sort_order}
-                        onChange={(e) =>
-                          updateBoothField(
-                            booth.id,
-                            'sort_order',
-                            Number(e.target.value)
-                          )
-                        }
-                      />
                     </div>
                   </div>
 
@@ -763,20 +861,6 @@ export default function AdminFood() {
                                 }
                                 placeholder="가격(원)"
                               />
-                              <label className={styles.signatureLabel}>
-                                <input
-                                  type="checkbox"
-                                  checked={mForm.is_signature}
-                                  onChange={(e) =>
-                                    updateMenuField(
-                                      m.id,
-                                      'is_signature',
-                                      e.target.checked
-                                    )
-                                  }
-                                />
-                                대표
-                              </label>
                             </div>
                             <input
                               className={styles.input}

@@ -32,7 +32,11 @@ export interface FestivalGuest {
   updated_at: string
 }
 
-export type FoodCategory = 'korean' | 'chinese' | 'japanese' | 'fusion'
+/**
+ * 카테고리는 food_categories 테이블의 slug 를 자유 참조 (소프트 FK).
+ * 11_food_categories_table.sql 이후로 union 이 아닌 string.
+ */
+export type FoodCategory = string
 
 export interface FoodBooth {
   id: string

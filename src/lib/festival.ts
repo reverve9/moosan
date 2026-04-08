@@ -96,7 +96,7 @@ export async function fetchFoodBooths(festivalId: string): Promise<FoodBoothWith
     .select('*')
     .eq('festival_id', festivalId)
     .eq('is_active', true)
-    .order('sort_order', { ascending: true })
+    .order('booth_no', { ascending: true })
   if (boothErr || !booths || booths.length === 0) return []
 
   const boothIds = booths.map((b) => b.id)

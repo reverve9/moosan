@@ -25,7 +25,6 @@ export default function AdminBoothAccounts() {
         .from('food_booths')
         .select()
         .eq('is_active', true)
-        .order('sort_order', { ascending: true })
         .order('booth_no', { ascending: true }),
       supabase.from('booth_accounts').select(),
     ])

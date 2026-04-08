@@ -88,6 +88,124 @@
   border-color: #1E3A2F;
 }
 
+/* ──────────────── Category manager ──────────────── */
+.categoryManager {
+  margin-bottom: 20px;
+  padding: 16px 18px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+}
+
+.categoryManagerHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.categoryManagerTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.categoryManagerHint {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.categoryList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.categoryEmpty {
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+.categoryChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 9999px;
+  font-size: 13px;
+  color: #14532D;
+}
+
+.categoryChipLabel {
+  font-weight: 700;
+}
+
+.categoryChipSlug {
+  font-size: 11px;
+  color: #6B7280;
+  font-family: ui-monospace, Menlo, monospace;
+}
+
+.categoryChipDel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: #6B7280;
+  border-radius: 50%;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.categoryChipDel:hover {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.categoryChipDel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.categoryAddRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+}
+
+.categoryAddBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: #1E3A2F;
+  border-radius: 8px;
+}
+
+.categoryAddBtn:hover {
+  background-color: #142820;
+}
+
+.categoryAddBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.categoryError {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #DC2626;
+}
+
 .filterTabActive:hover {
   color: #FFFFFF;
 }
@@ -206,6 +324,13 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── 카테고리 색상 5종 — categories 배열 인덱스 % 5 로 매핑 ── */
+.catColor0 { background-color: #ECFDF5; color: #065F46; }
+.catColor1 { background-color: #FFF7ED; color: #C2410C; }
+.catColor2 { background-color: #EFF6FF; color: #1D4ED8; }
+.catColor3 { background-color: #FDF2F8; color: #BE185D; }
+.catColor4 { background-color: #F5F3FF; color: #6D28D9; }
 
 .uncategorized {
   font-size: 11px;
@@ -342,6 +467,12 @@
 .formRow3 {
   display: grid;
   grid-template-columns: 100px 140px 110px;
+  gap: 12px;
+}
+
+.formRow2 {
+  display: grid;
+  grid-template-columns: 140px 1fr;
   gap: 12px;
 }
 

@@ -33,9 +33,8 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
   const [boothsRes, itemsRes] = await Promise.all([
     supabase
       .from('food_booths')
-      .select('id, name, booth_no, sort_order')
+      .select('id, name, booth_no')
       .eq('is_active', true)
-      .order('sort_order', { ascending: true })
       .order('booth_no', { ascending: true }),
     supabase
       .from('order_items')

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import IOSInstallGuide from './IOSInstallGuide'
@@ -22,13 +23,19 @@ function isRecentlyDismissed(isDev: boolean): boolean {
   }
 }
 
+// PWA 설치 버튼을 노출하지 않을 경로 (운영자 전용 페이지들)
+const EXCLUDED_PATH_PREFIXES = ['/admin', '/booth']
+
 export default function FloatingInstallButton() {
   const { canPrompt, ios, hidden, isDev, promptInstall } = usePwaInstall()
+  const { pathname } = useLocation()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [iosGuideOpen, setIosGuideOpen] = useState(false)
 
+  const isExcludedRoute = EXCLUDED_PATH_PREFIXES.some((p) => pathname.startsWith(p))
   const dismissed = isRecentlyDismissed(isDev)
-  const shouldShow = !hidden && !dismissed && (isDev || ios || canPrompt)
+  const shouldShow =
+    !isExcludedRoute && !hidden && !dismissed && (isDev || ios || canPrompt)
 
   // 마운트되어 실제 렌더되는 동안만 root 에 offset 변수 설정 → FloatingTopButton 이 위로 올라감
   useEffect(() => {

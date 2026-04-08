@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { PhotoIcon, StarIcon, XMarkIcon } from '@heroicons/react/24/solid'
+import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/solid'
 import { fetchBoothMenus, setMenuSoldOut } from '@/lib/boothMenus'
 import type { FoodMenu } from '@/types/database'
 import styles from './BoothMenuModal.module.css'
@@ -118,9 +118,6 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                     </div>
                     <div className={styles.info}>
                       <div className={styles.nameRow}>
-                        {menu.is_signature && (
-                          <StarIcon className={styles.signatureIcon} aria-label="시그니처" />
-                        )}
                         <span className={styles.name}>{menu.name}</span>
                       </div>
                       <div className={styles.price}>

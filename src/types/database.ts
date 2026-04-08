@@ -446,7 +446,7 @@ export interface Database {
           booth_no: string | null
           name: string
           description: string | null
-          category: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          category: string | null
           thumbnail_url: string | null
           gallery_urls: Json
           avg_prep_minutes: number
@@ -461,7 +461,7 @@ export interface Database {
           booth_no?: string | null
           name: string
           description?: string | null
-          category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          category?: string | null
           thumbnail_url?: string | null
           gallery_urls?: Json
           avg_prep_minutes?: number
@@ -476,7 +476,7 @@ export interface Database {
           booth_no?: string | null
           name?: string
           description?: string | null
-          category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
+          category?: string | null
           thumbnail_url?: string | null
           gallery_urls?: Json
           avg_prep_minutes?: number
@@ -494,6 +494,33 @@ export interface Database {
             referencedColumns: ['id']
           },
         ]
+      }
+      food_categories: {
+        Row: {
+          id: string
+          slug: string
+          label: string
+          sort_order: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          label: string
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          label?: string
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
       }
       food_menus: {
         Row: {
