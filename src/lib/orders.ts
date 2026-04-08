@@ -19,9 +19,13 @@ import type { Order, OrderItem, Payment } from '@/types/database'
 
 export interface CreatePaymentInput {
   phone: string
+  /** 할인 적용 후 결제 실금액 (= subtotal - discountAmount). Toss 에 넘기는 금액 */
   totalAmount: number
   items: CartItem[]
   festivalId?: string | null
+  /** 쿠폰 검증이 성공한 경우에만 전달 */
+  couponId?: string | null
+  discountAmount?: number
 }
 
 export interface CreatePaymentResult {
@@ -40,12 +44,14 @@ export interface CreatePaymentResult {
 export async function createPendingPayment(
   input: CreatePaymentInput,
 ): Promise<CreatePaymentResult> {
-  // 1) payments row
+  // 1) payments row (할인 적용 후 금액 + 쿠폰 정보 기록)
   const { data: payment, error: pErr } = await supabase
     .from('payments')
     .insert({
       phone: input.phone,
       total_amount: input.totalAmount,
+      discount_amount: input.discountAmount ?? 0,
+      coupon_id: input.couponId ?? null,
       status: 'pending',
       festival_id: input.festivalId ?? null,
     })
@@ -111,7 +117,11 @@ export async function createPendingPayment(
 
 /**
  * 결제 승인 후 호출 — payments 상태 paid + 모든 하위 orders 상태 paid.
- * (두 단계 UPDATE — 일관성은 트리거 없이 호출자 책임)
+ * 쿠폰이 있다면 원자 전이로 used 처리 (race safe: 이미 used 면 UPDATE 가 0행).
+ *
+ * 주의: 여러 단계 UPDATE 를 나눠 실행하므로 중간에 실패하면 payments 는
+ * paid 인데 orders 가 paid 아닌 상태가 될 수 있음. 현재 운영 리스크는 낮아
+ * 명시 트랜잭션 생략. 문제 생기면 Supabase RPC 로 감싸기.
  */
 export async function markPaymentPaid(
   paymentId: string,
@@ -119,17 +129,43 @@ export async function markPaymentPaid(
 ): Promise<void> {
   const now = new Date().toISOString()
 
-  const { error: pErr } = await supabase
+  // 1) payments → paid
+  const { data: payment, error: pErr } = await supabase
     .from('payments')
     .update({ status: 'paid', payment_key: paymentKey, paid_at: now })
     .eq('id', paymentId)
-  if (pErr) throw new Error(`결제 업데이트 실패: ${pErr.message}`)
+    .select()
+    .single()
+  if (pErr || !payment) throw new Error(`결제 업데이트 실패: ${pErr?.message ?? 'unknown'}`)
 
+  // 2) 하위 orders → paid
   const { error: oErr } = await supabase
     .from('orders')
     .update({ status: 'paid' })
     .eq('payment_id', paymentId)
   if (oErr) throw new Error(`주문 상태 업데이트 실패: ${oErr.message}`)
+
+  // 3) 쿠폰이 연결돼 있으면 원자 전이
+  if (payment.coupon_id) {
+    const { data: updated, error: cErr } = await supabase
+      .from('coupons')
+      .update({
+        status: 'used',
+        used_at: now,
+        used_payment_id: paymentId,
+      })
+      .eq('id', payment.coupon_id)
+      .eq('status', 'active') // race safe — 이미 used 면 0행
+      .select()
+    if (cErr) throw new Error(`쿠폰 상태 업데이트 실패: ${cErr.message}`)
+    if (!updated || updated.length === 0) {
+      // 이미 누군가 사용함 — Toss 승인은 이미 성공했으니 결제는 유효.
+      // 로그만 남기고 진행 (환불 대상은 어드민이 수동 판단).
+      console.warn(
+        `[markPaymentPaid] coupon ${payment.coupon_id} already used — payment ${paymentId}`,
+      )
+    }
+  }
 }
 
 /** toss_order_id (Toss 의 orderId) 로 payment 조회. success/fail 페이지에서 사용 */

@@ -10,6 +10,7 @@ import {
   SignalIcon,
   ChartBarSquareIcon,
   ReceiptRefundIcon,
+  TicketIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import type { ComponentType, SVGProps } from 'react'
@@ -36,6 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: '대시보드', path: '/', icon: ChartBarSquareIcon, end: true },
       { label: '참가신청 관리', path: '/applications', icon: DocumentTextIcon },
+      { label: '쿠폰 관리', path: '/coupons', icon: TicketIcon },
       { label: '공지사항 관리', path: '/notices', icon: MegaphoneIcon },
     ],
   },

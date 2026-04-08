@@ -581,6 +581,75 @@ export interface Database {
           },
         ]
       }
+      coupons: {
+        Row: {
+          id: string
+          code: string
+          discount_amount: number
+          min_order_amount: number
+          status: 'active' | 'used'
+          issued_source: 'manual' | 'survey'
+          issued_phone: string | null
+          note: string | null
+          expires_at: string
+          used_at: string | null
+          used_payment_id: string | null
+          festival_id: string | null
+          meta: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          discount_amount: number
+          min_order_amount?: number
+          status?: 'active' | 'used'
+          issued_source?: 'manual' | 'survey'
+          issued_phone?: string | null
+          note?: string | null
+          expires_at: string
+          used_at?: string | null
+          used_payment_id?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          discount_amount?: number
+          min_order_amount?: number
+          status?: 'active' | 'used'
+          issued_source?: 'manual' | 'survey'
+          issued_phone?: string | null
+          note?: string | null
+          expires_at?: string
+          used_at?: string | null
+          used_payment_id?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'coupons_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'coupons_used_payment_id_fkey'
+            columns: ['used_payment_id']
+            isOneToOne: false
+            referencedRelation: 'payments'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       payments: {
         Row: {
           id: string
@@ -588,6 +657,8 @@ export interface Database {
           payment_key: string | null
           phone: string
           total_amount: number
+          discount_amount: number
+          coupon_id: string | null
           status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
           cancelled_at: string | null
@@ -602,6 +673,8 @@ export interface Database {
           payment_key?: string | null
           phone: string
           total_amount: number
+          discount_amount?: number
+          coupon_id?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
@@ -616,6 +689,8 @@ export interface Database {
           payment_key?: string | null
           phone?: string
           total_amount?: number
+          discount_amount?: number
+          coupon_id?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
@@ -861,6 +936,8 @@ export type FoodBooth = Database['public']['Tables']['food_booths']['Row']
 export type FoodMenu = Database['public']['Tables']['food_menus']['Row']
 export type Payment = Database['public']['Tables']['payments']['Row']
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
+export type Coupon = Database['public']['Tables']['coupons']['Row']
+export type CouponInsert = Database['public']['Tables']['coupons']['Insert']
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderItem = Database['public']['Tables']['order_items']['Row']

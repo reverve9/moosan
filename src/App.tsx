@@ -22,6 +22,7 @@ import AdminFood from '@/pages/admin/AdminFood'
 import AdminBoothAccounts from '@/pages/admin/AdminBoothAccounts'
 import AdminMonitor from '@/pages/admin/AdminMonitor'
 import AdminOrders from '@/pages/admin/AdminOrders'
+import AdminCoupons from '@/pages/admin/AdminCoupons'
 import AdminNotices from '@/pages/admin/AdminNotices'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
@@ -74,6 +75,7 @@ function AdminRoutes() {
         <Route path="booth-accounts" element={<AdminBoothAccounts />} />
         <Route path="monitor" element={<AdminMonitor />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="coupons" element={<AdminCoupons />} />
         <Route path="notices" element={<AdminNotices />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

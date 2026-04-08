@@ -6,6 +6,7 @@ import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import { getTossPayments } from '@/lib/toss'
 import { createPendingPayment } from '@/lib/orders'
+import { validateCouponByCode } from '@/lib/coupons'
 import { formatPhone, isValidPhone, saveLastPhone } from '@/lib/phone'
 import {
   calcWaitingInfo,
@@ -48,6 +49,13 @@ export default function CheckoutPage() {
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [waitingSummaries, setWaitingSummaries] = useState<BoothWaitingSummary[]>([])
+  // 쿠폰
+  const [couponCode, setCouponCode] = useState('')
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [couponApplying, setCouponApplying] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<
+    { id: string; code: string; discount: number } | null
+  >(null)
 
   // 빈 장바구니면 카트로 돌려보냄
   useEffect(() => {
@@ -75,8 +83,44 @@ export default function CheckoutPage() {
   const phoneValid = isValidPhone(phone)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
 
+  const discount = appliedCoupon?.discount ?? 0
+  const finalAmount = Math.max(0, totalAmount - discount)
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(formatPhone(e.target.value))
+  }
+
+  const handleApplyCoupon = async () => {
+    if (couponApplying) return
+    const code = couponCode.trim()
+    if (code.length === 0) return
+    setCouponApplying(true)
+    setCouponError(null)
+    try {
+      const result = await validateCouponByCode(code, totalAmount)
+      if (!result.valid || !result.couponId) {
+        setCouponError(result.error ?? '쿠폰 적용 실패')
+        setAppliedCoupon(null)
+        return
+      }
+      setAppliedCoupon({
+        id: result.couponId,
+        code: result.code ?? code.toUpperCase(),
+        discount: result.discount ?? 0,
+      })
+      showToast('쿠폰이 적용됐어요', { type: 'success' })
+    } catch (e) {
+      setCouponError(e instanceof Error ? e.message : '쿠폰 적용 실패')
+      setAppliedCoupon(null)
+    } finally {
+      setCouponApplying(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode('')
+    setCouponError(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,10 +137,13 @@ export default function CheckoutPage() {
       // 1) payments + 부스별 orders + order_items INSERT (status: pending)
       //    - 트리거가 payments.toss_order_id 자동 채움 (전역 sequence)
       //    - 트리거가 orders.order_number 자동 채움 (부스별 누적)
+      //    - 쿠폰 적용 시 할인 후 금액을 total_amount 로 저장
       const { payment } = await createPendingPayment({
         phone,
-        totalAmount,
+        totalAmount: finalAmount,
         items,
+        couponId: appliedCoupon?.id ?? null,
+        discountAmount: discount,
       })
 
       // 결제 시도하는 phone 을 localStorage 에 저장 → /cart 의 주문 내역 섹션 auto-prefill
@@ -111,7 +158,7 @@ export default function CheckoutPage() {
           : `${firstItem.menuName} 외 ${items.length - 1}건`
 
       await tossPayments.requestPayment('카드', {
-        amount: totalAmount,
+        amount: finalAmount,
         orderId: payment.toss_order_id,
         orderName,
         customerMobilePhone: phone.replace(/-/g, ''),
@@ -186,6 +233,55 @@ export default function CheckoutPage() {
             autoComplete="tel"
           />
         </div>
+
+        {/* ─── 쿠폰 ─── */}
+        <div className={styles.section}>
+          <h3 className={styles.sectionTitle}>쿠폰</h3>
+          {appliedCoupon ? (
+            <div className={styles.couponApplied}>
+              <div className={styles.couponAppliedLeft}>
+                <span className={styles.couponAppliedCode}>{appliedCoupon.code}</span>
+                <span className={styles.couponAppliedDiscount}>
+                  -{appliedCoupon.discount.toLocaleString()}원
+                </span>
+              </div>
+              <button
+                type="button"
+                className={styles.couponRemoveBtn}
+                onClick={handleRemoveCoupon}
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className={styles.couponInputRow}>
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="예: MS-ABC123"
+                  className={styles.couponInput}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                />
+                <button
+                  type="button"
+                  className={styles.couponApplyBtn}
+                  onClick={handleApplyCoupon}
+                  disabled={couponApplying || couponCode.trim().length === 0}
+                >
+                  {couponApplying ? '확인 중…' : '적용'}
+                </button>
+              </div>
+              {couponError && <div className={styles.couponError}>{couponError}</div>}
+              <p className={styles.couponHint}>
+                10,000원 이상 주문 시 사용 가능합니다
+              </p>
+            </>
+          )}
+        </div>
       </form>
 
       {/* ─── 부스별 대기 현황 (결제 직전) ─── */}
@@ -218,9 +314,18 @@ export default function CheckoutPage() {
         <div className={styles.checkoutInner}>
           <div className={styles.checkoutTotal}>
             <span className={styles.totalLabel}>총 {totalCount}개 · 결제금액</span>
-            <span className={styles.totalAmount}>
-              {totalAmount.toLocaleString()}원
-            </span>
+            {discount > 0 ? (
+              <span className={styles.totalAmount}>
+                <span className={styles.totalStrike}>
+                  {totalAmount.toLocaleString()}원
+                </span>{' '}
+                {finalAmount.toLocaleString()}원
+              </span>
+            ) : (
+              <span className={styles.totalAmount}>
+                {totalAmount.toLocaleString()}원
+              </span>
+            )}
           </div>
           <button
             type="button"

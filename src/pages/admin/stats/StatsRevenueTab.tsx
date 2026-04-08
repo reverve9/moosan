@@ -12,6 +12,7 @@ import {
   type StatsFilters,
   type StatsRawData,
 } from '@/lib/adminStats'
+import { fetchCouponStats, type CouponStats } from '@/lib/coupons'
 import styles from './StatsRevenueTab.module.css'
 
 function fmtWon(n: number): string {
@@ -29,14 +30,19 @@ export default function StatsRevenueTab() {
     dateTo: todayKstString(),
   }))
   const [raw, setRaw] = useState<StatsRawData | null>(null)
+  const [couponStats, setCouponStats] = useState<CouponStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refetch = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetchStatsData(filters)
+      const [data, cStats] = await Promise.all([
+        fetchStatsData(filters),
+        fetchCouponStats({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+      ])
       setRaw(data)
+      setCouponStats(cStats)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '조회 실패')
@@ -117,6 +123,9 @@ export default function StatsRevenueTab() {
             {customer && <CustomerSection customer={customer} />}
             {behavior && <BehaviorSection behavior={behavior} />}
           </div>
+
+          {/* 7. 쿠폰 */}
+          {couponStats && <CouponSection stats={couponStats} />}
         </>
       )}
     </div>
@@ -521,6 +530,23 @@ function CustomerSection({
 }
 
 // ─── 6. 결제 행동 ────────────────────────────────
+
+// ─── 7. 쿠폰 섹션 ────────────────────────────────
+
+function CouponSection({ stats }: { stats: CouponStats }) {
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>쿠폰</h2>
+      <div className={styles.kpiGrid}>
+        <Kpi label="발급" value={`${stats.issuedCount.toLocaleString()}건`} />
+        <Kpi label="사용 완료" value={`${stats.usedCount.toLocaleString()}건`} />
+        <Kpi label="사용률" value={fmtPct(stats.usageRate)} emphasis />
+        <Kpi label="사용가능" value={`${stats.activeCount.toLocaleString()}건`} />
+        <Kpi label="총 할인액" value={fmtWon(stats.totalDiscount)} />
+      </div>
+    </section>
+  )
+}
 
 function BehaviorSection({
   behavior,

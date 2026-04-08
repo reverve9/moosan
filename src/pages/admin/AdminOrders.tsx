@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  ArrowPathIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline'
+import { ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import {
   cancelPayment,
   fetchPaymentDetail,
@@ -81,7 +77,7 @@ export default function AdminOrders() {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
-  const PAGE_SIZE = 15
+  const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
   const refetch = useCallback(async () => {
     setLoading(true)
@@ -223,34 +219,12 @@ export default function AdminOrders() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      <div className={styles.listToolbar}>
-        <div className={styles.listMeta}>
-          총 {visibleRows.length}건
-        </div>
-        <div className={styles.pagination}>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage <= 1}
-            aria-label="이전 페이지"
-          >
-            <ChevronLeftIcon className={styles.pageIcon} />
-          </button>
-          <span className={styles.pageLabel}>
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            type="button"
-            className={styles.pageBtn}
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage >= totalPages}
-            aria-label="다음 페이지"
-          >
-            <ChevronRightIcon className={styles.pageIcon} />
-          </button>
-        </div>
-      </div>
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={visibleRows.length}
+        onChange={setPage}
+      />
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -312,6 +286,14 @@ export default function AdminOrders() {
                       <span className={styles.menuCell}>{formatMenuSummary(r.menuLines)}</span>
                     </td>
                     <td className={`${styles.alignRight} ${styles.mono}`}>
+                      {r.payment.discount_amount > 0 && (
+                        <span
+                          className={styles.couponBadge}
+                          title={`쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원`}
+                        >
+                          쿠폰
+                        </span>
+                      )}
                       {r.payment.total_amount.toLocaleString()}원
                     </td>
                     <td>
@@ -452,8 +434,29 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   </span>
                 </span>
               </div>
+              {detail.payment.discount_amount > 0 && (
+                <>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>원래 금액</span>
+                    <span className={styles.metaValue}>
+                      {(
+                        detail.payment.total_amount + detail.payment.discount_amount
+                      ).toLocaleString()}
+                      원
+                    </span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>쿠폰 할인</span>
+                    <span className={`${styles.metaValue} ${styles.discountText}`}>
+                      -{detail.payment.discount_amount.toLocaleString()}원
+                    </span>
+                  </div>
+                </>
+              )}
               <div className={styles.metaRow}>
-                <span className={styles.metaLabel}>결제금액</span>
+                <span className={styles.metaLabel}>
+                  {detail.payment.discount_amount > 0 ? '최종 결제금액' : '결제금액'}
+                </span>
                 <span className={styles.metaValueStrong}>
                   {detail.payment.total_amount.toLocaleString()}원
                 </span>
