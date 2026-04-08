@@ -701,6 +701,78 @@
   border-radius: 10px;
 }
 
+/* 부스 랭킹 — bar 제거, 숫자 컬럼 고정 폭 */
+.boothRankTable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.boothRankRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 100px 60px 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.boothRankRow:not(.boothRankHead):nth-child(even) {
+  background-color: #F9FAFB;
+}
+
+.boothRankHead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9CA3AF;
+  padding: 6px 12px;
+}
+
+.boothRankIdx {
+  text-align: center;
+  font-weight: 700;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.boothRankName {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.boothRankName strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.boothRankName small {
+  font-size: 11px;
+}
+
+.boothRankNum {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alignRight {
+  text-align: right;
+}
+
 /* 구매 횟수 분포 — 퍼센트 기반 bar */
 .freqList {
   display: flex;

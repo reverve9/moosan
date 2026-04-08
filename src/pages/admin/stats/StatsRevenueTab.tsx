@@ -351,7 +351,6 @@ function TimeSection({ time }: { time: ReturnType<typeof calcTimeStats> }) {
 // ─── 3. 부스 성과 ────────────────────────────────
 
 function BoothSection({ booth }: { booth: ReturnType<typeof calcBoothStats> }) {
-  const maxRevenue = Math.max(1, ...booth.ranking.map((r) => r.revenue))
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>부스 성과</h2>
@@ -371,36 +370,35 @@ function BoothSection({ booth }: { booth: ReturnType<typeof calcBoothStats> }) {
           </div>
         )}
       <h3 className={styles.subTitle}>부스별 매출 랭킹</h3>
-      <div className={styles.rankTable}>
-        <div className={`${styles.rankRow} ${styles.rankHead}`}>
-          <span className={styles.rankIdx}>#</span>
-          <span className={styles.rankName}>매장명</span>
-          <span className={styles.rankBar}></span>
-          <span className={styles.rankCol}>매출</span>
-          <span className={styles.rankCol}>건수</span>
-          <span className={styles.rankCol}>객단가</span>
+      <div className={styles.boothRankTable}>
+        <div className={`${styles.boothRankRow} ${styles.boothRankHead}`}>
+          <span>#</span>
+          <span>매장명</span>
+          <span className={styles.alignRight}>매출</span>
+          <span className={styles.alignRight}>건수</span>
+          <span className={styles.alignRight}>객단가</span>
         </div>
         {booth.ranking.length === 0 ? (
           <div className={styles.empty}>데이터 없음</div>
         ) : (
-          booth.ranking.map((r, i) => {
-            const pct = (r.revenue / maxRevenue) * 100
-            return (
-              <div key={`${r.boothId}-${r.boothName}`} className={styles.rankRow}>
-                <span className={styles.rankIdx}>{i + 1}</span>
-                <span className={styles.rankName}>
-                  <strong>{r.boothName}</strong>
-                  <small className={styles.dim}>{r.boothNo}</small>
-                </span>
-                <span className={styles.rankBar}>
-                  <span className={styles.rankBarFill} style={{ width: `${pct}%` }} />
-                </span>
-                <span className={styles.rankCol}>{fmtWon(r.revenue)}</span>
-                <span className={styles.rankCol}>{r.orderCount}건</span>
-                <span className={styles.rankCol}>{fmtWon(r.avgTicket)}</span>
-              </div>
-            )
-          })
+          booth.ranking.map((r, i) => (
+            <div key={`${r.boothId}-${r.boothName}`} className={styles.boothRankRow}>
+              <span className={styles.boothRankIdx}>{i + 1}</span>
+              <span className={styles.boothRankName}>
+                <strong>{r.boothName}</strong>
+                <small className={styles.dim}>{r.boothNo}</small>
+              </span>
+              <span className={`${styles.boothRankNum} ${styles.alignRight}`}>
+                {fmtWon(r.revenue)}
+              </span>
+              <span className={`${styles.boothRankNum} ${styles.alignRight}`}>
+                {r.orderCount}건
+              </span>
+              <span className={`${styles.boothRankNum} ${styles.alignRight}`}>
+                {fmtWon(r.avgTicket)}
+              </span>
+            </div>
+          ))
         )}
       </div>
     </section>
