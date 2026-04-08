@@ -501,6 +501,7 @@ export interface Database {
           description: string | null
           image_url: string | null
           is_signature: boolean
+          is_sold_out: boolean
           sort_order: number
           is_active: boolean
           created_at: string
@@ -514,6 +515,7 @@ export interface Database {
           description?: string | null
           image_url?: string | null
           is_signature?: boolean
+          is_sold_out?: boolean
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -527,6 +529,7 @@ export interface Database {
           description?: string | null
           image_url?: string | null
           is_signature?: boolean
+          is_sold_out?: boolean
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -604,6 +607,7 @@ export interface Database {
           quantity: number
           subtotal: number
           is_ready: boolean
+          confirmed_at: string | null
           created_at: string
         }
         Insert: {
@@ -617,6 +621,7 @@ export interface Database {
           quantity?: number
           subtotal: number
           is_ready?: boolean
+          confirmed_at?: string | null
           created_at?: string
         }
         Update: {
@@ -630,6 +635,7 @@ export interface Database {
           quantity?: number
           subtotal?: number
           is_ready?: boolean
+          confirmed_at?: string | null
           created_at?: string
         }
         Relationships: [

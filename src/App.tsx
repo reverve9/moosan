@@ -9,6 +9,8 @@ import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
 import CartPage from '@/pages/CartPage'
 import CheckoutPage from '@/pages/CheckoutPage'
+import CheckoutSuccessPage from '@/pages/CheckoutSuccessPage'
+import CheckoutFailPage from '@/pages/CheckoutFailPage'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -41,6 +43,8 @@ export default function App() {
               <Route path="/notice" element={<NoticePage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+              <Route path="/checkout/fail" element={<CheckoutFailPage />} />
               {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
               <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
               <Route path="/program/musan" element={<FestivalPage slug="musan" />} />

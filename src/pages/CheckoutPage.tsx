@@ -4,6 +4,8 @@ import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
+import { getTossPayments } from '@/lib/toss'
+import { createPendingOrder } from '@/lib/orders'
 import styles from './CheckoutPage.module.css'
 
 interface BoothGroup {
@@ -48,6 +50,7 @@ export default function CheckoutPage() {
   const { showToast } = useToast()
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   // 빈 장바구니면 카트로 돌려보냄
   useEffect(() => {
@@ -64,15 +67,52 @@ export default function CheckoutPage() {
     setPhone(formatPhone(e.target.value))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setTouched(true)
     if (!phoneValid) {
       showToast('휴대폰 번호를 확인해주세요', { type: 'error' })
       return
     }
-    // Phase 1G: 토스페이먼츠 호출 위치
-    showToast('결제 연동은 다음 단계에서 활성화됩니다', { type: 'info' })
+    if (submitting) return
+    setSubmitting(true)
+
+    try {
+      // 1) orders + order_items INSERT (status: pending)
+      //    트리거가 order_number 자동 생성 → 토스 orderId 로 사용
+      const order = await createPendingOrder({
+        phone,
+        totalAmount,
+        items,
+      })
+
+      // 2) 토스 결제창 호출
+      const tossPayments = await getTossPayments()
+      const firstItem = items[0]
+      const orderName =
+        items.length === 1
+          ? firstItem.menuName
+          : `${firstItem.menuName} 외 ${items.length - 1}건`
+
+      await tossPayments.requestPayment('카드', {
+        amount: totalAmount,
+        orderId: order.order_number,
+        orderName,
+        customerMobilePhone: phone.replace(/-/g, ''),
+        successUrl: `${window.location.origin}/checkout/success`,
+        failUrl: `${window.location.origin}/checkout/fail`,
+      })
+      // 토스 결제창으로 리다이렉트되므로 아래 코드는 실행되지 않음
+    } catch (err) {
+      setSubmitting(false)
+      const message = err instanceof Error ? err.message : '결제 호출 중 오류가 발생했습니다'
+      // 토스 SDK 가 사용자 취소도 throw 하므로 메시지로 분기
+      if (/취소/.test(message) || /USER_CANCEL/.test(message)) {
+        showToast('결제를 취소했어요', { type: 'info' })
+      } else {
+        showToast(message, { type: 'error' })
+      }
+    }
   }
 
   if (items.length === 0) return null
@@ -144,9 +184,9 @@ export default function CheckoutPage() {
             type="button"
             className={styles.checkoutBtn}
             onClick={handleSubmit}
-            disabled={!phoneValid}
+            disabled={!phoneValid || submitting}
           >
-            결제하기
+            {submitting ? '결제창 여는 중…' : '결제하기'}
           </button>
         </div>
       </div>
