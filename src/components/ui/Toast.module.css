@@ -1,0 +1,63 @@
+.toast {
+  position: fixed;
+  left: 50%;
+  /* BottomNav 와 FloatingTopButton 위 영역에 띄우기 */
+  bottom: calc(
+    var(--bottom-nav-height) + var(--space-6) + var(--space-3) + 44px +
+      var(--space-3) + env(safe-area-inset-bottom, 0px)
+  );
+  transform: translate(-50%, 0);
+  max-width: calc(var(--max-width) - var(--space-8));
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-toast);
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: slideInUp 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.success {
+  background-color: var(--color-primary);
+}
+
+.info {
+  background-color: rgba(40, 40, 40, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.error {
+  background-color: #c0392b;
+}
+
+.leaving {
+  animation: slideOutDown 220ms ease-in forwards;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+}

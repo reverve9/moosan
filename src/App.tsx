@@ -7,6 +7,8 @@ import ProgramsPage from '@/pages/ProgramsPage'
 import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
+import CartPage from '@/pages/CartPage'
+import CheckoutPage from '@/pages/CheckoutPage'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
@@ -16,40 +18,48 @@ import AdminPrograms from '@/pages/admin/AdminPrograms'
 import AdminFood from '@/pages/admin/AdminFood'
 import AdminNotices from '@/pages/admin/AdminNotices'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
+import { CartProvider } from '@/store/cartStore'
+import { ToastProvider } from '@/components/ui/Toast'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <FloatingInstallButton />
-      <Routes>
-        {/* Home (standalone: hero + footer) */}
-        <Route path="/" element={<HomePage />} />
+    <ToastProvider>
+      <CartProvider>
+        <BrowserRouter>
+          <FloatingInstallButton />
+          <Routes>
+            {/* Home (standalone: hero + footer) */}
+            <Route path="/" element={<HomePage />} />
 
-        {/* User */}
-        <Route element={<Layout />}>
-          <Route path="/schedule" element={<SchedulePage />} />
-          <Route path="/programs" element={<ProgramsPage />} />
-          <Route path="/apply" element={<ApplyPage />} />
-          <Route path="/apply/:slug" element={<ApplyPage />} />
-          <Route path="/location" element={<LocationPage />} />
-          <Route path="/notice" element={<NoticePage />} />
-          {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
-          <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
-          <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
-          <Route path="/program/food" element={<FestivalPage slug="food" />} />
-          <Route path="/program/:slug" element={<ProgramDetailPage />} />
-        </Route>
+            {/* User */}
+            <Route element={<Layout />}>
+              <Route path="/schedule" element={<SchedulePage />} />
+              <Route path="/programs" element={<ProgramsPage />} />
+              <Route path="/apply" element={<ApplyPage />} />
+              <Route path="/apply/:slug" element={<ApplyPage />} />
+              <Route path="/location" element={<LocationPage />} />
+              <Route path="/notice" element={<NoticePage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
+              <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
+              <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
+              <Route path="/program/food" element={<FestivalPage slug="food" />} />
+              <Route path="/program/:slug" element={<ProgramDetailPage />} />
+            </Route>
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="applications" element={<AdminApplications />} />
-          <Route path="festivals" element={<AdminFestivals />} />
-          <Route path="programs" element={<AdminPrograms />} />
-          <Route path="food" element={<AdminFood />} />
-          <Route path="notices" element={<AdminNotices />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+            {/* Admin */}
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="applications" element={<AdminApplications />} />
+              <Route path="festivals" element={<AdminFestivals />} />
+              <Route path="programs" element={<AdminPrograms />} />
+              <Route path="food" element={<AdminFood />} />
+              <Route path="notices" element={<AdminNotices />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </CartProvider>
+    </ToastProvider>
   )
 }

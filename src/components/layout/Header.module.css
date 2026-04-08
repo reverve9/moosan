@@ -75,11 +75,67 @@
   filter: none;
 }
 
-.menu {
+.actions {
   position: absolute;
   right: var(--page-padding-x);
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.menu {
+  position: relative;
+}
+
+.cartButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-lg);
+  height: var(--icon-lg);
+  color: var(--color-text);
+  transition: opacity var(--transition-fast),
+    color var(--transition-base);
+}
+
+.header.transparent .cartButton {
+  color: var(--color-text-inverse);
+}
+
+.cartButton:active {
+  opacity: 0.6;
+}
+
+.cartIcon {
+  width: var(--icon-md);
+  height: var(--icon-md);
+}
+
+.cartBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: 1.5px solid var(--color-bg);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.header.transparent .cartBadge {
+  border-color: transparent;
 }
 
 .menuButton {

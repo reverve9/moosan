@@ -1,0 +1,328 @@
+.page {
+  padding: var(--space-6) var(--space-5);
+  /* sticky 결제 바와 겹치지 않도록 하단 패딩 확보 */
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ──────────────── 빈 상태 ──────────────── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-5);
+  gap: var(--space-4);
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.emptyText {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.emptyCta {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.emptyCta:hover {
+  background-color: var(--color-primary-light);
+}
+
+/* ──────────────── 컨테이너 ──────────────── */
+.container {
+  margin-top: var(--space-4);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0 var(--space-4);
+}
+
+.summaryCount {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.clearBtn {
+  background: none;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.clearBtn:hover {
+  color: var(--color-text-secondary);
+}
+
+/* ──────────────── 부스 그룹 ──────────────── */
+.boothList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.boothGroup {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.boothHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.boothName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.boothSubtotal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* ──────────────── 아이템 ──────────────── */
+.itemList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.item:first-child {
+  border-top: none;
+}
+
+.itemThumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: var(--color-bg-secondary);
+}
+
+.itemThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.itemThumbPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    var(--color-bg-secondary),
+    color-mix(in srgb, var(--color-bg-secondary) 60%, var(--color-border))
+  );
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.itemHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.removeBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.removeBtn:hover {
+  background-color: color-mix(in srgb, var(--color-text) 6%, transparent);
+  color: var(--color-text-secondary);
+}
+
+.removeIcon {
+  width: 16px;
+  height: 16px;
+}
+
+.itemBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+/* ──────────────── Stepper (장바구니용) ──────────────── */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.stepBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background-color var(--transition-fast);
+}
+
+.stepBtn:hover {
+  background-color: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.stepIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.stepValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  user-select: none;
+}
+
+.itemPrice {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* ──────────────── Sticky 결제 바 ──────────────── */
+.checkoutBar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--max-width);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border-light);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: var(--z-header);
+}
+
+.checkoutInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+}
+
+.checkoutTotal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.totalLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.totalAmount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.checkoutBtn {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.checkoutBtn:hover {
+  background-color: var(--color-primary-light);
+}
+
+.checkoutBtn:active {
+  transform: scale(0.98);
+}

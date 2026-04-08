@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { MinusIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
+import { useCart } from '@/store/cartStore'
+import { useToast } from '@/components/ui/Toast'
 import type { FoodBoothWithMenus, FoodCategory } from '@/types/festival_extras'
 import type { Festival } from '@/types/database'
 import styles from './FoodSections.module.css'
@@ -230,40 +232,103 @@ function BoothModal({
             <p className={styles.emptyMenu}>메뉴 정보가 곧 업데이트됩니다</p>
           ) : (
             <ul className={styles.menuList}>
-              {booth.menus.map((m) => {
-                const menuImg = getAssetUrl(m.image_url)
-                return (
-                  <li key={m.id} className={styles.menuItem}>
-                    {menuImg && (
-                      <div className={styles.menuItemThumb}>
-                        <img src={menuImg} alt={m.name} />
-                      </div>
-                    )}
-                    <div className={styles.menuItemContent}>
-                      <div className={styles.menuHead}>
-                        <span className={styles.menuName}>
-                          {m.is_signature && (
-                            <span className={styles.signatureMark}>대표</span>
-                          )}
-                          {m.name}
-                        </span>
-                        <span className={styles.menuPrice}>
-                          {m.price != null
-                            ? `${m.price.toLocaleString()}원`
-                            : '시가'}
-                        </span>
-                      </div>
-                      {m.description && (
-                        <p className={styles.menuDesc}>{m.description}</p>
-                      )}
-                    </div>
-                  </li>
-                )
-              })}
+              {booth.menus.map((m) => (
+                <MenuItemRow key={m.id} booth={booth} menu={m} />
+              ))}
             </ul>
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+// ──────────────── MenuItemRow ────────────────
+type MenuItem = FoodBoothWithMenus['menus'][number]
+
+function MenuItemRow({
+  booth,
+  menu,
+}: {
+  booth: FoodBoothWithMenus
+  menu: MenuItem
+}) {
+  const { items, addItem } = useCart()
+  const { showToast } = useToast()
+  const [pendingQty, setPendingQty] = useState(1)
+
+  const menuImg = getAssetUrl(menu.image_url)
+  const inCart = items.find((i) => i.menuId === menu.id)
+  const orderable = menu.price != null && menu.price > 0
+
+  const handleAdd = () => {
+    if (!orderable || menu.price == null) return
+    addItem({
+      menuId: menu.id,
+      boothId: booth.id,
+      boothName: booth.name,
+      menuName: menu.name,
+      price: menu.price,
+      quantity: pendingQty,
+      imageUrl: menu.image_url ?? undefined,
+    })
+    showToast(`장바구니에 ${pendingQty}개 담았어요`)
+    setPendingQty(1)
+  }
+
+  return (
+    <li className={styles.menuItem}>
+      {menuImg && (
+        <div className={styles.menuItemThumb}>
+          <img src={menuImg} alt={menu.name} />
+        </div>
+      )}
+      <div className={styles.menuItemContent}>
+        <div className={styles.menuHead}>
+          <span className={styles.menuName}>
+            {menu.is_signature && <span className={styles.signatureMark}>대표</span>}
+            {menu.name}
+          </span>
+          <span className={styles.menuPrice}>
+            {menu.price != null ? `${menu.price.toLocaleString()}원` : '시가'}
+          </span>
+        </div>
+        {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
+
+        {orderable && (
+          <div className={styles.menuActions}>
+            <div className={styles.stepper}>
+              <button
+                type="button"
+                className={styles.stepBtn}
+                onClick={() => setPendingQty((q) => Math.max(1, q - 1))}
+                aria-label="수량 줄이기"
+                disabled={pendingQty <= 1}
+              >
+                <MinusIcon className={styles.stepIcon} />
+              </button>
+              <span className={styles.stepValue}>{pendingQty}</span>
+              <button
+                type="button"
+                className={styles.stepBtn}
+                onClick={() => setPendingQty((q) => q + 1)}
+                aria-label="수량 늘리기"
+              >
+                <PlusIcon className={styles.stepIcon} />
+              </button>
+            </div>
+            <button type="button" className={styles.addBtn} onClick={handleAdd}>
+              담기
+            </button>
+          </div>
+        )}
+
+        {inCart && (
+          <p className={styles.inCartBadge}>
+            장바구니에 {inCart.quantity}개 담겨있어요
+          </p>
+        )}
+      </div>
+    </li>
   )
 }

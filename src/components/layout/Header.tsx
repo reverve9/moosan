@@ -6,8 +6,10 @@ import {
   MegaphoneIcon,
   MapPinIcon,
   PencilSquareIcon,
+  ShoppingBagIcon,
 } from '@heroicons/react/24/outline'
 import { isSubPage } from '@/lib/routing'
+import { useCart } from '@/store/cartStore'
 import styles from './Header.module.css'
 
 const MENU_ITEMS = [
@@ -24,6 +26,7 @@ export default function Header() {
   const navigate = useNavigate()
   const location = useLocation()
   const menuRef = useRef<HTMLDivElement>(null)
+  const { totalCount } = useCart()
 
   const isHome = location.pathname === '/'
   const subPage = isSubPage(location.pathname)
@@ -80,35 +83,54 @@ export default function Header() {
             className={styles.logoImage}
           />
         </Link>
-        <div className={styles.menu} ref={menuRef}>
+        <div className={styles.actions}>
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
-            className={styles.menuButton}
-            aria-label="메뉴"
-            aria-expanded={open}
+            onClick={() => navigate('/cart')}
+            className={styles.cartButton}
+            aria-label={
+              totalCount > 0
+                ? `장바구니 (${totalCount}개 담김)`
+                : '장바구니'
+            }
           >
-            <Bars3Icon className={styles.menuIcon} />
+            <ShoppingBagIcon className={styles.cartIcon} />
+            {totalCount > 0 && (
+              <span className={styles.cartBadge} aria-hidden="true">
+                {totalCount > 99 ? '99+' : totalCount}
+              </span>
+            )}
           </button>
-          {open && (
-            <div className={styles.dropdown} role="menu">
-              {MENU_ITEMS.map((item) => {
-                const Icon = item.icon
-                return (
-                  <button
-                    key={item.path}
-                    type="button"
-                    onClick={() => handleSelect(item.path)}
-                    className={styles.dropdownItem}
-                    role="menuitem"
-                  >
-                    <Icon className={styles.dropdownIcon} />
-                    <span>{item.label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          <div className={styles.menu} ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className={styles.menuButton}
+              aria-label="메뉴"
+              aria-expanded={open}
+            >
+              <Bars3Icon className={styles.menuIcon} />
+            </button>
+            {open && (
+              <div className={styles.dropdown} role="menu">
+                {MENU_ITEMS.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => handleSelect(item.path)}
+                      className={styles.dropdownItem}
+                      role="menuitem"
+                    >
+                      <Icon className={styles.dropdownIcon} />
+                      <span>{item.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

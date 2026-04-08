@@ -453,6 +453,97 @@
   word-break: keep-all;
 }
 
+/* ──────────────── 메뉴 액션 (stepper + 담기) ──────────────── */
+.menuActions {
+  display: flex;
+  align-items: center;
+  gap: 2cqw; /* 12px @ 600 */
+  margin-top: 2cqw; /* 12px @ 600 */
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  padding: 0.333cqw; /* 2px @ 600 */
+  gap: 0;
+}
+
+.stepBtn {
+  width: 5.333cqw; /* 32px @ 600 */
+  height: 5.333cqw;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background-color var(--transition-fast);
+}
+
+.stepBtn:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+.stepBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stepIcon {
+  width: 2.667cqw; /* 16px @ 600 */
+  height: 2.667cqw;
+  min-width: 14px;
+  min-height: 14px;
+}
+
+.stepValue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.333cqw; /* 32px @ 600 */
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  font-weight: 600;
+  color: var(--color-text);
+  user-select: none;
+}
+
+.addBtn {
+  flex: 1;
+  padding: 1.667cqw 3cqw; /* 10px 18px @ 600 */
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: var(--font-base);
+  font-size: var(--text-cq-label);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.addBtn:hover {
+  background-color: var(--color-primary-light);
+}
+
+.addBtn:active {
+  transform: scale(0.98);
+}
+
+.inCartBadge {
+  font-family: var(--font-base);
+  font-size: var(--text-cq-caption);
+  font-weight: 500;
+  color: var(--color-primary);
+  margin: 1.333cqw 0 0; /* 8px @ 600 */
+}
+
 .emptyMenu {
   font-family: var(--font-base);
   font-size: var(--text-cq-label);

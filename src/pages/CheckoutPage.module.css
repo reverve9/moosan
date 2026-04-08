@@ -1,0 +1,170 @@
+.page {
+  padding: var(--space-6) var(--space-5);
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-4);
+}
+
+/* ──────────────── 섹션 ──────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 var(--space-1);
+}
+
+/* ──────────────── 주문 내역 ──────────────── */
+.boothList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.boothGroup {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.boothHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.boothName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.boothSubtotal {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.itemList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.item:first-child {
+  border-top: none;
+}
+
+.itemName {
+  font-size: 13px;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  word-break: keep-all;
+}
+
+.itemQty {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.itemPrice {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+/* ──────────────── Sticky 결제 바 ──────────────── */
+.checkoutBar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--max-width);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border-light);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: var(--z-header);
+}
+
+.checkoutInner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+}
+
+.checkoutTotal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.totalLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.totalAmount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.checkoutBtn {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.checkoutBtn:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+}
+
+.checkoutBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.checkoutBtn:disabled {
+  background-color: color-mix(in srgb, var(--color-text-muted) 50%, var(--color-bg-secondary));
+  cursor: not-allowed;
+}

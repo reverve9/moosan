@@ -542,6 +542,155 @@ export interface Database {
           },
         ]
       }
+      orders: {
+        Row: {
+          id: string
+          order_number: string
+          phone: string
+          total_amount: number
+          status: 'pending' | 'paid' | 'completed' | 'cancelled'
+          payment_key: string | null
+          paid_at: string | null
+          festival_id: string | null
+          meta: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_number?: string
+          phone: string
+          total_amount: number
+          status?: 'pending' | 'paid' | 'completed' | 'cancelled'
+          payment_key?: string | null
+          paid_at?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_number?: string
+          phone?: string
+          total_amount?: number
+          status?: 'pending' | 'paid' | 'completed' | 'cancelled'
+          payment_key?: string | null
+          paid_at?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'orders_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: string
+          order_id: string
+          booth_id: string | null
+          menu_id: string | null
+          booth_name: string
+          menu_name: string
+          menu_price: number
+          quantity: number
+          subtotal: number
+          is_ready: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          booth_id?: string | null
+          menu_id?: string | null
+          booth_name: string
+          menu_name: string
+          menu_price: number
+          quantity?: number
+          subtotal: number
+          is_ready?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          booth_id?: string | null
+          menu_id?: string | null
+          booth_name?: string
+          menu_name?: string
+          menu_price?: number
+          quantity?: number
+          subtotal?: number
+          is_ready?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'order_items_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: false
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'order_items_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: false
+            referencedRelation: 'food_booths'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'order_items_menu_id_fkey'
+            columns: ['menu_id']
+            isOneToOne: false
+            referencedRelation: 'food_menus'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      booth_accounts: {
+        Row: {
+          id: string
+          booth_id: string
+          login_id: string
+          password_hash: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booth_id: string
+          login_id: string
+          password_hash: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          booth_id?: string
+          login_id?: string
+          password_hash?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'booth_accounts_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: false
+            referencedRelation: 'food_booths'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -566,6 +715,14 @@ export type ApplicationInsert = Database['public']['Tables']['applications']['In
 export type Participant = Database['public']['Tables']['participants']['Row']
 export type ParticipantInsert = Database['public']['Tables']['participants']['Insert']
 export type Notice = Database['public']['Tables']['notices']['Row']
+export type FoodBooth = Database['public']['Tables']['food_booths']['Row']
+export type FoodMenu = Database['public']['Tables']['food_menus']['Row']
+export type Order = Database['public']['Tables']['orders']['Row']
+export type OrderInsert = Database['public']['Tables']['orders']['Insert']
+export type OrderItem = Database['public']['Tables']['order_items']['Row']
+export type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
+export type BoothAccount = Database['public']['Tables']['booth_accounts']['Row']
+export type BoothAccountInsert = Database['public']['Tables']['booth_accounts']['Insert']
 
 // Awards JSONB structure
 export type AwardItem = { rank: string; prize: string }
