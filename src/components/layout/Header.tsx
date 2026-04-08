@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftIcon,
   Bars3Icon,
+  ClipboardDocumentListIcon,
   MegaphoneIcon,
   MapPinIcon,
   PencilSquareIcon,
-  ShoppingBagIcon,
 } from '@heroicons/react/24/outline'
 import { isSubPage } from '@/lib/routing'
 import { useCart } from '@/store/cartStore'
@@ -90,11 +90,11 @@ export default function Header() {
             className={styles.cartButton}
             aria-label={
               totalCount > 0
-                ? `장바구니 (${totalCount}개 담김)`
-                : '장바구니'
+                ? `내 주문 (장바구니 ${totalCount}개 담김)`
+                : '내 주문'
             }
           >
-            <ShoppingBagIcon className={styles.cartIcon} />
+            <ClipboardDocumentListIcon className={styles.cartIcon} />
             {totalCount > 0 && (
               <span className={styles.cartBadge} aria-hidden="true">
                 {totalCount > 99 ? '99+' : totalCount}

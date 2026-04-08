@@ -449,6 +449,7 @@ export interface Database {
           category: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
           thumbnail_url: string | null
           gallery_urls: Json
+          avg_prep_minutes: number
           sort_order: number
           is_active: boolean
           created_at: string
@@ -463,6 +464,7 @@ export interface Database {
           category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
           thumbnail_url?: string | null
           gallery_urls?: Json
+          avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -477,6 +479,7 @@ export interface Database {
           category?: 'korean' | 'chinese' | 'japanese' | 'fusion' | null
           thumbnail_url?: string | null
           gallery_urls?: Json
+          avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
           created_at?: string
@@ -699,7 +702,21 @@ export interface Database {
       }
     }
     Views: {
-      [_ in never]: never
+      booth_waiting_counts: {
+        Row: {
+          booth_id: string
+          waiting_count: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'booth_waiting_counts_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: false
+            referencedRelation: 'food_booths'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never

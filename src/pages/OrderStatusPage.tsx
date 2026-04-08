@@ -254,6 +254,16 @@ export default function OrderStatusPage() {
             🎉 모든 음식이 준비됐어요! 매장에서 픽업해주세요
           </div>
         )}
+
+        {/* ─── 하단 액션 ─── */}
+        <div className={styles.actions}>
+          <Link to="/program/food" className={styles.actionPrimary}>
+            메뉴 더 담기
+          </Link>
+          <Link to="/cart" className={styles.actionSecondary}>
+            내 주문 보기
+          </Link>
+        </div>
       </div>
     </section>
   )

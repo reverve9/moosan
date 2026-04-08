@@ -6,6 +6,12 @@ import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import { getTossPayments } from '@/lib/toss'
 import { createPendingOrder } from '@/lib/orders'
+import { formatPhone, isValidPhone, saveLastPhone } from '@/lib/phone'
+import {
+  calcWaitingInfo,
+  fetchBoothWaitingSummariesByIds,
+  type BoothWaitingSummary,
+} from '@/lib/waiting'
 import styles from './CheckoutPage.module.css'
 
 interface BoothGroup {
@@ -34,16 +40,6 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
   return Array.from(map.values())
 }
 
-/** 010-XXXX-XXXX 포맷으로 정리. 숫자만 남기고 11자리 기준 분할. */
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '').slice(0, 11)
-  if (digits.length < 4) return digits
-  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-}
-
-const PHONE_RE = /^010-\d{4}-\d{4}$/
-
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items, totalAmount, totalCount } = useCart()
@@ -51,6 +47,7 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [waitingSummaries, setWaitingSummaries] = useState<BoothWaitingSummary[]>([])
 
   // 빈 장바구니면 카트로 돌려보냄
   useEffect(() => {
@@ -59,8 +56,23 @@ export default function CheckoutPage() {
     }
   }, [items.length, navigate])
 
+  // 부스별 대기 요약 — mount 시 1회 fetch (cart 의 booth_id 들)
+  useEffect(() => {
+    const boothIds = Array.from(new Set(items.map((i) => i.boothId)))
+    if (boothIds.length === 0) return
+    let cancelled = false
+    fetchBoothWaitingSummariesByIds(boothIds).then((data) => {
+      if (!cancelled) setWaitingSummaries(data)
+    })
+    return () => {
+      cancelled = true
+    }
+    // items 자체는 mount 후 변하지 않음 (cart 페이지에서 결정됨) — 길이만 의존
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length])
+
   const groups = useMemo(() => groupByBooth(items), [items])
-  const phoneValid = PHONE_RE.test(phone)
+  const phoneValid = isValidPhone(phone)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +98,9 @@ export default function CheckoutPage() {
         items,
       })
 
+      // 결제 시도하는 phone 을 localStorage 에 저장 → /cart 의 주문 내역 섹션 auto-prefill
+      saveLastPhone(phone)
+
       // 2) 토스 결제창 호출
       const tossPayments = await getTossPayments()
       const firstItem = items[0]
@@ -101,6 +116,7 @@ export default function CheckoutPage() {
         customerMobilePhone: phone.replace(/-/g, ''),
         successUrl: `${window.location.origin}/checkout/success`,
         failUrl: `${window.location.origin}/checkout/fail`,
+        windowTarget: 'self',
       })
       // 토스 결제창으로 리다이렉트되므로 아래 코드는 실행되지 않음
     } catch (err) {
@@ -170,6 +186,31 @@ export default function CheckoutPage() {
           />
         </div>
       </form>
+
+      {/* ─── 부스별 대기 현황 (결제 직전) ─── */}
+      {waitingSummaries.length > 0 && (
+        <div className={styles.waitingBox}>
+          <h3 className={styles.waitingTitle}>주문 매장 대기 현황</h3>
+          <ul className={styles.waitingList}>
+            {waitingSummaries.map((s) => {
+              const info = calcWaitingInfo(s.count, s.avgPrepMinutes)
+              const free = s.count === 0
+              return (
+                <li
+                  key={s.boothId}
+                  className={`${styles.waitingItem} ${free ? styles.waitingItemFree : ''}`}
+                >
+                  <span className={styles.waitingItemBooth}>{s.boothName}</span>
+                  <span className={styles.waitingItemValue}>
+                    {free ? '바로 준비' : `대기 ${s.count}건 · ${info.label}`}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+          <p className={styles.waitingNote}>* 실제 시간은 다를 수 있어요</p>
+        </div>
+      )}
 
       {/* ─── Sticky 결제 바 ─── */}
       <div className={styles.checkoutBar}>

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MinusIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
+import { supabase } from '@/lib/supabase'
+import {
+  calcWaitingInfo,
+  fetchAllBoothWaitingCounts,
+  fetchBoothWaitingCount,
+  getBoothBadge,
+} from '@/lib/waiting'
 import { useCart } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import type { FoodBoothWithMenus, FoodCategory } from '@/types/festival_extras'
@@ -42,6 +49,9 @@ export default function FoodSections({ festival }: Props) {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
   const [selectedBooth, setSelectedBooth] = useState<FoodBoothWithMenus | null>(null)
+  const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(
+    () => new Map(),
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -52,6 +62,83 @@ export default function FoodSections({ festival }: Props) {
       cancelled = true
     }
   }, [festival.id])
+
+  /* ─── 매장별 대기 건수 — mount 시 일괄 fetch + Realtime 구독 ─── */
+  useEffect(() => {
+    let cancelled = false
+
+    const refetchAll = () => {
+      fetchAllBoothWaitingCounts().then((map) => {
+        if (!cancelled) setWaitingCounts(map)
+      })
+    }
+
+    refetchAll()
+
+    // 채널 두 개로 분리 — supabase-js 가 같은 채널 안에 postgres_changes 를
+    // 여러 개 chain 하면 첫 번째만 활성화되는 케이스가 있어 안전한 패턴.
+    const itemsChannel = supabase
+      .channel('booth-waiting-items')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'order_items',
+        },
+        (payload) => {
+          const newRow = payload.new as { booth_id?: string } | null
+          const oldRow = payload.old as { booth_id?: string } | null
+          const boothId = newRow?.booth_id ?? oldRow?.booth_id
+
+          // DELETE 이벤트는 REPLICA IDENTITY DEFAULT 환경에선 payload.old 가
+          // PK (id) 만 갖고 booth_id 가 없음 → 어느 booth 의 카운트가 줄었는지
+          // 알 수 없으니 안전하게 전체 refetch (25행 비용 무시 가능).
+          if (!boothId) {
+            refetchAll()
+            return
+          }
+
+          fetchBoothWaitingCount(boothId).then((count) => {
+            if (cancelled) return
+            setWaitingCounts((prev) => {
+              const next = new Map(prev)
+              next.set(boothId, count)
+              return next
+            })
+          })
+        },
+      )
+      .subscribe()
+
+    // orders 상태 변경 (pending → paid) 은 order_items 자체를 안 건드리므로
+    // 별도 채널로 구독해서 전체 뷰 refetch. 25행 비용은 무시 가능.
+    // REPLICA IDENTITY DEFAULT 환경에선 payload.old 가 PK 만 갖고 status 는
+    // undefined 이라 신구 비교로 skip 하지 않고, oldStatus 가 known 인 경우만 skip.
+    const ordersChannel = supabase
+      .channel('booth-waiting-orders')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+        },
+        (payload) => {
+          const newStatus = (payload.new as { status?: string } | null)?.status
+          const oldStatus = (payload.old as { status?: string } | null)?.status
+          if (newStatus && oldStatus && newStatus === oldStatus) return
+          refetchAll()
+        },
+      )
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      void supabase.removeChannel(itemsChannel)
+      void supabase.removeChannel(ordersChannel)
+    }
+  }, [])
 
   // ESC 로 모달 닫기 + body 스크롤 락
   useEffect(() => {
@@ -124,6 +211,9 @@ export default function FoodSections({ festival }: Props) {
             <ul className={styles.boothList}>
               {filteredBooths.map((b) => {
                 const thumb = getAssetUrl(b.thumbnail_url)
+                const waitingCount = waitingCounts.get(b.id)
+                const badge =
+                  waitingCount !== undefined ? getBoothBadge(waitingCount) : null
                 return (
                   <li key={b.id}>
                     <button
@@ -146,6 +236,15 @@ export default function FoodSections({ festival }: Props) {
                             </span>
                           )}
                           <h3 className={styles.boothName}>{b.name}</h3>
+                          {badge && (
+                            <span
+                              className={`${styles.waitingBadge} ${
+                                styles[`waiting_${badge.level}`]
+                              }`}
+                            >
+                              {badge.label}
+                            </span>
+                          )}
                         </div>
                         {b.description && (
                           <p className={styles.boothDesc}>{b.description}</p>
@@ -163,6 +262,7 @@ export default function FoodSections({ festival }: Props) {
       {selectedBooth && (
         <BoothModal
           booth={selectedBooth}
+          waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
           onClose={() => setSelectedBooth(null)}
         />
       )}
@@ -173,12 +273,15 @@ export default function FoodSections({ festival }: Props) {
 // ──────────────── Modal ────────────────
 function BoothModal({
   booth,
+  waitingCount,
   onClose,
 }: {
   booth: FoodBoothWithMenus
+  waitingCount: number
   onClose: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
+  const waitingInfo = calcWaitingInfo(waitingCount, booth.avg_prep_minutes)
 
   return (
     <div
@@ -226,6 +329,36 @@ function BoothModal({
 
         <div className={styles.modalDivider} />
 
+        {/* ─── 현재 대기 현황 ─── */}
+        <div className={styles.waitingStatus}>
+          {waitingCount === 0 ? (
+            <p className={styles.waitingFreeMsg}>
+              지금은 여유로워요. 바로 주문하세요!
+            </p>
+          ) : (
+            <>
+              <h4 className={styles.waitingStatusTitle}>현재 대기 현황</h4>
+              <div className={styles.waitingStatusGrid}>
+                <div className={styles.waitingStatusRow}>
+                  <span className={styles.waitingStatusLabel}>대기 주문</span>
+                  <span className={styles.waitingStatusValue}>
+                    {waitingInfo.count}건
+                  </span>
+                </div>
+                <div className={styles.waitingStatusRow}>
+                  <span className={styles.waitingStatusLabel}>예상 시간</span>
+                  <span className={styles.waitingStatusValue}>
+                    {waitingInfo.label}
+                  </span>
+                </div>
+              </div>
+              <p className={styles.waitingStatusDisclaimer}>
+                * 실제 시간은 다를 수 있어요
+              </p>
+            </>
+          )}
+        </div>
+
         <div className={styles.modalBody}>
           <h4 className={styles.modalSection}>메뉴</h4>
           {booth.menus.length === 0 ? (
@@ -259,7 +392,8 @@ function MenuItemRow({
 
   const menuImg = getAssetUrl(menu.image_url)
   const inCart = items.find((i) => i.menuId === menu.id)
-  const orderable = menu.price != null && menu.price > 0
+  const soldOut = menu.is_sold_out
+  const orderable = !soldOut && menu.price != null && menu.price > 0
 
   const handleAdd = () => {
     if (!orderable || menu.price == null) return
@@ -277,15 +411,23 @@ function MenuItemRow({
   }
 
   return (
-    <li className={styles.menuItem}>
+    <li className={`${styles.menuItem} ${soldOut ? styles.menuItemSoldOut : ''}`}>
       {menuImg && (
         <div className={styles.menuItemThumb}>
           <img src={menuImg} alt={menu.name} />
+          {soldOut && (
+            <div className={styles.soldOutOverlay} aria-hidden="true">
+              품절
+            </div>
+          )}
         </div>
       )}
       <div className={styles.menuItemContent}>
         <span className={styles.menuName}>
-          {menu.is_signature && <span className={styles.signatureMark}>대표</span>}
+          {menu.is_signature && !soldOut && (
+            <span className={styles.signatureMark}>대표</span>
+          )}
+          {soldOut && <span className={styles.soldOutBadge}>품절</span>}
           {menu.name}
         </span>
         {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
@@ -323,7 +465,7 @@ function MenuItemRow({
           )}
         </div>
 
-        {inCart && (
+        {inCart && !soldOut && (
           <p className={styles.inCartBadge}>
             장바구니에 {inCart.quantity}개 담겨있어요
           </p>

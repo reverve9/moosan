@@ -48,6 +48,7 @@ type BoothForm = {
   category: '' | FoodCategory
   description: string
   sort_order: number
+  avg_prep_minutes: number
 }
 
 type MenuForm = {
@@ -73,6 +74,7 @@ function boothToForm(b: FoodBoothWithMenus): BoothForm {
     category: b.category ?? '',
     description: b.description ?? '',
     sort_order: b.sort_order,
+    avg_prep_minutes: b.avg_prep_minutes,
   }
 }
 
@@ -228,6 +230,7 @@ export default function AdminFood() {
         category: '',
         description: '',
         sort_order: nextSort,
+        avg_prep_minutes: 5,
       },
     }))
   }
@@ -244,6 +247,7 @@ export default function AdminFood() {
         category: form.category || null,
         description: form.description || null,
         sort_order: form.sort_order,
+        avg_prep_minutes: Math.max(1, Math.min(30, form.avg_prep_minutes || 5)),
       })
       .eq('id', id)
     setSavingBoothId(null)
@@ -604,6 +608,27 @@ export default function AdminFood() {
                       }
                       placeholder="속초 명물 오징어순대 전문"
                     />
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label}>건당 평균 처리 시간 (분)</label>
+                    <input
+                      type="number"
+                      className={styles.input}
+                      min={1}
+                      max={30}
+                      value={form.avg_prep_minutes}
+                      onChange={(e) =>
+                        updateBoothField(
+                          booth.id,
+                          'avg_prep_minutes',
+                          Number(e.target.value),
+                        )
+                      }
+                    />
+                    <p className={styles.fieldHint}>
+                      예상 대기 시간 계산에 사용됩니다 (1~30분, 기본 5분)
+                    </p>
                   </div>
 
                   <div className={styles.thumbRow}>

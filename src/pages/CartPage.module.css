@@ -1,57 +1,39 @@
 .page {
   padding: var(--space-6) var(--space-5);
-  /* sticky 결제 바와 겹치지 않도록 하단 패딩 확보 */
+  padding-bottom: var(--space-12);
+}
+
+/* cart 가 있을 때만 sticky 결제 바 자리 확보 */
+.pageWithBar {
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
-/* ──────────────── 빈 상태 ──────────────── */
-.empty {
+/* ──────────────── 섹션 (장바구니/주문내역 공통) ──────────────── */
+.section {
+  margin-top: var(--space-5);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-16) var(--space-5);
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-.emptyIcon {
-  width: 64px;
-  height: 64px;
-  color: var(--color-text-muted);
-  opacity: 0.5;
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
 
-.emptyText {
+.sectionTitle {
   font-size: 15px;
-  color: var(--color-text-secondary);
+  font-weight: 700;
+  color: var(--color-text);
   margin: 0;
 }
 
-.emptyCta {
-  margin-top: var(--space-3);
-  padding: var(--space-3) var(--space-6);
-  background-color: var(--color-primary);
-  color: var(--color-text-inverse);
-  border-radius: var(--radius-full);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.emptyCta:hover {
-  background-color: var(--color-primary-light);
-}
-
-/* ──────────────── 컨테이너 ──────────────── */
-.container {
-  margin-top: var(--space-4);
-}
-
-.summary {
+.sectionMeta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-2) 0 var(--space-4);
+  gap: var(--space-3);
 }
 
 .summaryCount {
@@ -75,7 +57,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ──────────────── 부스 그룹 ──────────────── */
+/* ──────────────── 부스 그룹 (장바구니) ──────────────── */
 .boothList {
   list-style: none;
   margin: 0;
@@ -114,7 +96,7 @@
   color: var(--color-text-secondary);
 }
 
-/* ──────────────── 아이템 ──────────────── */
+/* ──────────────── 아이템 (장바구니) ──────────────── */
 .itemList {
   list-style: none;
   margin: 0;
@@ -262,6 +244,283 @@
   font-weight: 700;
   color: var(--color-text);
   white-space: nowrap;
+}
+
+/* ──────────────── 빈 카트 hint ──────────────── */
+.emptyCartHint {
+  margin-top: var(--space-5);
+  padding: var(--space-8) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.emptyCartIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.emptyCartText {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.emptyCartCta {
+  margin-top: var(--space-1);
+  padding: var(--space-3) var(--space-6);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+
+.emptyCartCta:hover {
+  background-color: var(--color-primary-light);
+}
+
+/* ──────────────── 주문 조회 폼 ──────────────── */
+.lookupForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lookupBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.lookupBtn:hover:not(:disabled) {
+  background-color: var(--color-primary-light);
+}
+
+.lookupBtn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.lookupBtn:disabled {
+  background-color: color-mix(in srgb, var(--color-text-muted) 50%, var(--color-bg-secondary));
+  cursor: not-allowed;
+}
+
+.lookupBtnIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ──────────────── 결과 영역 공통 (loading/error/empty) ──────────────── */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-5);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-bg-secondary);
+  border-top-color: var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  text-align: center;
+}
+
+.errorIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+/* ──────────────── 주문 카드 리스트 ──────────────── */
+.orderList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.orderCard {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.orderCard:hover {
+  border-color: var(--color-primary);
+}
+
+.orderCard:active {
+  transform: scale(0.99);
+}
+
+.orderIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orderIcon svg {
+  width: 22px;
+  height: 22px;
+  color: var(--color-text-secondary);
+}
+
+.orderBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.orderHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.orderNumber {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.orderTime {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.orderSummary {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin: 0;
+  word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.orderFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+
+.orderAmount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+/* ──────────────── 상태별 색상 ──────────────── */
+.status_paid svg {
+  color: var(--color-text-secondary);
+}
+
+.status_confirmed svg {
+  color: #d97706;
+}
+.statusBadge.status_confirmed {
+  background-color: color-mix(in srgb, #f59e0b 12%, var(--color-surface));
+  color: #b45309;
+  border-color: color-mix(in srgb, #f59e0b 35%, transparent);
+}
+.orderIcon.status_confirmed {
+  background-color: color-mix(in srgb, #f59e0b 18%, transparent);
+}
+
+.status_completed svg {
+  color: var(--color-primary);
+}
+.statusBadge.status_completed {
+  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+.orderIcon.status_completed {
+  background-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+
+.status_cancelled svg {
+  color: #c0392b;
+}
+.statusBadge.status_cancelled {
+  background-color: color-mix(in srgb, #c0392b 10%, var(--color-surface));
+  color: #c0392b;
+  border-color: color-mix(in srgb, #c0392b 30%, transparent);
+}
+
+.status_pending svg {
+  color: var(--color-text-muted);
 }
 
 /* ──────────────── Sticky 결제 바 ──────────────── */

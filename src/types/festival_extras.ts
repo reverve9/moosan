@@ -43,6 +43,7 @@ export interface FoodBooth {
   category: FoodCategory | null
   thumbnail_url: string | null
   gallery_urls: string[]
+  avg_prep_minutes: number
   sort_order: number
   is_active: boolean
   created_at: string
@@ -57,6 +58,7 @@ export interface FoodMenu {
   description: string | null
   image_url: string | null
   is_signature: boolean
+  is_sold_out: boolean
   sort_order: number
   is_active: boolean
   created_at: string

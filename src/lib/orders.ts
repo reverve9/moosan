@@ -108,3 +108,63 @@ export async function fetchOrderWithItems(orderId: string): Promise<OrderWithIte
     items: itemsRes.data ?? [],
   }
 }
+
+/**
+ * 오늘 KST 자정 (UTC ISO) 을 반환.
+ * 자정 ~ 익일 자정 범위 비교에 사용.
+ */
+function startOfTodayKstAsUtc(): Date {
+  const now = new Date()
+  // KST 기준 YYYY-MM-DD 추출 (Intl 로 timezone 처리)
+  const kstDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+  // KST 자정을 UTC Date 로 변환 (KST = UTC+09:00)
+  return new Date(`${kstDateStr}T00:00:00+09:00`)
+}
+
+/**
+ * 휴대폰 번호 + KST 당일 범위로 주문 목록 조회 (전화번호 조회 페이지용).
+ * orders 와 order_items 를 두 번 쿼리 후 client 에서 묶음.
+ */
+export async function fetchOrdersByPhoneToday(phone: string): Promise<OrderWithItems[]> {
+  const start = startOfTodayKstAsUtc()
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+
+  const { data: orders, error: ordersErr } = await supabase
+    .from('orders')
+    .select()
+    .eq('phone', phone)
+    .gte('created_at', start.toISOString())
+    .lt('created_at', end.toISOString())
+    .order('created_at', { ascending: false })
+
+  if (ordersErr) throw ordersErr
+  if (!orders || orders.length === 0) return []
+
+  const orderIds = orders.map((o) => o.id)
+  const { data: items, error: itemsErr } = await supabase
+    .from('order_items')
+    .select()
+    .in('order_id', orderIds)
+    .order('booth_name', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  if (itemsErr) throw itemsErr
+
+  // order_id 기준으로 items 그룹핑
+  const itemsByOrder = new Map<string, OrderItem[]>()
+  for (const item of items ?? []) {
+    const list = itemsByOrder.get(item.order_id) ?? []
+    list.push(item)
+    itemsByOrder.set(item.order_id, list)
+  }
+
+  return orders.map((order) => ({
+    order,
+    items: itemsByOrder.get(order.id) ?? [],
+  }))
+}
