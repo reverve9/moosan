@@ -30,20 +30,21 @@ import { ToastProvider } from '@/components/ui/Toast'
 
 /**
  * Hostname 기반 앱 모드 분기.
- * - booth.* → 가맹점 운영용 (태블릿)
- * - admin.* → 운영자 어드민
+ * - booth.* or *-booth.* → 가맹점 운영용 (태블릿)
+ * - admin.* or *-admin.* → 운영자 어드민
  * - 그 외 → 손님용 (PWA)
  *
- * dev: http://booth.localhost:5173 / http://admin.localhost:5173 / http://localhost:5173
- * prod: booth.moosanfesta.com / admin.moosanfesta.com / app.moosanfesta.com
+ * dev  : booth.localhost:5173 / admin.localhost:5173 / localhost:5173
+ * prod : booth.moosanfesta.com / admin.moosanfesta.com / app.moosanfesta.com
+ * vercel: moosan-booth.vercel.app / moosan-admin.vercel.app / moosan.vercel.app
  */
 type AppMode = 'booth' | 'admin' | 'customer'
 
 function getAppMode(): AppMode {
   if (typeof window === 'undefined') return 'customer'
-  const host = window.location.hostname
-  if (host.startsWith('booth.')) return 'booth'
-  if (host.startsWith('admin.')) return 'admin'
+  const host = window.location.hostname.toLowerCase()
+  if (host.startsWith('booth.') || host.includes('-booth.')) return 'booth'
+  if (host.startsWith('admin.') || host.includes('-admin.')) return 'admin'
   return 'customer'
 }
 
