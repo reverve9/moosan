@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowPathIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import {
   cancelPayment,
   fetchPaymentDetail,
@@ -75,6 +80,8 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 15
 
   const refetch = useCallback(async () => {
     setLoading(true)
@@ -99,6 +106,16 @@ export default function AdminOrders() {
     if (q.length === 0) return rows
     return rows.filter((r) => r.boothNames.some((n) => n.toLowerCase().includes(q)))
   }, [rows, boothQuery])
+
+  // 필터/검색 변경 시 첫 페이지로
+  useEffect(() => {
+    setPage(1)
+  }, [filters, boothQuery])
+
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const pageRows = visibleRows.slice(pageStart, pageStart + PAGE_SIZE)
 
   const totals = useMemo(() => {
     let paidAmount = 0
@@ -206,6 +223,35 @@ export default function AdminOrders() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
+      <div className={styles.listToolbar}>
+        <div className={styles.listMeta}>
+          총 {visibleRows.length}건
+        </div>
+        <div className={styles.pagination}>
+          <button
+            type="button"
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            aria-label="이전 페이지"
+          >
+            <ChevronLeftIcon className={styles.pageIcon} />
+          </button>
+          <span className={styles.pageLabel}>
+            {currentPage} / {totalPages}
+          </span>
+          <button
+            type="button"
+            className={styles.pageBtn}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={currentPage >= totalPages}
+            aria-label="다음 페이지"
+          >
+            <ChevronRightIcon className={styles.pageIcon} />
+          </button>
+        </div>
+      </div>
+
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
@@ -237,18 +283,20 @@ export default function AdminOrders() {
                 </td>
               </tr>
             ) : (
-              visibleRows.map((r, idx) => {
+              pageRows.map((r, idx) => {
                 const isCancelled = r.payment.status === 'cancelled'
                 const firstBoothName = r.boothNames[0] ?? '—'
                 const firstOrderNo = r.boothOrderNumbers[0] ?? '—'
                 const extraCount = Math.max(0, r.boothCount - 1)
+                // 최근 = 큰 번호. visibleRows 전체 길이 기준 역순 index.
+                const displayNo = visibleRows.length - (pageStart + idx)
                 return (
                   <tr
                     key={r.payment.id}
                     className={`${styles.row} ${isCancelled ? styles.rowCancelled : ''}`}
                     onClick={() => setSelectedId(r.payment.id)}
                   >
-                    <td className={`${styles.alignCenter} ${styles.mono}`}>{idx + 1}</td>
+                    <td className={`${styles.alignCenter} ${styles.mono}`}>{displayNo}</td>
                     <td>
                       <div className={styles.boothCell}>
                         <span className={styles.boothCellMain}>{firstBoothName}</span>

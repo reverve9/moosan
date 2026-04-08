@@ -155,6 +155,63 @@
   font-size: 14px;
 }
 
+.listToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.listMeta {
+  font-size: 13px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pageBtn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background-color: #F3F4F6;
+}
+
+.pageBtn:disabled {
+  color: #D1D5DB;
+  cursor: not-allowed;
+  background-color: #F9FAFB;
+}
+
+.pageIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.pageLabel {
+  min-width: 60px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+}
+
 .tableWrap {
   overflow-x: auto;
   background-color: #FFFFFF;
