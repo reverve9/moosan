@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import type { Application, Program, Json } from '@/types/database'
@@ -83,16 +83,15 @@ export default function AdminApplications() {
       .then(({ data }) => setPrograms(data || []))
   }, [])
 
+  // 상단 통계 카드가 상태 필터와 무관하게 계산돼야 해서
+  // status 필터는 server 가 아닌 client 측에서 적용.
+  // program 필터만 server 쿼리에 적용됨.
   const fetchApplications = async () => {
     setLoading(true)
     let query = supabase
       .from('applications')
       .select('*, programs(name, slug)')
       .order('created_at', { ascending: false })
-
-    if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter)
-    }
 
     if (programFilter !== 'all') {
       query = query.eq('program_id', programFilter)
@@ -105,7 +104,37 @@ export default function AdminApplications() {
 
   useEffect(() => {
     fetchApplications()
-  }, [statusFilter, programFilter])
+  }, [programFilter])
+
+  // 상태 필터 적용된 리스트 (렌더링용)
+  const visibleApplications = useMemo(
+    () =>
+      statusFilter === 'all'
+        ? applications
+        : applications.filter((a) => a.status === statusFilter),
+    [applications, statusFilter],
+  )
+
+  // 상단 카드용 집계 — 상태 필터와 무관, programFilter 만 반영됨
+  const stats = useMemo(() => {
+    let pending = 0
+    let approved = 0
+    let rejected = 0
+    let waitlist = 0
+    for (const a of applications) {
+      if (a.status === 'pending') pending += 1
+      else if (a.status === 'approved') approved += 1
+      else if (a.status === 'rejected' || a.status === 'cancelled') rejected += 1
+      else if (a.status === 'waitlist') waitlist += 1
+    }
+    return {
+      total: applications.length,
+      pending,
+      approved,
+      rejected,
+      waitlist,
+    }
+  }, [applications])
 
   const updateStatus = async (id: string, status: Application['status']) => {
     await supabase.from('applications').update({ status }).eq('id', id)
@@ -119,7 +148,26 @@ export default function AdminApplications() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>참가신청 관리</h1>
-        <span className={styles.count}>{applications.length}건</span>
+        <span className={styles.count}>{visibleApplications.length}건</span>
+      </div>
+
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>총 신청</p>
+          <p className={styles.statValue}>{stats.total}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>승인 대기</p>
+          <p className={`${styles.statValue} ${styles.statPending}`}>{stats.pending}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>승인</p>
+          <p className={`${styles.statValue} ${styles.statApproved}`}>{stats.approved}</p>
+        </div>
+        <div className={styles.statCard}>
+          <p className={styles.statLabel}>반려/취소</p>
+          <p className={`${styles.statValue} ${styles.statRejected}`}>{stats.rejected}</p>
+        </div>
       </div>
 
       <div className={styles.programTabs}>
@@ -163,10 +211,10 @@ export default function AdminApplications() {
 
         {loading ? (
           <div className={styles.empty}>불러오는 중...</div>
-        ) : applications.length === 0 ? (
+        ) : visibleApplications.length === 0 ? (
           <div className={styles.empty}>신청 내역이 없습니다.</div>
         ) : (
-          applications.map((app) => (
+          visibleApplications.map((app) => (
             <div
               key={app.id}
               className={styles.tableRow}

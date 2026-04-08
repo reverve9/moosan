@@ -1,0 +1,806 @@
+.tab {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── 필터 바 ─── */
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 20px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+}
+
+.filterItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.input {
+  height: 38px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #111827;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1E3A2F;
+  box-shadow: 0 0 0 3px rgba(30, 58, 47, 0.12);
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: #1E3A2F;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background-color: #142820;
+}
+
+.refreshBtn:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.refreshIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.refreshIconSpin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.errorBanner {
+  padding: 14px 18px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 10px;
+  color: #B91C1C;
+  font-size: 14px;
+}
+
+.placeholder {
+  padding: 60px;
+  text-align: center;
+  color: #9CA3AF;
+}
+
+/* ─── 섹션 공통 ─── */
+
+.section {
+  padding: 24px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.subTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  margin-top: 8px;
+}
+
+.dim {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.empty {
+  padding: 24px;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 13px;
+}
+
+/* ─── KPI ─── */
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpiGrid .kpiCard {
+  min-width: 0;
+}
+
+.kpiGrid .kpiLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .kpiGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 좁은 컬럼 (dualCol 내부) 에서 항상 3열 유지. 완벽 반응형 — 라벨/값 모두 ellipsis */
+.kpiGridDense {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.kpiGridDense .kpiCard {
+  padding: 10px 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.kpiGridDense .kpiLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kpiGridDense .kpiValue {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kpiCard {
+  padding: 12px 14px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.kpiCardEmphasis {
+  background-color: #1E3A2F;
+  border-color: #1E3A2F;
+}
+
+.kpiLabel {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  margin-bottom: 4px;
+}
+
+.kpiCardEmphasis .kpiLabel {
+  color: #A7F3D0;
+}
+
+.kpiValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.kpiCardEmphasis .kpiValue {
+  color: #FFFFFF;
+}
+
+/* ─── 시간대 차트 ─── */
+
+.topHoursRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.topHourBox {
+  flex: 1 1 180px;
+  padding: 14px 16px;
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.topHourRank {
+  font-size: 11px;
+  font-weight: 700;
+  color: #B45309;
+  letter-spacing: 0.04em;
+}
+
+.topHourLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.topHourValue {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.topHourSub {
+  font-size: 11px;
+  color: #6B7280;
+}
+
+.chartWrap {
+  position: relative;
+  width: 100%;
+}
+
+.lineChart {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.chartAxis {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  margin-top: 4px;
+}
+
+.chartAxisLabel {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gridLine {
+  stroke: #F3F4F6;
+  stroke-width: 1;
+}
+
+.axisLine {
+  stroke: #D1D5DB;
+  stroke-width: 1.5;
+}
+
+.lineArea {
+  fill: url(#lineAreaGradient);
+  fill: rgba(47, 107, 74, 0.12);
+}
+
+.lineStroke {
+  fill: none;
+  stroke: #1E3A2F;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.linePoint {
+  fill: #FFFFFF;
+  stroke: #1E3A2F;
+  stroke-width: 2;
+}
+
+
+/* ─── 일자별 ─── */
+
+.dailyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dailyRow {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.dailyDate {
+  font-variant-numeric: tabular-nums;
+  color: #374151;
+}
+
+.dailyBarWrap {
+  height: 14px;
+  background-color: #F3F4F6;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.dailyBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  border-radius: 7px;
+}
+
+.dailyValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ─── 하이라이트 행 ─── */
+
+.highlightRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  border-radius: 10px;
+}
+
+.highlightTag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #065F46;
+  padding: 3px 8px;
+  background-color: #A7F3D0;
+  border-radius: 999px;
+}
+
+.highlightMain {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  flex: 1;
+}
+
+.highlightValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: #065F46;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── 랭킹 테이블 ─── */
+
+.rankTable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rankRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.4fr) minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.rankRow:not(.rankHead):nth-child(even) {
+  background-color: #F9FAFB;
+}
+
+.rankHead {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #9CA3AF;
+  padding: 6px 12px;
+}
+
+.rankIdx {
+  text-align: center;
+  font-weight: 700;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.rankName {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.rankName strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankName small {
+  font-size: 11px;
+}
+
+.rankBar {
+  height: 10px;
+  background-color: #F3F4F6;
+  border-radius: 5px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.rankBarFill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  border-radius: 5px;
+}
+
+.rankCol {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* ─── 메뉴 리스트 ─── */
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.menuList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+}
+
+.menuRow {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.menuRow:nth-child(odd) {
+  background-color: #F9FAFB;
+}
+
+.menuRowWide {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.menuRowWide:nth-child(odd) {
+  background-color: #F9FAFB;
+}
+
+.menuQty {
+  font-size: 12px;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.menuRank {
+  text-align: center;
+  font-weight: 700;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.menuInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.menuInfo strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuInfo small {
+  font-size: 11px;
+}
+
+.menuValue {
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.boothBestGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.boothBestCard {
+  padding: 12px 14px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.boothBestName {
+  font-size: 11px;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.boothBestMenu {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 2px;
+}
+
+.boothBestQty {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #065F46;
+}
+
+.unsoldList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.unsoldChip {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  border-radius: 999px;
+}
+
+/* ─── 결제 행동 분포 ─── */
+
+.distList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.distRow {
+  display: grid;
+  grid-template-columns: 70px 1fr 50px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.distLabel {
+  color: #374151;
+  font-weight: 500;
+}
+
+.distBarWrap {
+  height: 14px;
+  background-color: #F3F4F6;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.distBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+  border-radius: 7px;
+}
+
+.distValue {
+  text-align: right;
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.dualCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .dualCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.distListEmphasis {
+  padding: 56px 32px;
+  background-color: #F9FAFB;
+  border-radius: 10px;
+  gap: 22px;
+}
+
+.distSummary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding-bottom: 28px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.distListEmphasis .distRow {
+  font-size: 15px;
+}
+
+.distListEmphasis .distBarWrap {
+  height: 20px;
+  border-radius: 10px;
+}
+
+.distListEmphasis .distBarFill {
+  border-radius: 10px;
+}
+
+/* 구매 횟수 분포 — 퍼센트 기반 bar */
+.freqList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.freqRow {
+  display: grid;
+  grid-template-columns: 56px 1fr 110px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.freqRow .freqValue {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.freqValueCount {
+  text-align: right;
+  color: #111827;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.freqValuePct {
+  text-align: right;
+  color: #6B7280;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.freqLabel {
+  font-weight: 600;
+  color: #374151;
+}
+
+.freqBarWrap {
+  height: 14px;
+  background-color: #F3F4F6;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.freqBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  border-radius: 7px;
+}
+
+.freqValue {
+  font-weight: 700;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.freqPct {
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.distSummaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.distSummaryPct {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1E3A2F;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.distSummaryLabel {
+  font-size: 11px;
+  color: #6B7280;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.distListEmphasis .distRow {
+  font-size: 14px;
+}
+
+.distListEmphasis .distBarWrap {
+  height: 18px;
+  border-radius: 9px;
+}
+
+.distListEmphasis .distBarFill {
+  border-radius: 9px;
+}
