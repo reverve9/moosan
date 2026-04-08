@@ -50,6 +50,8 @@ export interface FoodBooth {
   avg_prep_minutes: number
   sort_order: number
   is_active: boolean
+  is_open: boolean
+  is_paused: boolean
   created_at: string
   updated_at: string
 }

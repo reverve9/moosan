@@ -15,7 +15,7 @@ import type { ComponentType, SVGProps } from 'react'
 import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
 import styles from './AdminLayout.module.css'
 
-const MONITOR_PATH = '/admin/monitor'
+const MONITOR_PATH = '/monitor'
 
 interface NavItem {
   label: string
@@ -33,24 +33,24 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: '운영',
     items: [
-      { label: '대시보드', path: '/admin', icon: ChartBarSquareIcon, end: true },
-      { label: '참가신청 관리', path: '/admin/applications', icon: DocumentTextIcon },
-      { label: '공지사항 관리', path: '/admin/notices', icon: MegaphoneIcon },
+      { label: '대시보드', path: '/', icon: ChartBarSquareIcon, end: true },
+      { label: '참가신청 관리', path: '/applications', icon: DocumentTextIcon },
+      { label: '공지사항 관리', path: '/notices', icon: MegaphoneIcon },
     ],
   },
   {
     title: '콘텐츠',
     items: [
-      { label: '페스티벌 관리', path: '/admin/festivals', icon: RectangleGroupIcon },
-      { label: '프로그램 관리', path: '/admin/programs', icon: Squares2X2Icon },
+      { label: '페스티벌 관리', path: '/festivals', icon: RectangleGroupIcon },
+      { label: '프로그램 관리', path: '/programs', icon: Squares2X2Icon },
     ],
   },
   {
     title: '매장 관리',
     items: [
       { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
-      { label: '참여 매장 관리', path: '/admin/food', icon: BuildingStorefrontIcon },
-      { label: '매장 계정 관리', path: '/admin/booth-accounts', icon: KeyIcon },
+      { label: '참여 매장 관리', path: '/food', icon: BuildingStorefrontIcon },
+      { label: '매장 계정 관리', path: '/booth-accounts', icon: KeyIcon },
     ],
   },
   {
@@ -150,7 +150,7 @@ export default function AdminLayout() {
   return (
     <div className={styles.layout}>
       <aside className={styles.sidebar}>
-        <div className={styles.logo} onClick={() => navigate('/admin')}>
+        <div className={styles.logo} onClick={() => navigate('/')}>
           설악무산문화축전
           <span className={styles.badge}>Admin</span>
         </div>
@@ -182,7 +182,15 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <button className={styles.logoutBtn} onClick={() => window.open('/', '_blank')}>
+          <button
+            className={styles.logoutBtn}
+            onClick={() => {
+              // admin.* → 손님 도메인 (subdomain prefix 제거) 로 새 탭
+              const host = window.location.hostname.replace(/^admin\./, '')
+              const port = window.location.port ? `:${window.location.port}` : ''
+              window.open(`${window.location.protocol}//${host}${port}/`, '_blank')
+            }}
+          >
             <ArrowRightOnRectangleIcon className={styles.navIcon} />
             <span>사이트로 이동</span>
           </button>

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import PageTitle from '@/components/layout/PageTitle'
 import { confirmPayment } from '@/lib/toss'
-import { findOrderByNumber, markOrderPaid } from '@/lib/orders'
+import { findPaymentByTossOrderId, markPaymentPaid } from '@/lib/orders'
 import { useCart } from '@/store/cartStore'
 import styles from './CheckoutResult.module.css'
 
@@ -15,13 +15,13 @@ export default function CheckoutSuccessPage() {
   const { clear } = useCart()
 
   const paymentKey = params.get('paymentKey')
-  const orderNumber = params.get('orderId') // 토스의 orderId = 우리 order_number
+  const tossOrderId = params.get('orderId') // 토스의 orderId = payments.toss_order_id
   const amountStr = params.get('amount')
   const amount = amountStr ? Number(amountStr) : NaN
 
   const [phase, setPhase] = useState<Phase>('confirming')
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [orderId, setOrderId] = useState<string | null>(null)
+  const [paymentId, setPaymentId] = useState<string | null>(null)
   const ranRef = useRef(false)
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function CheckoutSuccessPage() {
     if (ranRef.current) return
     ranRef.current = true
 
-    if (!paymentKey || !orderNumber || !Number.isFinite(amount)) {
+    if (!paymentKey || !tossOrderId || !Number.isFinite(amount)) {
       setErrorMessage('잘못된 접근입니다')
       setPhase('failed')
       return
@@ -37,30 +37,30 @@ export default function CheckoutSuccessPage() {
 
     void (async () => {
       try {
-        // 1) 우리 orders 조회 → id 확보
-        const order = await findOrderByNumber(orderNumber)
-        if (!order) throw new Error('주문 정보를 찾을 수 없습니다')
+        // 1) 우리 payments 조회 → id 확보
+        const payment = await findPaymentByTossOrderId(tossOrderId)
+        if (!payment) throw new Error('결제 정보를 찾을 수 없습니다')
 
         // 2) 금액 검증 (위변조 방지)
-        if (order.total_amount !== amount) {
+        if (payment.total_amount !== amount) {
           throw new Error('결제 금액이 일치하지 않습니다')
         }
 
         // 3) 토스 confirm API (server-side)
-        await confirmPayment({ paymentKey, orderId: orderNumber, amount })
+        await confirmPayment({ paymentKey, orderId: tossOrderId, amount })
 
-        // 4) orders 상태 paid + payment_key 저장
-        await markOrderPaid(order.id, paymentKey)
+        // 4) payments + 하위 orders 전부 paid 상태로 전이
+        await markPaymentPaid(payment.id, paymentKey)
 
         // 5) 카트 비우기
         clear()
 
-        setOrderId(order.id)
+        setPaymentId(payment.id)
         setPhase('success')
 
         // 잠시 보여주고 주문 상태 페이지로 이동
         window.setTimeout(() => {
-          navigate(`/order/${order.id}`, { replace: true })
+          navigate(`/order/${payment.id}`, { replace: true })
         }, 1200)
       } catch (err) {
         const message = err instanceof Error ? err.message : '결제 승인 중 오류가 발생했습니다'
@@ -68,7 +68,7 @@ export default function CheckoutSuccessPage() {
         setPhase('failed')
       }
     })()
-  }, [paymentKey, orderNumber, amount, clear, navigate])
+  }, [paymentKey, tossOrderId, amount, clear, navigate])
 
   return (
     <section className={styles.page}>
@@ -87,8 +87,8 @@ export default function CheckoutSuccessPage() {
             <CheckCircleIcon className={`${styles.icon} ${styles.iconSuccess}`} />
             <p className={styles.message}>결제가 완료되었어요</p>
             <p className={styles.submessage}>주문 상태 페이지로 이동합니다…</p>
-            {orderId && (
-              <Link to={`/order/${orderId}`} replace className={styles.cta}>
+            {paymentId && (
+              <Link to={`/order/${paymentId}`} replace className={styles.cta}>
                 지금 이동하기
               </Link>
             )}

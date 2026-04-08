@@ -233,6 +233,13 @@
   color: var(--color-text);
 }
 
+.orderNo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .boothStatusBadge {
   font-size: 11px;
   font-weight: 600;

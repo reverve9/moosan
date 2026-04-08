@@ -67,6 +67,44 @@ export default function FoodSections({ festival }: Props) {
     }
   }, [festival.id])
 
+  /* ─── food_booths 상태 (is_open/is_paused) Realtime 반영 ─── */
+  useEffect(() => {
+    const channel = supabase
+      .channel('food-booths-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'food_booths',
+          filter: `festival_id=eq.${festival.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as
+            | { id?: string; is_open?: boolean; is_paused?: boolean; is_active?: boolean }
+            | null
+          if (!updated?.id) return
+          setBooths((prev) =>
+            prev.map((b) =>
+              b.id === updated.id
+                ? {
+                    ...b,
+                    is_open: updated.is_open ?? b.is_open,
+                    is_paused: updated.is_paused ?? b.is_paused,
+                    is_active: updated.is_active ?? b.is_active,
+                  }
+                : b,
+            ),
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [festival.id])
+
   /* ─── 매장별 대기 건수 — mount 시 일괄 fetch + Realtime 구독 ─── */
   useEffect(() => {
     let cancelled = false
@@ -218,11 +256,15 @@ export default function FoodSections({ festival }: Props) {
                 const waitingCount = waitingCounts.get(b.id)
                 const badge =
                   waitingCount !== undefined ? getBoothBadge(waitingCount) : null
+                const isClosed = !b.is_open
+                const isPaused = b.is_open && b.is_paused
                 return (
                   <li key={b.id}>
                     <button
                       type="button"
-                      className={styles.boothItem}
+                      className={`${styles.boothItem} ${
+                        isClosed ? styles.boothItemClosed : ''
+                      } ${isPaused ? styles.boothItemPaused : ''}`}
                       onClick={() => setSelectedBooth(b)}
                     >
                       <div className={styles.boothThumb}>
@@ -244,7 +286,15 @@ export default function FoodSections({ festival }: Props) {
                             </span>
                           )}
                           <h3 className={styles.boothName}>{b.name}</h3>
-                          {badge && (
+                          {isClosed ? (
+                            <span className={`${styles.statusBadge} ${styles.statusBadgeClosed}`}>
+                              영업 종료
+                            </span>
+                          ) : isPaused ? (
+                            <span className={`${styles.statusBadge} ${styles.statusBadgePaused}`}>
+                              준비 중
+                            </span>
+                          ) : badge ? (
                             <span
                               className={`${styles.waitingBadge} ${
                                 styles[`waiting_${badge.level}`]
@@ -252,7 +302,7 @@ export default function FoodSections({ festival }: Props) {
                             >
                               {badge.label}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                         {b.description && (
                           <p className={styles.boothDesc}>{b.description}</p>
@@ -349,6 +399,17 @@ function BoothModal({
 
         <div className={styles.modalDivider} />
 
+        {/* ─── 영업 상태 안내 ─── */}
+        {!booth.is_open ? (
+          <div className={`${styles.statusNotice} ${styles.statusNoticeClosed}`}>
+            오늘 영업이 종료되었습니다.
+          </div>
+        ) : booth.is_paused ? (
+          <div className={`${styles.statusNotice} ${styles.statusNoticePaused}`}>
+            지금은 준비 중이라 잠시 주문을 받지 않아요.
+          </div>
+        ) : null}
+
         {/* ─── 현재 대기 현황 ─── */}
         <div className={styles.waitingStatus}>
           {waitingCount === 0 ? (
@@ -413,13 +474,15 @@ function MenuItemRow({
   const menuImg = getAssetUrl(menu.image_url)
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
-  const orderable = !soldOut && menu.price != null && menu.price > 0
+  const boothUnavailable = !booth.is_open || booth.is_paused
+  const orderable = !soldOut && !boothUnavailable && menu.price != null && menu.price > 0
 
   const handleAdd = () => {
     if (!orderable || menu.price == null) return
     addItem({
       menuId: menu.id,
       boothId: booth.id,
+      boothNo: booth.booth_no ?? '',
       boothName: booth.name,
       menuName: menu.name,
       price: menu.price,

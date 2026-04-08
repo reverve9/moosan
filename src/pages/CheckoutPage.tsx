@@ -5,7 +5,7 @@ import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import { getTossPayments } from '@/lib/toss'
-import { createPendingOrder } from '@/lib/orders'
+import { createPendingPayment } from '@/lib/orders'
 import { formatPhone, isValidPhone, saveLastPhone } from '@/lib/phone'
 import {
   calcWaitingInfo,
@@ -90,9 +90,10 @@ export default function CheckoutPage() {
     setSubmitting(true)
 
     try {
-      // 1) orders + order_items INSERT (status: pending)
-      //    트리거가 order_number 자동 생성 → 토스 orderId 로 사용
-      const order = await createPendingOrder({
+      // 1) payments + 부스별 orders + order_items INSERT (status: pending)
+      //    - 트리거가 payments.toss_order_id 자동 채움 (전역 sequence)
+      //    - 트리거가 orders.order_number 자동 채움 (부스별 누적)
+      const { payment } = await createPendingPayment({
         phone,
         totalAmount,
         items,
@@ -101,7 +102,7 @@ export default function CheckoutPage() {
       // 결제 시도하는 phone 을 localStorage 에 저장 → /cart 의 주문 내역 섹션 auto-prefill
       saveLastPhone(phone)
 
-      // 2) 토스 결제창 호출
+      // 2) 토스 결제창 호출 (orderId = payments.toss_order_id)
       const tossPayments = await getTossPayments()
       const firstItem = items[0]
       const orderName =
@@ -111,7 +112,7 @@ export default function CheckoutPage() {
 
       await tossPayments.requestPayment('카드', {
         amount: totalAmount,
-        orderId: order.order_number,
+        orderId: payment.toss_order_id,
         orderName,
         customerMobilePhone: phone.replace(/-/g, ''),
         successUrl: `${window.location.origin}/checkout/success`,

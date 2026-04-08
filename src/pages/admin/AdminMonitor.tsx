@@ -92,13 +92,13 @@ export default function AdminMonitor() {
     [summaries],
   )
 
-  // 1분 초과 item 개수 (부스 수가 아니라 개별 item 단위 — 총 미확인과 단위 일치)
+  // 1분 초과 주문 개수 (부스 수가 아니라 order 단위 — 총 미확인과 단위 일치)
   const alertCount = useMemo(
     () =>
       summaries.reduce(
         (sum, s) =>
           sum +
-          s.items.filter((it) => elapsedSeconds(it.created_at, now) >= ALERT_SECONDS)
+          s.orders.filter((o) => elapsedSeconds(o.created_at, now) >= ALERT_SECONDS)
             .length,
         0,
       ),
@@ -193,23 +193,24 @@ export default function AdminMonitor() {
               </button>
             </header>
             <ul className={styles.modalList}>
-              {selectedBooth.items.map((it) => {
-                const elapsed = elapsedSeconds(it.created_at, now)
+              {selectedBooth.orders.map((order) => {
+                const elapsed = elapsedSeconds(order.created_at, now)
                 const isAlert = elapsed >= ALERT_SECONDS
+                const menuSummary = order.items
+                  .map((it) => `${it.menu_name} × ${it.quantity}`)
+                  .join(', ')
                 return (
                   <li
-                    key={it.id}
+                    key={order.id}
                     className={`${styles.modalItem} ${isAlert ? styles.modalItemAlert : ''}`}
                   >
                     <div className={styles.modalItemLeft}>
-                      <div className={styles.modalItemTime}>{formatHm(it.created_at)}</div>
-                      <div className={styles.modalItemOrderNo}>{it.order_number}</div>
+                      <div className={styles.modalItemTime}>{formatHm(order.created_at)}</div>
+                      <div className={styles.modalItemOrderNo}>{order.order_number}</div>
                     </div>
                     <div className={styles.modalItemBody}>
-                      <div className={styles.modalItemMenu}>
-                        {it.menu_name} × {it.quantity}
-                      </div>
-                      <div className={styles.modalItemPhone}>{formatPhone(it.phone)}</div>
+                      <div className={styles.modalItemMenu}>{menuSummary}</div>
+                      <div className={styles.modalItemPhone}>{formatPhone(order.phone)}</div>
                     </div>
                     <div className={styles.modalItemElapsed}>{formatElapsed(elapsed)}</div>
                   </li>

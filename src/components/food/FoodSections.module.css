@@ -249,6 +249,64 @@
   border-color: color-mix(in srgb, #c0392b 35%, transparent);
 }
 
+/* ──────────────── 매장 상태 배지 (영업종료 / 준비중) ──────────────── */
+.statusBadge {
+  flex-shrink: 0;
+  font-family: var(--font-base);
+  font-size: var(--text-cq-caption);
+  font-weight: 700;
+  padding: 0.333cqw 1.333cqw;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.statusBadgeClosed {
+  background-color: color-mix(in srgb, #6B7280 16%, var(--color-surface));
+  color: #374151;
+  border-color: color-mix(in srgb, #6B7280 30%, transparent);
+}
+
+.statusBadgePaused {
+  background-color: color-mix(in srgb, #F59E0B 16%, var(--color-surface));
+  color: #B45309;
+  border-color: color-mix(in srgb, #F59E0B 40%, transparent);
+}
+
+/* 카드 전체 비활성 효과 */
+.boothItemClosed {
+  opacity: 0.55;
+  filter: grayscale(0.6);
+}
+
+.boothItemPaused {
+  opacity: 0.82;
+}
+
+/* ──────────────── 모달 상태 알림 ──────────────── */
+.statusNotice {
+  margin: 0 4cqw 3cqw;
+  padding: 2cqw 3cqw;
+  border-radius: var(--radius-md);
+  font-size: var(--text-cq-label);
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.statusNoticeClosed {
+  background-color: color-mix(in srgb, #6B7280 14%, var(--color-surface));
+  color: #374151;
+  border-color: color-mix(in srgb, #6B7280 35%, transparent);
+}
+
+.statusNoticePaused {
+  background-color: color-mix(in srgb, #F59E0B 14%, var(--color-surface));
+  color: #B45309;
+  border-color: color-mix(in srgb, #F59E0B 40%, transparent);
+}
+
 /* ──────────────── 모달 ──────────────── */
 .modalBackdrop {
   position: fixed;

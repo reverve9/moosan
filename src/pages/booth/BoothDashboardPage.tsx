@@ -10,22 +10,26 @@ import {
   loadBoothSession,
 } from '@/lib/boothAuth'
 import {
-  type BoothOrderItem,
-  confirmBoothOrderItems,
-  fetchTodayBoothOrderItems,
-  markBoothOrderItemsReady,
+  type BoothOrderCardData,
+  type BoothOrderCardStatus,
+  confirmBoothOrder,
+  fetchTodayBoothOrders,
+  getBoothOrderCardStatus,
+  markBoothOrderReady,
   subscribeBoothOrders,
 } from '@/lib/boothOrders'
 import BoothMenuModal from '@/components/booth/BoothMenuModal'
+import { formatPhone } from '@/lib/phone'
 import styles from './BoothDashboardPage.module.css'
 
-type CardStatus = 'waiting' | 'inProgress' | 'completed'
+type CardStatus = BoothOrderCardStatus
 
 interface BoothOrderCard {
   orderId: string
   orderNumber: string
+  phone: string
   orderCreatedAt: string
-  items: BoothOrderItem[]
+  items: BoothOrderCardData['items']
   totalAmount: number
   status: CardStatus
 }
@@ -34,31 +38,16 @@ const HIGHLIGHT_MS = 5_000
 const ALERT_SECONDS = 60
 const COMPLETED_LIMIT = 20
 
-function buildCards(items: BoothOrderItem[]): BoothOrderCard[] {
-  const grouped = new Map<string, BoothOrderItem[]>()
-  for (const item of items) {
-    const list = grouped.get(item.order_id) ?? []
-    list.push(item)
-    grouped.set(item.order_id, list)
-  }
-
-  const cards: BoothOrderCard[] = []
-  for (const [orderId, list] of grouped) {
-    const first = list[0]
-    let status: CardStatus = 'completed'
-    if (list.some((it) => !it.confirmed_at)) status = 'waiting'
-    else if (list.some((it) => !it.is_ready)) status = 'inProgress'
-
-    cards.push({
-      orderId,
-      orderNumber: first.order_number,
-      orderCreatedAt: first.order_created_at,
-      items: list,
-      totalAmount: list.reduce((sum, it) => sum + it.subtotal, 0),
-      status,
-    })
-  }
-  return cards
+function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
+  return data.map(({ order, items }) => ({
+    orderId: order.id,
+    orderNumber: order.order_number,
+    phone: order.phone,
+    orderCreatedAt: order.created_at,
+    items,
+    totalAmount: order.subtotal,
+    status: getBoothOrderCardStatus(order),
+  }))
 }
 
 function formatHm(iso: string): string {
@@ -88,7 +77,7 @@ export default function BoothDashboardPage() {
   // 미인증 리다이렉트
   useEffect(() => {
     if (!session) {
-      navigate('/booth/login', { replace: true })
+      navigate('/login', { replace: true })
     }
   }, [session, navigate])
 
@@ -122,7 +111,7 @@ interface DashboardInnerProps {
 function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const boothId = session.boothId
 
-  const [items, setItems] = useState<BoothOrderItem[]>([])
+  const [data, setData] = useState<BoothOrderCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [highlightOrderIds, setHighlightOrderIds] = useState<Set<string>>(new Set())
@@ -135,9 +124,9 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
   const refetch = useCallback(async () => {
     try {
-      const data = await fetchTodayBoothOrderItems(boothId)
+      const next = await fetchTodayBoothOrders(boothId)
       if (cancelledRef.current) return
-      setItems(data)
+      setData(next)
       setError(null)
     } catch (e) {
       if (cancelledRef.current) return
@@ -153,27 +142,20 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     })
 
     const unsubscribe = subscribeBoothOrders(boothId, {
-      onItemInsert: (itemId) => {
-        fetchTodayBoothOrderItems(boothId).then((next) => {
-          if (cancelledRef.current) return
-          const found = next.find((it) => it.id === itemId)
-          if (found) {
-            setHighlightOrderIds((prev) => {
-              const set = new Set(prev)
-              set.add(found.order_id)
-              return set
-            })
-            window.setTimeout(() => {
-              if (cancelledRef.current) return
-              setHighlightOrderIds((prev) => {
-                const set = new Set(prev)
-                set.delete(found.order_id)
-                return set
-              })
-            }, HIGHLIGHT_MS)
-          }
-          setItems(next)
+      onOrderPaid: (orderId) => {
+        setHighlightOrderIds((prev) => {
+          const set = new Set(prev)
+          set.add(orderId)
+          return set
         })
+        window.setTimeout(() => {
+          if (cancelledRef.current) return
+          setHighlightOrderIds((prev) => {
+            const set = new Set(prev)
+            set.delete(orderId)
+            return set
+          })
+        }, HIGHLIGHT_MS)
       },
       onChange: () => {
         void refetch()
@@ -196,7 +178,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => window.clearInterval(id)
   }, [])
 
-  const cards = useMemo(() => buildCards(items), [items])
+  const cards = useMemo(() => buildCards(data), [data])
 
   // 좌측: 대기 + 진행중 (= !completed). highlight 카드 먼저, 그 다음 오래된 순.
   const waitingCards = useMemo(() => {
@@ -218,20 +200,19 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       .slice(0, COMPLETED_LIMIT)
   }, [cards])
 
-  // 우측 하단: 오늘 매출 (is_ready=true 만)
+  // 우측 하단: 오늘 매출 (ready_at 있는 order 만)
   const sales = useMemo(() => {
-    const readyItems = items.filter((it) => it.is_ready)
-    const orderIds = new Set(readyItems.map((it) => it.order_id))
-    const total = readyItems.reduce((sum, it) => sum + it.subtotal, 0)
-    return { count: orderIds.size, total }
-  }, [items])
+    const ready = data.filter((d) => d.order.ready_at)
+    const total = ready.reduce((sum, d) => sum + d.order.subtotal, 0)
+    return { count: ready.length, total }
+  }, [data])
 
   const handleConfirm = useCallback(
     async (card: BoothOrderCard) => {
       if (busyOrderId) return
       setBusyOrderId(card.orderId)
       try {
-        await confirmBoothOrderItems(card.orderId, boothId)
+        await confirmBoothOrder(card.orderId)
         await refetch()
       } catch (e) {
         setError(e instanceof Error ? e.message : '확인 처리 실패')
@@ -239,7 +220,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         setBusyOrderId(null)
       }
     },
-    [boothId, busyOrderId, refetch],
+    [busyOrderId, refetch],
   )
 
   const handleReady = useCallback(
@@ -247,7 +228,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       if (busyOrderId) return
       setBusyOrderId(card.orderId)
       try {
-        await markBoothOrderItemsReady(card.orderId, boothId)
+        await markBoothOrderReady(card.orderId)
         await refetch()
       } catch (e) {
         setError(e instanceof Error ? e.message : '준비완료 처리 실패')
@@ -255,7 +236,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         setBusyOrderId(null)
       }
     },
-    [boothId, busyOrderId, refetch],
+    [busyOrderId, refetch],
   )
 
   return (
@@ -286,7 +267,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
             onClick={() => setMenuModalOpen(true)}
           >
             <NoSymbolIcon className={styles.headerBtnIcon} />
-            <span>품절 관리</span>
+            <span>매장 관리</span>
           </button>
           <button
             type="button"
@@ -322,7 +303,9 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                   0,
                   Math.floor((now - new Date(card.orderCreatedAt).getTime()) / 1000),
                 )
-                const overAlert = elapsedSec >= ALERT_SECONDS
+                // 초과 alert 는 미확인 (waiting) 상태일 때만 의미 있음.
+                // 확인 후에는 elapsed 가 1분 넘어도 빨강/펄스 풀어줌.
+                const overAlert = card.status === 'waiting' && elapsedSec >= ALERT_SECONDS
                 const highlighted = highlightOrderIds.has(card.orderId)
                 const busy = busyOrderId === card.orderId
                 return (
@@ -333,22 +316,31 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     } ${highlighted ? styles.cardHighlight : ''}`}
                   >
                     <div className={styles.cardHeader}>
-                      <div className={styles.cardOrderNo}>{card.orderNumber}</div>
-                      <div
-                        className={`${styles.cardElapsed} ${
-                          overAlert ? styles.cardElapsedAlert : ''
-                        }`}
-                      >
-                        · {formatElapsed(elapsedSec)}
+                      <div className={styles.cardHeaderMain}>
+                        <span className={styles.cardOrderNo}>{card.orderNumber}</span>
+                        <span
+                          className={`${styles.cardElapsed} ${
+                            overAlert ? styles.cardElapsedAlert : ''
+                          }`}
+                        >
+                          {formatElapsed(elapsedSec)}
+                        </span>
                       </div>
+                      <div className={styles.cardPhone}>{formatPhone(card.phone)}</div>
                     </div>
                     <ul className={styles.itemList}>
-                      {card.items.map((it) => (
-                        <li key={it.id} className={styles.itemRow}>
-                          <span className={styles.itemName}>{it.menu_name}</span>
-                          <span className={styles.itemQty}>× {it.quantity}</span>
-                        </li>
-                      ))}
+                      {Array.from({ length: Math.max(2, card.items.length) }).map((_, i) => {
+                        const it = card.items[i]
+                        if (!it) {
+                          return <li key={`empty-${i}`} className={styles.itemRowEmpty} aria-hidden />
+                        }
+                        return (
+                          <li key={it.id} className={styles.itemRow}>
+                            <span className={styles.itemName}>{it.menu_name}</span>
+                            <span className={styles.itemQty}>× {it.quantity}</span>
+                          </li>
+                        )
+                      })}
                     </ul>
                     <div className={styles.cardFooter}>
                       <div className={styles.cardTotal}>
@@ -371,7 +363,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                           onClick={() => handleReady(card)}
                           disabled={busy}
                         >
-                          {busy ? '처리 중...' : '준비완료'}
+                          {busy ? '처리 중...' : '조리완료'}
                         </button>
                       </div>
                     </div>

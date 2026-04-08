@@ -17,7 +17,7 @@ export default function BoothLoginPage() {
   // 이미 세션 있으면 곧장 dashboard 로
   useEffect(() => {
     if (loadBoothSession()) {
-      navigate('/booth/dashboard', { replace: true })
+      navigate('/dashboard', { replace: true })
     }
   }, [navigate])
 
@@ -32,7 +32,7 @@ export default function BoothLoginPage() {
 
     if (result.ok && result.session) {
       saveBoothSession(result.session)
-      navigate('/booth/dashboard', { replace: true })
+      navigate('/dashboard', { replace: true })
       return
     }
 

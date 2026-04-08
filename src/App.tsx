@@ -28,53 +28,94 @@ import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
 import { CartProvider } from '@/store/cartStore'
 import { ToastProvider } from '@/components/ui/Toast'
 
+/**
+ * Hostname 기반 앱 모드 분기.
+ * - booth.* → 가맹점 운영용 (태블릿)
+ * - admin.* → 운영자 어드민
+ * - 그 외 → 손님용 (PWA)
+ *
+ * dev: http://booth.localhost:5173 / http://admin.localhost:5173 / http://localhost:5173
+ * prod: booth.moosanfesta.com / admin.moosanfesta.com / app.moosanfesta.com
+ */
+type AppMode = 'booth' | 'admin' | 'customer'
+
+function getAppMode(): AppMode {
+  if (typeof window === 'undefined') return 'customer'
+  const host = window.location.hostname
+  if (host.startsWith('booth.')) return 'booth'
+  if (host.startsWith('admin.')) return 'admin'
+  return 'customer'
+}
+
+const APP_MODE: AppMode = getAppMode()
+
+function BoothRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/login" element={<BoothLoginPage />} />
+      <Route path="/dashboard" element={<BoothDashboardPage />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  )
+}
+
+function AdminRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<AdminLayout />}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="applications" element={<AdminApplications />} />
+        <Route path="festivals" element={<AdminFestivals />} />
+        <Route path="programs" element={<AdminPrograms />} />
+        <Route path="food" element={<AdminFood />} />
+        <Route path="booth-accounts" element={<AdminBoothAccounts />} />
+        <Route path="monitor" element={<AdminMonitor />} />
+        <Route path="notices" element={<AdminNotices />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function CustomerRoutes() {
+  return (
+    <Routes>
+      {/* Home (standalone: hero + footer) */}
+      <Route path="/" element={<HomePage />} />
+
+      {/* User */}
+      <Route element={<Layout />}>
+        <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/programs" element={<ProgramsPage />} />
+        <Route path="/apply" element={<ApplyPage />} />
+        <Route path="/apply/:slug" element={<ApplyPage />} />
+        <Route path="/location" element={<LocationPage />} />
+        <Route path="/notice" element={<NoticePage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+        <Route path="/checkout/fail" element={<CheckoutFailPage />} />
+        <Route path="/order/:id" element={<OrderStatusPage />} />
+        {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
+        <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
+        <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
+        <Route path="/program/food" element={<FestivalPage slug="food" />} />
+        <Route path="/program/:slug" element={<ProgramDetailPage />} />
+      </Route>
+    </Routes>
+  )
+}
+
 export default function App() {
   return (
     <ToastProvider>
       <CartProvider>
         <BrowserRouter>
-          <FloatingInstallButton />
-          <Routes>
-            {/* Home (standalone: hero + footer) */}
-            <Route path="/" element={<HomePage />} />
-
-            {/* User */}
-            <Route element={<Layout />}>
-              <Route path="/schedule" element={<SchedulePage />} />
-              <Route path="/programs" element={<ProgramsPage />} />
-              <Route path="/apply" element={<ApplyPage />} />
-              <Route path="/apply/:slug" element={<ApplyPage />} />
-              <Route path="/location" element={<LocationPage />} />
-              <Route path="/notice" element={<NoticePage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
-              <Route path="/checkout/fail" element={<CheckoutFailPage />} />
-              <Route path="/order/:id" element={<OrderStatusPage />} />
-              {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
-              <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
-              <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
-              <Route path="/program/food" element={<FestivalPage slug="food" />} />
-              <Route path="/program/:slug" element={<ProgramDetailPage />} />
-            </Route>
-
-            {/* Booth (매장 운영) — 태블릿 전용, 독립 레이아웃 */}
-            <Route path="/booth" element={<Navigate to="/booth/dashboard" replace />} />
-            <Route path="/booth/login" element={<BoothLoginPage />} />
-            <Route path="/booth/dashboard" element={<BoothDashboardPage />} />
-
-            {/* Admin */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<AdminDashboard />} />
-              <Route path="applications" element={<AdminApplications />} />
-              <Route path="festivals" element={<AdminFestivals />} />
-              <Route path="programs" element={<AdminPrograms />} />
-              <Route path="food" element={<AdminFood />} />
-              <Route path="booth-accounts" element={<AdminBoothAccounts />} />
-              <Route path="monitor" element={<AdminMonitor />} />
-              <Route path="notices" element={<AdminNotices />} />
-            </Route>
-          </Routes>
+          {APP_MODE === 'customer' && <FloatingInstallButton />}
+          {APP_MODE === 'booth' && <BoothRoutes />}
+          {APP_MODE === 'admin' && <AdminRoutes />}
+          {APP_MODE === 'customer' && <CustomerRoutes />}
         </BrowserRouter>
       </CartProvider>
     </ToastProvider>

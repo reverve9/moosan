@@ -15,9 +15,8 @@ import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
-import { fetchOrdersByPhoneToday, type OrderWithItems } from '@/lib/orders'
+import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
 import { formatPhone, isValidPhone, loadLastPhone } from '@/lib/phone'
-import type { Order, OrderItem } from '@/types/database'
 import styles from './CartPage.module.css'
 
 interface BoothGroup {
@@ -49,20 +48,21 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
 /* ──────────────── Order status helpers ──────────────── */
 type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
 
-function computeOrderStatus(order: Order, items: OrderItem[]): UIStatus {
-  if (order.status === 'cancelled') return 'cancelled'
-  if (order.status === 'pending') return 'pending'
-  if (items.length === 0) return order.status as UIStatus
-  if (items.every((i) => i.is_ready)) return 'completed'
-  if (items.every((i) => i.confirmed_at !== null)) return 'confirmed'
+function computePaymentUiStatus(data: PaymentWithOrders): UIStatus {
+  const { payment, orders } = data
+  if (payment.status === 'cancelled') return 'cancelled'
+  if (payment.status === 'pending') return 'pending'
+  if (orders.length === 0) return 'paid'
+  if (orders.every((o) => o.order.ready_at)) return 'completed'
+  if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
   return 'paid'
 }
 
 const STATUS_LABEL: Record<UIStatus, string> = {
   pending: '결제 대기중',
   paid: '확인 대기중',
-  confirmed: '준비중',
-  completed: '준비 완료',
+  confirmed: '조리 중',
+  completed: '조리 완료',
   cancelled: '취소됨',
 }
 
@@ -73,12 +73,14 @@ function StatusIcon({ status }: { status: UIStatus }) {
   return <ClockIcon />
 }
 
-function summarizeItems(items: OrderItem[]): string {
-  if (items.length === 0) return '주문 내역 없음'
-  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0)
-  const first = items[0].menu_name
-  if (items.length === 1) return `${first} × ${items[0].quantity}`
-  return `${first} 외 ${items.length - 1}건 · 총 ${totalQty}개`
+function summarizePaymentOrders(orders: PaymentWithOrders['orders']): string {
+  if (orders.length === 0) return '주문 내역 없음'
+  const allItems = orders.flatMap((o) => o.items)
+  if (allItems.length === 0) return '주문 내역 없음'
+  const totalQty = allItems.reduce((sum, i) => sum + i.quantity, 0)
+  const first = allItems[0].menu_name
+  if (allItems.length === 1) return `${first} × ${allItems[0].quantity}`
+  return `${first} 외 ${allItems.length - 1}건 · 총 ${totalQty}개`
 }
 
 export default function CartPage() {
@@ -92,7 +94,7 @@ export default function CartPage() {
   const [phoneInput, setPhoneInput] = useState<string>(() => loadLastPhone() ?? '')
   const [submittedPhone, setSubmittedPhone] = useState<string | null>(() => loadLastPhone())
   const [touched, setTouched] = useState(false)
-  const [orders, setOrders] = useState<OrderWithItems[] | null>(null)
+  const [payments, setPayments] = useState<PaymentWithOrders[] | null>(null)
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [ordersError, setOrdersError] = useState<string | null>(null)
 
@@ -102,21 +104,21 @@ export default function CartPage() {
   // submittedPhone 이 정해지면 (mount 시 localStorage 또는 사용자 submit) fetch
   useEffect(() => {
     if (!submittedPhone) {
-      setOrders(null)
+      setPayments(null)
       setOrdersError(null)
       return
     }
     let cancelled = false
     setLoadingOrders(true)
     setOrdersError(null)
-    fetchOrdersByPhoneToday(submittedPhone)
+    fetchPaymentsByPhoneToday(submittedPhone)
       .then((data) => {
-        if (!cancelled) setOrders(data)
+        if (!cancelled) setPayments(data)
       })
       .catch((err) => {
         if (cancelled) return
         setOrdersError(err instanceof Error ? err.message : '주문 조회 실패')
-        setOrders(null)
+        setPayments(null)
       })
       .finally(() => {
         if (!cancelled) setLoadingOrders(false)
@@ -237,7 +239,8 @@ export default function CartPage() {
         </div>
       )}
 
-      {/* ─────────────────── 하단: 주문 내역 섹션 ─────────────────── */}
+      {/* ─────────────────── 하단: 주문 내역 섹션 (장바구니 비어있을 때만 노출) ─────────────────── */}
+      {!hasCart && (
       <div className={styles.section}>
         <div className={styles.sectionHead}>
           <h3 className={styles.sectionTitle}>오늘 주문 내역</h3>
@@ -282,32 +285,34 @@ export default function CartPage() {
           </div>
         )}
 
-        {!loadingOrders && !ordersError && orders !== null && orders.length === 0 && (
+        {!loadingOrders && !ordersError && payments !== null && payments.length === 0 && (
           <div className={styles.center}>
             <p className={styles.muted}>오늘 주문 내역이 없어요</p>
           </div>
         )}
 
-        {!loadingOrders && !ordersError && orders !== null && orders.length > 0 && (
+        {!loadingOrders && !ordersError && payments !== null && payments.length > 0 && (
           <ul className={styles.orderList}>
-            {orders.map(({ order, items: orderItems }) => {
-              const uiStatus = computeOrderStatus(order, orderItems)
-              const orderTime = new Date(order.created_at).toLocaleTimeString('ko-KR', {
+            {payments.map((data) => {
+              const { payment } = data
+              const uiStatus = computePaymentUiStatus(data)
+              const orderTime = new Date(payment.created_at).toLocaleTimeString('ko-KR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })
+              const orderNumbers = data.orders.map((o) => o.order.order_number).join(' · ')
               return (
-                <li key={order.id}>
-                  <Link to={`/order/${order.id}`} className={styles.orderCard}>
+                <li key={payment.id}>
+                  <Link to={`/order/${payment.id}`} className={styles.orderCard}>
                     <div className={`${styles.orderIcon} ${styles[`status_${uiStatus}`]}`}>
                       <StatusIcon status={uiStatus} />
                     </div>
                     <div className={styles.orderBody}>
                       <div className={styles.orderHead}>
-                        <span className={styles.orderNumber}>{order.order_number}</span>
+                        <span className={styles.orderNumber}>{orderNumbers || '주문 준비중'}</span>
                         <span className={styles.orderTime}>{orderTime}</span>
                       </div>
-                      <p className={styles.orderSummary}>{summarizeItems(orderItems)}</p>
+                      <p className={styles.orderSummary}>{summarizePaymentOrders(data.orders)}</p>
                       <div className={styles.orderFoot}>
                         <span
                           className={`${styles.statusBadge} ${styles[`status_${uiStatus}`]}`}
@@ -315,7 +320,7 @@ export default function CartPage() {
                           {STATUS_LABEL[uiStatus]}
                         </span>
                         <span className={styles.orderAmount}>
-                          {order.total_amount.toLocaleString()}원
+                          {payment.total_amount.toLocaleString()}원
                         </span>
                       </div>
                     </div>
@@ -326,6 +331,7 @@ export default function CartPage() {
           </ul>
         )}
       </div>
+      )}
 
       {/* ─────────────────── Sticky 결제 바 (cart 있을 때만) ─────────────────── */}
       {hasCart && (

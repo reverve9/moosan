@@ -13,6 +13,7 @@ import {
 export interface CartItem {
   menuId: string
   boothId: string
+  boothNo: string
   boothName: string
   menuName: string
   price: number
@@ -111,6 +112,7 @@ function loadFromStorage(): CartItem[] {
       (i): i is CartItem =>
         typeof i?.menuId === 'string' &&
         typeof i?.boothId === 'string' &&
+        typeof i?.boothNo === 'string' &&
         typeof i?.boothName === 'string' &&
         typeof i?.menuName === 'string' &&
         typeof i?.price === 'number' &&

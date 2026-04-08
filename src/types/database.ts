@@ -452,6 +452,8 @@ export interface Database {
           avg_prep_minutes: number
           sort_order: number
           is_active: boolean
+          is_open: boolean
+          is_paused: boolean
           created_at: string
           updated_at: string
         }
@@ -467,6 +469,8 @@ export interface Database {
           avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
+          is_open?: boolean
+          is_paused?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -482,6 +486,8 @@ export interface Database {
           avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
+          is_open?: boolean
+          is_paused?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -575,15 +581,16 @@ export interface Database {
           },
         ]
       }
-      orders: {
+      payments: {
         Row: {
           id: string
-          order_number: string
+          toss_order_id: string
+          payment_key: string | null
           phone: string
           total_amount: number
-          status: 'pending' | 'paid' | 'completed' | 'cancelled'
-          payment_key: string | null
+          status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
+          cancelled_at: string | null
           festival_id: string | null
           meta: Json
           created_at: string
@@ -591,12 +598,13 @@ export interface Database {
         }
         Insert: {
           id?: string
-          order_number?: string
+          toss_order_id?: string
+          payment_key?: string | null
           phone: string
           total_amount: number
-          status?: 'pending' | 'paid' | 'completed' | 'cancelled'
-          payment_key?: string | null
+          status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
+          cancelled_at?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -604,18 +612,95 @@ export interface Database {
         }
         Update: {
           id?: string
-          order_number?: string
+          toss_order_id?: string
+          payment_key?: string | null
           phone?: string
           total_amount?: number
-          status?: 'pending' | 'paid' | 'completed' | 'cancelled'
-          payment_key?: string | null
+          status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
+          cancelled_at?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'payments_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          id: string
+          payment_id: string
+          order_number: string
+          booth_id: string | null
+          booth_no: string
+          booth_name: string
+          subtotal: number
+          phone: string
+          status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          confirmed_at: string | null
+          ready_at: string | null
+          festival_id: string | null
+          meta: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          payment_id: string
+          order_number?: string
+          booth_id?: string | null
+          booth_no: string
+          booth_name: string
+          subtotal: number
+          phone: string
+          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          confirmed_at?: string | null
+          ready_at?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          payment_id?: string
+          order_number?: string
+          booth_id?: string | null
+          booth_no?: string
+          booth_name?: string
+          subtotal?: number
+          phone?: string
+          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          confirmed_at?: string | null
+          ready_at?: string | null
+          festival_id?: string | null
+          meta?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'orders_payment_id_fkey'
+            columns: ['payment_id']
+            isOneToOne: false
+            referencedRelation: 'payments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'orders_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: false
+            referencedRelation: 'food_booths'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'orders_festival_id_fkey'
             columns: ['festival_id']
@@ -629,43 +714,31 @@ export interface Database {
         Row: {
           id: string
           order_id: string
-          booth_id: string | null
           menu_id: string | null
-          booth_name: string
           menu_name: string
           menu_price: number
           quantity: number
           subtotal: number
-          is_ready: boolean
-          confirmed_at: string | null
           created_at: string
         }
         Insert: {
           id?: string
           order_id: string
-          booth_id?: string | null
           menu_id?: string | null
-          booth_name: string
           menu_name: string
           menu_price: number
           quantity?: number
           subtotal: number
-          is_ready?: boolean
-          confirmed_at?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           order_id?: string
-          booth_id?: string | null
           menu_id?: string | null
-          booth_name?: string
           menu_name?: string
           menu_price?: number
           quantity?: number
           subtotal?: number
-          is_ready?: boolean
-          confirmed_at?: string | null
           created_at?: string
         }
         Relationships: [
@@ -677,17 +750,36 @@ export interface Database {
             referencedColumns: ['id']
           },
           {
-            foreignKeyName: 'order_items_booth_id_fkey'
-            columns: ['booth_id']
-            isOneToOne: false
-            referencedRelation: 'food_booths'
-            referencedColumns: ['id']
-          },
-          {
             foreignKeyName: 'order_items_menu_id_fkey'
             columns: ['menu_id']
             isOneToOne: false
             referencedRelation: 'food_menus'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      booth_order_counters: {
+        Row: {
+          booth_id: string
+          last_no: number
+          updated_at: string
+        }
+        Insert: {
+          booth_id: string
+          last_no?: number
+          updated_at?: string
+        }
+        Update: {
+          booth_id?: string
+          last_no?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'booth_order_counters_booth_id_fkey'
+            columns: ['booth_id']
+            isOneToOne: true
+            referencedRelation: 'food_booths'
             referencedColumns: ['id']
           },
         ]
@@ -767,6 +859,8 @@ export type ParticipantInsert = Database['public']['Tables']['participants']['In
 export type Notice = Database['public']['Tables']['notices']['Row']
 export type FoodBooth = Database['public']['Tables']['food_booths']['Row']
 export type FoodMenu = Database['public']['Tables']['food_menus']['Row']
+export type Payment = Database['public']['Tables']['payments']['Row']
+export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderItem = Database['public']['Tables']['order_items']['Row']
