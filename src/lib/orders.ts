@@ -139,9 +139,11 @@ export async function markPaymentPaid(
   if (pErr || !payment) throw new Error(`결제 업데이트 실패: ${pErr?.message ?? 'unknown'}`)
 
   // 2) 하위 orders → paid
+  //    paid_at 도 같이 채워야 부스/어드민 elapsed 가 결제 직후 시점부터 측정됨
+  //    (orders.created_at 은 결제하기 클릭 시점이라 토스 흐름 시간이 포함됨)
   const { error: oErr } = await supabase
     .from('orders')
-    .update({ status: 'paid' })
+    .update({ status: 'paid', paid_at: now })
     .eq('payment_id', paymentId)
   if (oErr) throw new Error(`주문 상태 업데이트 실패: ${oErr.message}`)
 

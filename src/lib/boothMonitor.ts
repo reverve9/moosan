@@ -12,7 +12,7 @@ export interface MonitorOrderRow {
   order_number: string
   phone: string
   subtotal: number
-  created_at: string
+  paid_at: string            // 결제 승인 완료 시각 (elapsed 계산 기준)
   items: OrderItem[]         // 상세 모달 표시용 (메뉴명, 수량 나열)
 }
 
@@ -21,7 +21,7 @@ export interface MonitorBoothSummary {
   boothName: string
   boothNo: string | null
   count: number              // 미확인 주문 건수
-  oldestCreatedAt: string | null
+  oldestPaidAt: string | null
   orders: MonitorOrderRow[]
 }
 
@@ -42,7 +42,7 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
       .is('confirmed_at', null)
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
-      .order('created_at', { ascending: true }),
+      .order('paid_at', { ascending: true }),
   ])
 
   if (boothsRes.error) throw new Error(`부스 조회 실패: ${boothsRes.error.message}`)
@@ -71,13 +71,16 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
   const groupedByBooth = new Map<string, MonitorOrderRow[]>()
   for (const order of orders) {
     if (!order.booth_id) continue
+    // status='paid' 만 필터링했으므로 paid_at 이 NULL 일 수 없지만, 마이그 18
+    // 적용 직후 backfill 누락을 대비해 created_at 으로 fallback.
+    const paidAt = order.paid_at ?? order.created_at
     const list = groupedByBooth.get(order.booth_id) ?? []
     list.push({
       id: order.id,
       order_number: order.order_number,
       phone: order.phone,
       subtotal: order.subtotal,
-      created_at: order.created_at,
+      paid_at: paidAt,
       items: itemsByOrder.get(order.id) ?? [],
     })
     groupedByBooth.set(order.booth_id, list)
@@ -90,7 +93,7 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
       boothName: booth.name,
       boothNo: booth.booth_no,
       count: list.length,
-      oldestCreatedAt: list[0]?.created_at ?? null,
+      oldestPaidAt: list[0]?.paid_at ?? null,
       orders: list,
     }
   })

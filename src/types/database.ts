@@ -773,6 +773,7 @@ export interface Database {
           subtotal: number
           phone: string
           status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          paid_at: string | null
           confirmed_at: string | null
           ready_at: string | null
           cancelled_at: string | null
@@ -793,6 +794,7 @@ export interface Database {
           subtotal: number
           phone: string
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          paid_at?: string | null
           confirmed_at?: string | null
           ready_at?: string | null
           cancelled_at?: string | null
@@ -813,6 +815,7 @@ export interface Database {
           subtotal?: number
           phone?: string
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          paid_at?: string | null
           confirmed_at?: string | null
           ready_at?: string | null
           cancelled_at?: string | null

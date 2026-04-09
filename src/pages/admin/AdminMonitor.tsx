@@ -118,7 +118,7 @@ export default function AdminMonitor() {
       summaries.reduce(
         (sum, s) =>
           sum +
-          s.orders.filter((o) => elapsedSeconds(o.created_at, now) >= ALERT_SECONDS)
+          s.orders.filter((o) => elapsedSeconds(o.paid_at, now) >= ALERT_SECONDS)
             .length,
         0,
       ),
@@ -167,7 +167,7 @@ export default function AdminMonitor() {
       ) : (
         <div className={styles.boothGrid}>
           {summaries.map((s) => {
-            const elapsed = s.oldestCreatedAt ? elapsedSeconds(s.oldestCreatedAt, now) : 0
+            const elapsed = s.oldestPaidAt ? elapsedSeconds(s.oldestPaidAt, now) : 0
             let level: 'idle' | 'pending' | 'alert' = 'idle'
             if (s.count > 0) {
               level = elapsed >= ALERT_SECONDS ? 'alert' : 'pending'
@@ -187,7 +187,7 @@ export default function AdminMonitor() {
                   <span className={styles.countUnit}>건</span>
                 </div>
                 <div className={styles.elapsedRow}>
-                  {s.oldestCreatedAt ? formatElapsed(elapsed) : '—'}
+                  {s.oldestPaidAt ? formatElapsed(elapsed) : '—'}
                 </div>
               </button>
             )
@@ -214,7 +214,7 @@ export default function AdminMonitor() {
             </header>
             <ul className={styles.modalList}>
               {selectedBooth.orders.map((order) => {
-                const elapsed = elapsedSeconds(order.created_at, now)
+                const elapsed = elapsedSeconds(order.paid_at, now)
                 const isAlert = elapsed >= ALERT_SECONDS
                 const menuSummary = order.items
                   .map((it) => `${it.menu_name} × ${it.quantity}`)
@@ -225,7 +225,7 @@ export default function AdminMonitor() {
                     className={`${styles.modalItem} ${isAlert ? styles.modalItemAlert : ''}`}
                   >
                     <div className={styles.modalItemLeft}>
-                      <div className={styles.modalItemTime}>{formatHm(order.created_at)}</div>
+                      <div className={styles.modalItemTime}>{formatHm(order.paid_at)}</div>
                       <div className={styles.modalItemOrderNo}>{order.order_number}</div>
                     </div>
                     <div className={styles.modalItemBody}>

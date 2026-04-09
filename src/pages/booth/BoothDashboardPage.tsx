@@ -33,7 +33,7 @@ interface BoothOrderCard {
   orderId: string
   orderNumber: string
   phone: string
-  orderCreatedAt: string
+  orderPaidAt: string  // 결제 승인 완료 시각 (elapsed/정렬/표시 기준)
   items: BoothOrderCardData['items']
   totalAmount: number
   status: CardStatus
@@ -48,7 +48,9 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
     orderId: order.id,
     orderNumber: order.order_number,
     phone: order.phone,
-    orderCreatedAt: order.created_at,
+    // status='paid' 이상이면 paid_at 이 채워져 있지만, 마이그 18 적용 직후
+    // backfill 누락을 대비해 created_at 으로 fallback.
+    orderPaidAt: order.paid_at ?? order.created_at,
     items,
     totalAmount: order.subtotal,
     status: getBoothOrderCardStatus(order),
@@ -200,7 +202,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       const aHi = highlightOrderIds.has(a.orderId) ? 0 : 1
       const bHi = highlightOrderIds.has(b.orderId) ? 0 : 1
       if (aHi !== bHi) return aHi - bHi
-      return a.orderCreatedAt.localeCompare(b.orderCreatedAt)
+      return a.orderPaidAt.localeCompare(b.orderPaidAt)
     })
     return list
   }, [cards, highlightOrderIds])
@@ -209,7 +211,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const completedCards = useMemo(() => {
     return cards
       .filter((c) => c.status === 'completed')
-      .sort((a, b) => b.orderCreatedAt.localeCompare(a.orderCreatedAt))
+      .sort((a, b) => b.orderPaidAt.localeCompare(a.orderPaidAt))
       .slice(0, COMPLETED_LIMIT)
   }, [cards])
 
@@ -338,7 +340,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
               {waitingCards.map((card) => {
                 const elapsedSec = Math.max(
                   0,
-                  Math.floor((now - new Date(card.orderCreatedAt).getTime()) / 1000),
+                  Math.floor((now - new Date(card.orderPaidAt).getTime()) / 1000),
                 )
                 // 초과 alert 는 미확인 (waiting) 상태일 때만 의미 있음.
                 // 확인 후에는 elapsed 가 1분 넘어도 빨강/펄스 풀어줌.
@@ -442,7 +444,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                       <div className={styles.completedRow}>
                         <span className={styles.completedNo}>{card.orderNumber}</span>
                         <span className={styles.completedTime}>
-                          {formatHm(card.orderCreatedAt)}
+                          {formatHm(card.orderPaidAt)}
                         </span>
                       </div>
                       <div className={styles.completedSummary}>{summary}</div>
