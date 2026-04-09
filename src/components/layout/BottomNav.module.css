@@ -49,12 +49,10 @@
 .item .icon {
   width: var(--icon-md);
   height: var(--icon-md);
-  stroke-width: 0.9;
-  transition: transform var(--transition-fast), stroke-width var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .item.active .icon {
-  stroke-width: 1.5;
   transform: translateY(-2px) scale(1.2);
 }
 

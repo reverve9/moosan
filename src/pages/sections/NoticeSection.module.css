@@ -5,13 +5,82 @@
 
 .container {
   padding: 0 var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.placeholder {
-  padding: var(--space-12);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-lg);
-  border: 2px dashed var(--color-border);
+.errorBanner {
+  padding: var(--space-3) var(--space-4);
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-md);
+  color: #B91C1C;
+  font-size: var(--text-sm);
+}
+
+.stateMessage {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border-light);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 120ms ease;
+}
+
+.item:active {
+  background-color: var(--color-bg-secondary);
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pinIcon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.itemTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.itemDate {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sentinel {
+  width: 100%;
+  height: 1px;
 }

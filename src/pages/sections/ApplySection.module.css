@@ -28,9 +28,9 @@
 }
 
 .tabActive {
-  color: #1E3A2F;
+  color: var(--color-primary);
   font-weight: 600;
-  border-bottom-color: #1E3A2F;
+  border-bottom-color: var(--color-primary);
 }
 
 .placeholder {

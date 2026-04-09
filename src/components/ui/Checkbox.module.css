@@ -32,8 +32,8 @@
 }
 
 .boxChecked {
-  background-color: #1E3A2F;
-  border-color: #1E3A2F;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .icon {

@@ -44,8 +44,8 @@
 }
 
 .pointSelected {
-  border-color: #1E3A2F;
-  background-color: #1E3A2F;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 
 .pointNumber {

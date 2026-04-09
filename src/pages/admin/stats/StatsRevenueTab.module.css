@@ -42,8 +42,8 @@
 
 .input:focus {
   outline: none;
-  border-color: #1E3A2F;
-  box-shadow: 0 0 0 3px rgba(30, 58, 47, 0.12);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .refreshBtn {
@@ -55,14 +55,14 @@
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   border-radius: 10px;
   cursor: pointer;
   margin-left: auto;
 }
 
 .refreshBtn:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .refreshBtn:disabled {
@@ -195,8 +195,8 @@
 }
 
 .kpiCardEmphasis {
-  background-color: #1E3A2F;
-  border-color: #1E3A2F;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .kpiLabel {
@@ -307,12 +307,12 @@
 
 .lineArea {
   fill: url(#lineAreaGradient);
-  fill: rgba(47, 107, 74, 0.12);
+  fill: color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
 .lineStroke {
   fill: none;
-  stroke: #1E3A2F;
+  stroke: var(--color-primary);
   stroke-width: 2.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -320,7 +320,7 @@
 
 .linePoint {
   fill: #FFFFFF;
-  stroke: #1E3A2F;
+  stroke: var(--color-primary);
   stroke-width: 2;
 }
 
@@ -355,7 +355,7 @@
 
 .dailyBarFill {
   height: 100%;
-  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary));
   border-radius: 7px;
 }
 
@@ -471,7 +471,7 @@
 .rankBarFill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary));
   border-radius: 5px;
 }
 
@@ -823,7 +823,7 @@
 
 .freqBarFill {
   height: 100%;
-  background: linear-gradient(90deg, #2F6B4A, #1E3A2F);
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary));
   border-radius: 7px;
 }
 
@@ -850,7 +850,7 @@
 .distSummaryPct {
   font-size: 20px;
   font-weight: 700;
-  color: #1E3A2F;
+  color: var(--color-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }

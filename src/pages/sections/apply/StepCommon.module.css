@@ -102,13 +102,13 @@
   font-size: var(--text-form-input);
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   border-radius: 12px;
   transition: background-color 150ms ease;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .btnPrimary:disabled {

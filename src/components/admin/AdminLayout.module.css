@@ -32,7 +32,7 @@
   font-size: 11px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   padding: 2px 8px;
   border-radius: 9999px;
 }
@@ -96,7 +96,7 @@
 
 .navItemActive {
   background-color: #F0FDF4;
-  color: #1E3A2F;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -190,7 +190,7 @@
 
 .loginInput:focus {
   outline: none;
-  border-color: #1E3A2F;
+  border-color: var(--color-primary);
   background-color: #FFFFFF;
 }
 
@@ -205,12 +205,12 @@
   font-size: 15px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   border-radius: 10px;
   margin-top: 4px;
   transition: background-color 150ms ease;
 }
 
 .loginBtn:hover {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }

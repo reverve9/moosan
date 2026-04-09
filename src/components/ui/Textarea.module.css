@@ -42,7 +42,7 @@
 }
 
 .textarea:focus {
-  border-color: #1E3A2F;
+  border-color: var(--color-primary);
 }
 
 .textareaError {

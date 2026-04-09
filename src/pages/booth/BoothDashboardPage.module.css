@@ -18,9 +18,9 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 0 20px;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
-  border-bottom: 1px solid #142820;
+  border-bottom: 1px solid var(--color-primary-dark);
 }
 
 .headerLeft {
@@ -193,7 +193,7 @@
 }
 
 .card_inProgress {
-  border-left-color: #1E3A2F;
+  border-left-color: var(--color-primary);
 }
 
 .card_completed {
@@ -311,7 +311,7 @@
 
 .itemQty {
   font-weight: 700;
-  color: #1E3A2F;
+  color: var(--color-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -358,11 +358,11 @@
 }
 
 .actionReady {
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
 }
 
 .actionReady:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .actionReject {
@@ -446,7 +446,7 @@
   height: 120px;
   padding: 16px 20px;
   border-top: 1px solid #E5E7EB;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
   display: flex;
   flex-direction: column;

@@ -31,7 +31,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
   border-radius: 8px;
   font-size: 14px;
@@ -42,7 +42,7 @@
 }
 
 .addBtn:hover {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .empty {
@@ -83,9 +83,9 @@
 }
 
 .filterTabActive {
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
-  border-color: #1E3A2F;
+  border-color: var(--color-primary);
 }
 
 /* ──────────────── Category manager ──────────────── */
@@ -187,12 +187,12 @@
   font-size: 13px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   border-radius: 8px;
 }
 
 .categoryAddBtn:hover {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .categoryAddBtn:disabled {
@@ -249,7 +249,7 @@
 }
 
 .gridCard:hover {
-  border-color: #1E3A2F;
+  border-color: var(--color-primary);
   background-color: #F9FAFB;
 }
 
@@ -317,7 +317,7 @@
   display: inline-block;
   font-size: 11px;
   font-weight: 600;
-  color: #1E3A2F;
+  color: var(--color-primary);
   background-color: #ECFDF5;
   padding: 2px 8px;
   border-radius: 4px;
@@ -509,7 +509,7 @@
 }
 
 .input:focus {
-  border-color: #1E3A2F;
+  border-color: var(--color-primary);
 }
 
 select.input {
@@ -587,7 +587,7 @@ select.input {
   align-items: center;
   gap: 6px;
   padding: 10px 18px;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
   border-radius: 6px;
   font-size: 13px;
@@ -597,7 +597,7 @@ select.input {
 }
 
 .saveBtn:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .saveBtn:disabled {
@@ -636,8 +636,8 @@ select.input {
   gap: 4px;
   padding: 6px 12px;
   background-color: #FFFFFF;
-  color: #1E3A2F;
-  border: 1px solid #1E3A2F;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
@@ -764,7 +764,7 @@ select.input {
   align-items: center;
   gap: 4px;
   padding: 6px 14px;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   color: #FFFFFF;
   border-radius: 6px;
   font-size: 12px;
@@ -774,7 +774,7 @@ select.input {
 }
 
 .menuSaveBtn:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .menuSaveBtn:disabled {

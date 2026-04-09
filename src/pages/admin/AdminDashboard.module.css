@@ -46,8 +46,8 @@
 }
 
 .tabActive {
-  color: #1E3A2F;
-  border-bottom-color: #1E3A2F;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .tabPanel {

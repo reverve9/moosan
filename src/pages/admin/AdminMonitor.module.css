@@ -86,12 +86,12 @@
   font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
-  background-color: #1E3A2F;
+  background-color: var(--color-primary);
   border-radius: 10px;
 }
 
 .refreshBtn:hover:not(:disabled) {
-  background-color: #142820;
+  background-color: var(--color-primary-dark);
 }
 
 .refreshBtn:disabled {
