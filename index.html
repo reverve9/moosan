@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // hostname 에 따라 manifest 분기. 부스(booth.* / *-booth.*) 호스트는
+      // booth-manifest.webmanifest (가로 강제), 그 외는 기본 manifest.
+      // Vercel rewrite 가 multi-project 환경에서 안정적이지 않아 client-side 분기.
+      (function () {
+        var host = window.location.hostname.toLowerCase()
+        var path =
+          host.indexOf('booth.') === 0 || host.indexOf('-booth.') !== -1
+            ? '/booth-manifest.webmanifest'
+            : '/manifest.webmanifest'
+        var link = document.createElement('link')
+        link.rel = 'manifest'
+        link.href = path
+        document.head.appendChild(link)
+      })()
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>2026 설악무산문화축전</title>
     <meta name="description" content="2026 설악무산문화축전 - 설악의 자연과 문화가 만나는 순간" />

@@ -1,20 +1,5 @@
 {
   "rewrites": [
-    {
-      "source": "/manifest.webmanifest",
-      "has": [{ "type": "host", "value": "moosan-booth.vercel.app" }],
-      "destination": "/booth-manifest.webmanifest"
-    },
-    {
-      "source": "/manifest.webmanifest",
-      "has": [{ "type": "host", "value": "booth.moosanfesta.com" }],
-      "destination": "/booth-manifest.webmanifest"
-    },
-    {
-      "source": "/manifest.webmanifest",
-      "has": [{ "type": "host", "value": "(?<host>.*-booth\\..*|booth\\..*)" }],
-      "destination": "/booth-manifest.webmanifest"
-    },
     { "source": "/((?!api/|src/|node_modules/|@|.*\\.).*)", "destination": "/index.html" }
   ]
 }
