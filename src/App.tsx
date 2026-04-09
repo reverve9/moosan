@@ -38,8 +38,8 @@ import { ToastProvider } from '@/components/ui/Toast'
  * - 그 외 → 손님용 (PWA)
  *
  * dev  : booth.localhost:5173 / admin.localhost:5173 / localhost:5173
- * prod : booth.moosanfesta.com / admin.moosanfesta.com / app.moosanfesta.com
- * vercel: moosan-booth.vercel.app / moosan-admin.vercel.app / moosan.vercel.app
+ * prod : booth.musanfesta.com / admin.musanfesta.com / musanfesta.com
+ * vercel: musanfesta.vercel.app (통합 프로젝트 자동 URL — 손님 모드만 매칭)
  */
 type AppMode = 'booth' | 'admin' | 'customer'
 

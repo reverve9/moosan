@@ -64,7 +64,7 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-const ADMIN_ID = 'moosanfesta'
+const ADMIN_ID = 'musanfesta'
 const ADMIN_PW = '123456'
 
 function isAuthenticated() {
