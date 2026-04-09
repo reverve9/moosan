@@ -16,7 +16,8 @@ import CheckoutFailPage from '@/pages/CheckoutFailPage'
 import OrderStatusPage from '@/pages/OrderStatusPage'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
-import AdminDashboard from '@/pages/admin/AdminDashboard'
+import AdminRevenue from '@/pages/admin/AdminRevenue'
+import AdminSurvey from '@/pages/admin/AdminSurvey'
 import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminContentDetail from '@/pages/admin/AdminContentDetail'
 import AdminFood from '@/pages/admin/AdminFood'
@@ -68,8 +69,12 @@ function AdminRoutes() {
   return (
     <Routes>
       <Route path="/" element={<AdminLayout />}>
-        <Route index element={<AdminDashboard />} />
+        <Route index element={<Navigate to="/notices" replace />} />
+        <Route path="notices" element={<AdminNotices />} />
         <Route path="applications" element={<AdminApplications />} />
+        <Route path="coupons" element={<AdminCoupons />} />
+        <Route path="revenue" element={<AdminRevenue />} />
+        <Route path="survey" element={<AdminSurvey />} />
         <Route path="content/musan" element={<AdminContentDetail slug="musan" />} />
         <Route path="content/youth" element={<AdminContentDetail slug="youth" />} />
         <Route path="content/food" element={<AdminContentDetail slug="food" />} />
@@ -77,10 +82,8 @@ function AdminRoutes() {
         <Route path="booth-accounts" element={<AdminBoothAccounts />} />
         <Route path="monitor" element={<AdminMonitor />} />
         <Route path="orders" element={<AdminOrders />} />
-        <Route path="coupons" element={<AdminCoupons />} />
-        <Route path="notices" element={<AdminNotices />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to="/notices" replace />} />
     </Routes>
   )
 }
