@@ -1,0 +1,88 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  display: block;
+  font-size: var(--text-form-label);
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.required {
+  color: #C62828;
+  margin-right: 2px;
+}
+
+.scale {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+}
+
+.point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 2px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  min-height: 48px;
+}
+
+.point:hover:not(.pointSelected) {
+  border-color: #D1D5DB;
+  background-color: #F9FAFB;
+}
+
+.pointSelected {
+  border-color: #1E3A2F;
+  background-color: #1E3A2F;
+}
+
+.pointNumber {
+  font-size: var(--text-form-helper);
+  font-weight: 600;
+  color: #6B7280;
+  line-height: 1;
+}
+
+.pointSelected .pointNumber {
+  color: #FFFFFF;
+}
+
+.pointDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #E5E7EB;
+}
+
+.pointSelected .pointDot {
+  background-color: #FFFFFF;
+}
+
+.endLabels {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  font-size: var(--text-form-caption);
+  color: #6B7280;
+}
+
+.endLabelLeft {
+  text-align: left;
+}
+
+.endLabelRight {
+  text-align: right;
+}

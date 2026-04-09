@@ -7,6 +7,7 @@ import ProgramsPage from '@/pages/ProgramsPage'
 import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
+import SurveyPage from '@/pages/SurveyPage'
 import CartPage from '@/pages/CartPage'
 import CheckoutPage from '@/pages/CheckoutPage'
 import CheckoutSuccessPage from '@/pages/CheckoutSuccessPage'
@@ -95,6 +96,7 @@ function CustomerRoutes() {
         <Route path="/programs" element={<ProgramsPage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:slug" element={<ApplyPage />} />
+        <Route path="/survey" element={<SurveyPage />} />
         <Route path="/location" element={<LocationPage />} />
         <Route path="/notice" element={<NoticePage />} />
         <Route path="/cart" element={<CartPage />} />

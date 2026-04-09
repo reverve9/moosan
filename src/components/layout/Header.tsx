@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   ArrowLeftIcon,
   Bars3Icon,
+  ClipboardDocumentCheckIcon,
   ClipboardDocumentListIcon,
   MegaphoneIcon,
   MapPinIcon,
@@ -15,6 +16,7 @@ import styles from './Header.module.css'
 const MENU_ITEMS = [
   { label: '공지사항', path: '/notice', icon: MegaphoneIcon },
   { label: '참가신청', path: '/apply', icon: PencilSquareIcon },
+  { label: '만족도조사', path: '/survey', icon: ClipboardDocumentCheckIcon },
   { label: '오시는 길', path: '/location', icon: MapPinIcon },
 ]
 

@@ -1,0 +1,55 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: var(--text-form-label);
+  font-weight: 600;
+  color: #111827;
+}
+
+.required {
+  color: #C62828;
+  margin-right: 2px;
+}
+
+.hint {
+  font-size: var(--text-form-caption);
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px 14px;
+  font-size: var(--text-form-input);
+  font-family: inherit;
+  color: #111827;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 8px;
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 150ms ease;
+}
+
+.textarea::placeholder {
+  color: #9CA3AF;
+}
+
+.textarea:focus {
+  border-color: #1E3A2F;
+}
+
+.textareaError {
+  border-color: #C62828;
+}
+
+.error {
+  font-size: var(--text-form-caption);
+  color: #C62828;
+}

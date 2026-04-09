@@ -581,6 +581,56 @@ export interface Database {
           },
         ]
       }
+      surveys: {
+        Row: {
+          id: string
+          festival_id: string | null
+          gender: 'male' | 'female'
+          age: number
+          region: string
+          name: string
+          phone: string
+          privacy_consented: boolean
+          answers: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          festival_id?: string | null
+          gender: 'male' | 'female'
+          age: number
+          region: string
+          name: string
+          phone: string
+          privacy_consented?: boolean
+          answers?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          festival_id?: string | null
+          gender?: 'male' | 'female'
+          age?: number
+          region?: string
+          name?: string
+          phone?: string
+          privacy_consented?: boolean
+          answers?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'surveys_festival_id_fkey'
+            columns: ['festival_id']
+            isOneToOne: false
+            referencedRelation: 'festivals'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       coupons: {
         Row: {
           id: string
@@ -938,6 +988,8 @@ export type Payment = Database['public']['Tables']['payments']['Row']
 export type PaymentInsert = Database['public']['Tables']['payments']['Insert']
 export type Coupon = Database['public']['Tables']['coupons']['Row']
 export type CouponInsert = Database['public']['Tables']['coupons']['Insert']
+export type Survey = Database['public']['Tables']['surveys']['Row']
+export type SurveyInsert = Database['public']['Tables']['surveys']['Insert']
 export type Order = Database['public']['Tables']['orders']['Row']
 export type OrderInsert = Database['public']['Tables']['orders']['Insert']
 export type OrderItem = Database['public']['Tables']['order_items']['Row']
