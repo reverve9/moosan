@@ -17,8 +17,7 @@ import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import AdminApplications from '@/pages/admin/AdminApplications'
-import AdminFestivals from '@/pages/admin/AdminFestivals'
-import AdminPrograms from '@/pages/admin/AdminPrograms'
+import AdminContentDetail from '@/pages/admin/AdminContentDetail'
 import AdminFood from '@/pages/admin/AdminFood'
 import AdminBoothAccounts from '@/pages/admin/AdminBoothAccounts'
 import AdminMonitor from '@/pages/admin/AdminMonitor'
@@ -70,8 +69,9 @@ function AdminRoutes() {
       <Route path="/" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="applications" element={<AdminApplications />} />
-        <Route path="festivals" element={<AdminFestivals />} />
-        <Route path="programs" element={<AdminPrograms />} />
+        <Route path="content/musan" element={<AdminContentDetail slug="musan" />} />
+        <Route path="content/youth" element={<AdminContentDetail slug="youth" />} />
+        <Route path="content/food" element={<AdminContentDetail slug="food" />} />
         <Route path="food" element={<AdminFood />} />
         <Route path="booth-accounts" element={<AdminBoothAccounts />} />
         <Route path="monitor" element={<AdminMonitor />} />

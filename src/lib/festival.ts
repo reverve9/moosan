@@ -11,11 +11,18 @@ import type {
 const STORAGE_BUCKET = 'festival-assets'
 
 /**
- * Storage path → public URL
- * 예: 'festivals/youth/poster.png' → 'https://...supabase.co/storage/v1/object/public/festival-assets/festivals/youth/poster.png'
+ * Storage path 또는 정적/외부 경로 → 사용 가능한 URL
+ *
+ * 케이스
+ *  · 'festivals/youth/poster.png' → supabase storage public URL
+ *  · '/images/thumb_xxx.png'      → 정적 public 경로 그대로 반환 (시드 데이터 호환)
+ *  · 'https://...'                → 외부 URL 그대로 반환
  */
 export function getAssetUrl(path: string | null | undefined): string | null {
   if (!path) return null
+  if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
   return data.publicUrl
 }

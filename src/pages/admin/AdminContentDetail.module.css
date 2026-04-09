@@ -1,3 +1,10 @@
+/* ============================================================================
+ * AdminContentDetail.module.css
+ * 콘텐츠 그룹 상세 페이지 — 페스티벌 + (youth) programs + (musan/food) 안내
+ * AdminFestivals / AdminPrograms 스타일 통합 + 섹션 구분 헤더 + notice
+ * ============================================================================ */
+
+/* ─────────────── 상단 헤더 ─────────────── */
 .header {
   display: flex;
   align-items: center;
@@ -11,9 +18,10 @@
   color: #111827;
 }
 
-.count {
-  font-size: 14px;
+.slug {
+  font-size: 13px;
   color: #6B7280;
+  font-family: 'SF Mono', Menlo, monospace;
   background-color: #F3F4F6;
   padding: 4px 12px;
   border-radius: 9999px;
@@ -29,6 +37,29 @@
   font-size: 14px;
 }
 
+/* ─────────────── 섹션 (상단/하단 구분) ─────────────── */
+.section {
+  margin-bottom: 40px;
+}
+
+.sectionHeader {
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.sectionSub {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* ─────────────── 카드 ─────────────── */
 .list {
   display: flex;
   flex-direction: column;
@@ -42,20 +73,20 @@
   overflow: hidden;
 }
 
-.cardHeader {
-  padding: 20px 24px;
+.subCardHeader {
+  padding: 16px 24px;
   border-bottom: 1px solid #F3F4F6;
 }
 
-.cardTitle {
-  font-size: 18px;
+.subCardTitle {
+  font-size: 16px;
   font-weight: 700;
   color: #111827;
   margin: 0 0 4px;
 }
 
-.cardSlug {
-  font-size: 13px;
+.subCardSlug {
+  font-size: 12px;
   color: #6B7280;
   font-family: 'SF Mono', Menlo, monospace;
   margin: 0;
@@ -68,7 +99,15 @@
   padding: 24px;
 }
 
-.posterSection {
+/* 포스터/썸네일 없는 슬러그 (musan 등) 용 — 폼이 전체폭 차지 */
+.cardBodyFull {
+  display: block;
+  padding: 24px;
+}
+
+/* ─────────────── 포스터 / 썸네일 영역 ─────────────── */
+.posterSection,
+.thumbSection {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -86,13 +125,27 @@
   justify-content: center;
 }
 
-.posterPreview img {
+.thumbPreview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.posterPreview img,
+.thumbPreview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.posterEmpty {
+.posterEmpty,
+.thumbEmpty {
   color: #9CA3AF;
   font-size: 13px;
 }
@@ -123,6 +176,48 @@
   cursor: not-allowed;
 }
 
+/* ─────────────── 갤러리 placeholder (programs 만) ─────────────── */
+.galleryPlaceholder {
+  margin-top: 8px;
+  padding: 12px;
+  background-color: #F9FAFB;
+  border: 1px dashed #D1D5DB;
+  border-radius: 8px;
+}
+
+.galleryLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6B7280;
+  margin: 0 0 8px;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.galleryEmpty {
+  aspect-ratio: 1 / 1;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #D1D5DB;
+  font-size: 16px;
+}
+
+.galleryNote {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+/* ─────────────── 폼 ─────────────── */
 .formSection {
   display: flex;
   flex-direction: column;
@@ -228,4 +323,39 @@
 .saveBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ─────────────── 안내 박스 (musan / food) ─────────────── */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 24px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  color: #374151;
+}
+
+.noticeIcon {
+  width: 20px;
+  height: 20px;
+  color: #6B7280;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.noticeBody strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.noticeBody p {
+  font-size: 13px;
+  color: #6B7280;
+  margin: 0;
+  line-height: 1.6;
 }

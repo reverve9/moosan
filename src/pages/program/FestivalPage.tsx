@@ -4,7 +4,7 @@ import ProgramAccordion from '@/components/program/ProgramAccordion'
 import MusanSections from '@/components/musan/MusanSections'
 import FoodSections from '@/components/food/FoodSections'
 import { fetchFestivalBySlug, getAssetUrl } from '@/lib/festival'
-import type { Festival } from '@/types/database'
+import type { Festival, Program } from '@/types/database'
 import styles from './FestivalPage.module.css'
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 
 export default function FestivalPage({ slug }: Props) {
   const [festival, setFestival] = useState<Festival | null>(null)
+  const [programs, setPrograms] = useState<Program[]>([])
   const [loading, setLoading] = useState(true)
   const [posterFailed, setPosterFailed] = useState(false)
 
@@ -21,6 +22,7 @@ export default function FestivalPage({ slug }: Props) {
     setPosterFailed(false)
     fetchFestivalBySlug(slug).then((result) => {
       setFestival(result?.festival ?? null)
+      setPrograms(result?.programs ?? [])
       setLoading(false)
     })
   }, [slug])
@@ -100,7 +102,7 @@ export default function FestivalPage({ slug }: Props) {
           </div>
         </section>
       )}
-      {slug === 'youth' && <ProgramAccordion />}
+      {slug === 'youth' && <ProgramAccordion programs={programs} />}
       {slug === 'musan' && <MusanSections festivalId={festival.id} />}
       {slug === 'food' && <FoodSections festival={festival} />}
     </div>

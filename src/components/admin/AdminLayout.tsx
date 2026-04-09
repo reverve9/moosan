@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
-  RectangleGroupIcon,
-  Squares2X2Icon,
+  SparklesIcon,
+  AcademicCapIcon,
+  CakeIcon,
   DocumentTextIcon,
   MegaphoneIcon,
   BuildingStorefrontIcon,
@@ -45,8 +46,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: '콘텐츠',
     items: [
-      { label: '페스티벌 관리', path: '/festivals', icon: RectangleGroupIcon },
-      { label: '프로그램 관리', path: '/programs', icon: Squares2X2Icon },
+      { label: '설악무산문화축전', path: '/content/musan', icon: SparklesIcon },
+      { label: '청소년문화축전', path: '/content/youth', icon: AcademicCapIcon },
+      { label: '음식문화페스티벌', path: '/content/food', icon: CakeIcon },
     ],
   },
   {
