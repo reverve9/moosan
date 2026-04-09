@@ -170,7 +170,7 @@ export default function SurveyStep3Evaluation({ form, updateForm, onNext, onPrev
         <button
           type="button"
           className={styles.btnPrimary}
-          disabled={!canNext}
+          disabled={!canNext && !import.meta.env.DEV}
           onClick={onNext}
         >
           다음

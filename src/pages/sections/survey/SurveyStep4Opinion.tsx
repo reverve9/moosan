@@ -122,7 +122,7 @@ export default function SurveyStep4Opinion({
         <button
           type="button"
           className={styles.btnPrimary}
-          disabled={!canSubmit}
+          disabled={!canSubmit && !import.meta.env.DEV}
           onClick={onSubmit}
         >
           {submitting ? '제출 중…' : '제출'}

@@ -187,7 +187,7 @@ export default function SurveyStep1Basic({ form, updateForm, onNext }: Props) {
         <button
           type="button"
           className={styles.btnPrimary}
-          disabled={!canNext}
+          disabled={!canNext && !import.meta.env.DEV}
           onClick={onNext}
         >
           다음
