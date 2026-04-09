@@ -37,7 +37,7 @@ export default function MusanSections({ festivalId }: Props) {
     <>
       {ceremonies.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>개폐막식 일정</h2>
+          <h2 className={styles.sectionTitle}>개·폐막식 일정</h2>
           <div className={styles.ceremonyList}>
             {ceremonies.map((c) => (
               <article key={c.id} className={styles.ceremonyCard}>

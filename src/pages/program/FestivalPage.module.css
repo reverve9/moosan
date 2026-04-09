@@ -122,14 +122,14 @@
 
 .infoLine {
   margin: 0;
-  padding: 1.333cqw 2.667cqw; /* 8px 16px @ 600 */
+  padding: 2cqw 4.667cqw; /* 12px 28px @ 600 */
   background-color: var(--color-gray-100);
   border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1.333cqw 3cqw; /* 8px row / 18px column @ 600 */
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: baseline;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .infoItem {
@@ -137,11 +137,15 @@
   align-items: baseline;
   gap: 1.333cqw; /* 8px @ 600 */
   margin: 0;
+  white-space: nowrap;
 }
 
-.infoItem + .infoItem::before {
-  content: '·';
-  color: var(--color-text-muted);
+.infoItem:first-child {
+  justify-self: start;
+}
+
+.infoItem:last-child {
+  justify-self: end;
 }
 
 .infoLabel {
