@@ -302,6 +302,49 @@
   color: #B91C1C;
 }
 
+.partialBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #B45309;
+  background-color: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.boothCancelLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin: 0 14px 0;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.boothCancelLabel {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #DC2626;
+  border-radius: 4px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.boothCancelText {
+  color: #7F1D1D;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+}
+
 .badge_pending {
   background-color: #FEF3C7;
   color: #92400E;

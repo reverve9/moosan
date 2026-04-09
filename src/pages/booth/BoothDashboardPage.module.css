@@ -362,6 +362,17 @@
   background-color: #142820;
 }
 
+.actionReject {
+  background-color: #FFFFFF;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.actionReject:hover:not(:disabled) {
+  background-color: #FEF2F2;
+  border-color: #DC2626;
+}
+
 /* ── 우측 패널 ── */
 .rightPanel {
   display: grid;

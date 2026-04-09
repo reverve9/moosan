@@ -6,6 +6,7 @@ import {
   fetchPaymentDetail,
   fetchPaymentsList,
   isRefundable,
+  remainingRefundable,
   type PaymentDetail,
   type PaymentRowWithSummary,
   type PaymentsListFilters,
@@ -113,23 +114,27 @@ export default function AdminOrders() {
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = visibleRows.slice(pageStart, pageStart + PAGE_SIZE)
 
-  // 정산 기준 매출 = 손님 실지불(total_amount) + 쿠폰 할인(discount_amount).
-  // 쿠폰 할인은 플랫폼 부담, 매장 정산 시엔 원래 금액 기준으로 지급해야 함.
+  // 정산 기준 매출 = 손님 실지불(total_amount) + 쿠폰 할인(discount_amount) - 환불금액
+  // 쿠폰 할인은 운영자 부담, 매장 정산 시엔 원래 금액 기준으로 지급해야 함.
+  // 부분환불(부스 거절)이 있으면 refunded_amount 만큼 매출에서 차감.
   const totals = useMemo(() => {
     let grossAmount = 0
     let discountAmount = 0
+    let refundedAmount = 0
     let paidCount = 0
     let cancelledCount = 0
     for (const r of visibleRows) {
       if (r.payment.status === 'paid') {
-        grossAmount += r.payment.total_amount + r.payment.discount_amount
+        grossAmount +=
+          r.payment.total_amount + r.payment.discount_amount - (r.payment.refunded_amount ?? 0)
         discountAmount += r.payment.discount_amount
+        refundedAmount += r.payment.refunded_amount ?? 0
         paidCount += 1
       } else if (r.payment.status === 'cancelled') {
         cancelledCount += 1
       }
     }
-    return { grossAmount, discountAmount, paidCount, cancelledCount }
+    return { grossAmount, discountAmount, refundedAmount, paidCount, cancelledCount }
   }, [visibleRows])
 
   return (
@@ -153,6 +158,12 @@ export default function AdminOrders() {
               -{totals.discountAmount.toLocaleString()}
             </div>
             <div className={styles.statLabel}>쿠폰 할인(원)</div>
+          </div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>
+              -{totals.refundedAmount.toLocaleString()}
+            </div>
+            <div className={styles.statLabel}>환불(원)</div>
           </div>
           <div className={styles.statBox}>
             <div className={styles.statValue}>{totals.cancelledCount}</div>
@@ -269,6 +280,8 @@ export default function AdminOrders() {
             ) : (
               pageRows.map((r, idx) => {
                 const isCancelled = r.payment.status === 'cancelled'
+                const isPartial =
+                  r.payment.status === 'paid' && (r.payment.refunded_amount ?? 0) > 0
                 const firstBoothName = r.boothNames[0] ?? '—'
                 const firstOrderNo = r.boothOrderNumbers[0] ?? '—'
                 const extraCount = Math.max(0, r.boothCount - 1)
@@ -313,6 +326,14 @@ export default function AdminOrders() {
                       <span className={`${styles.badge} ${styles[`badge_${r.payment.status}`]}`}>
                         {STATUS_LABEL[r.payment.status]}
                       </span>
+                      {isPartial && (
+                        <span
+                          className={styles.partialBadge}
+                          title={`-${r.payment.refunded_amount.toLocaleString()}원 부분 환불됨`}
+                        >
+                          부분취소
+                        </span>
+                      )}
                     </td>
                     <td className={`${styles.mono} ${styles.dim}`}>{r.payment.toss_order_id}</td>
                   </tr>
@@ -377,6 +398,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
   }, [onClose])
 
   const refundable = detail ? isRefundable(detail) : false
+  const remaining = detail ? remainingRefundable(detail) : 0
 
   const handleCancel = async () => {
     if (!detail || !refundable) return
@@ -385,7 +407,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
       return
     }
     const ok = window.confirm(
-      `정말 ${detail.payment.total_amount.toLocaleString()}원을 전액 환불하시겠습니까?`,
+      `남은 잔액 ${remaining.toLocaleString()}원을 환불하시겠습니까?`,
     )
     if (!ok) return
     setCancelling(true)
@@ -474,6 +496,22 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   {detail.payment.total_amount.toLocaleString()}원
                 </span>
               </div>
+              {detail.payment.refunded_amount > 0 && (
+                <>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>환불 금액</span>
+                    <span className={`${styles.metaValueStrong} ${styles.discountText}`}>
+                      -{detail.payment.refunded_amount.toLocaleString()}원
+                    </span>
+                  </div>
+                  <div className={styles.metaRow}>
+                    <span className={styles.metaLabel}>잔액</span>
+                    <span className={styles.metaValueStrong}>
+                      {remaining.toLocaleString()}원
+                    </span>
+                  </div>
+                </>
+              )}
               {detail.payment.payment_key && (
                 <div className={styles.metaRow}>
                   <span className={styles.metaLabel}>paymentKey</span>
@@ -520,6 +558,14 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                         {ORDER_STATUS_LABEL[order.status]}
                       </span>
                     </div>
+                    {order.status === 'cancelled' && order.cancel_reason && (
+                      <div className={styles.boothCancelLine}>
+                        <span className={styles.boothCancelLabel}>
+                          {order.cancelled_by === 'booth' ? '부스 거절' : '어드민 환불'}
+                        </span>
+                        <span className={styles.boothCancelText}>{order.cancel_reason}</span>
+                      </div>
+                    )}
                     <ul className={styles.itemList}>
                       {items.map((it) => (
                         <li key={it.id} className={styles.itemRow}>
@@ -543,7 +589,8 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                 {refundable ? (
                   <>
                     <p className={styles.refundHint}>
-                      전액환불됩니다. 매장에서 확인/조리 시작된 주문이 있으면 거부됩니다.
+                      남은 잔액 <strong>{remaining.toLocaleString()}원</strong> 이 환불됩니다.
+                      매장에서 확인/조리 시작된 주문이 포함되어 있으면 거부됩니다.
                     </p>
                     <textarea
                       className={styles.reasonInput}
@@ -559,12 +606,13 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                       onClick={handleCancel}
                       disabled={cancelling || reason.trim().length === 0}
                     >
-                      {cancelling ? '처리 중...' : '전액 환불'}
+                      {cancelling ? '처리 중...' : `잔액 ${remaining.toLocaleString()}원 환불`}
                     </button>
                   </>
                 ) : (
                   <p className={styles.refundBlocked}>
-                    매장에서 확인/조리 시작된 주문이 포함되어 있어 환불할 수 없습니다.
+                    남은 잔액이 없거나, 매장에서 확인/조리 시작된 주문이 포함되어 있어 환불할 수
+                    없습니다.
                   </p>
                 )}
               </section>

@@ -708,6 +708,7 @@ export interface Database {
           phone: string
           total_amount: number
           discount_amount: number
+          refunded_amount: number
           coupon_id: string | null
           status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
@@ -724,6 +725,7 @@ export interface Database {
           phone: string
           total_amount: number
           discount_amount?: number
+          refunded_amount?: number
           coupon_id?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
@@ -740,6 +742,7 @@ export interface Database {
           phone?: string
           total_amount?: number
           discount_amount?: number
+          refunded_amount?: number
           coupon_id?: string | null
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
@@ -772,6 +775,9 @@ export interface Database {
           status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           confirmed_at: string | null
           ready_at: string | null
+          cancelled_at: string | null
+          cancel_reason: string | null
+          cancelled_by: 'booth' | 'admin' | null
           festival_id: string | null
           meta: Json
           created_at: string
@@ -789,6 +795,9 @@ export interface Database {
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           confirmed_at?: string | null
           ready_at?: string | null
+          cancelled_at?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: 'booth' | 'admin' | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -806,6 +815,9 @@ export interface Database {
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           confirmed_at?: string | null
           ready_at?: string | null
+          cancelled_at?: string | null
+          cancel_reason?: string | null
+          cancelled_by?: 'booth' | 'admin' | null
           festival_id?: string | null
           meta?: Json
           created_at?: string

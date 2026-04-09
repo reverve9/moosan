@@ -13,6 +13,10 @@ import type { FoodMenu, Order, OrderItem, Payment } from '@/types/database'
  *   - 매출/객단가/부스/메뉴/시간/고객 → 'paid' 만 (cancelled 제외)
  *   - 결제 성공률 → paid / pending / cancelled 전체
  *   - 취소 지표 → cancelled 만
+ *
+ * 부분 환불 대응 (17_order_rejection.sql 이후):
+ *   - 매출 = sum(payment.total_amount - payment.refunded_amount) for paid
+ *   - 부스/메뉴 통계는 orders.status='cancelled' 인 row 를 제외
  */
 
 export interface StatsFilters {
@@ -92,7 +96,8 @@ export function calcKpi(data: StatsRawData): KpiStats {
   let pendingCount = 0
   for (const p of data.payments) {
     if (p.status === 'paid') {
-      totalRevenue += p.total_amount
+      // 부분환불(부스 거절) 차감
+      totalRevenue += p.total_amount - (p.refunded_amount ?? 0)
       paidCount += 1
     } else if (p.status === 'cancelled') {
       cancelledCount += 1
@@ -104,7 +109,10 @@ export function calcKpi(data: StatsRawData): KpiStats {
   const paidPaymentIds = new Set(
     data.payments.filter((p) => p.status === 'paid').map((p) => p.id),
   )
-  const paidOrders = data.orders.filter((o) => paidPaymentIds.has(o.payment_id))
+  // 부스 거절(cancelled) order 는 KPI 카운트에서 제외
+  const paidOrders = data.orders.filter(
+    (o) => paidPaymentIds.has(o.payment_id) && o.status !== 'cancelled',
+  )
   const totalBoothOrders = paidOrders.length
   return {
     totalRevenue,
@@ -151,14 +159,15 @@ export function calcTimeStats(data: StatsRawData): TimeStats {
   const dailyMap = new Map<string, { revenue: number; count: number }>()
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
+    const netRevenue = p.total_amount - (p.refunded_amount ?? 0)
     const hour = kstHour(p.created_at)
     const date = kstDate(p.created_at)
     const h = hourlyMap.get(hour) ?? { revenue: 0, count: 0 }
-    h.revenue += p.total_amount
+    h.revenue += netRevenue
     h.count += 1
     hourlyMap.set(hour, h)
     const d = dailyMap.get(date) ?? { revenue: 0, count: 0 }
-    d.revenue += p.total_amount
+    d.revenue += netRevenue
     d.count += 1
     dailyMap.set(date, d)
   }
@@ -214,6 +223,8 @@ export function calcBoothStats(data: StatsRawData): BoothStats {
   >()
   for (const o of data.orders) {
     if (!paidPaymentIds.has(o.payment_id)) continue
+    // 부스 거절(부분환불) 건은 매출/카운트에서 제외
+    if (o.status === 'cancelled') continue
     const key = o.booth_id ?? `__no_id__${o.booth_name}`
     const row =
       bucket.get(key) ??
@@ -262,9 +273,10 @@ export function calcMenuStats(data: StatsRawData): MenuStats {
   const paidPaymentIds = new Set(
     data.payments.filter((p) => p.status === 'paid').map((p) => p.id),
   )
+  // 부스 거절 건은 메뉴 통계에서도 제외
   const paidOrderIds = new Set(
     data.orders
-      .filter((o) => paidPaymentIds.has(o.payment_id))
+      .filter((o) => paidPaymentIds.has(o.payment_id) && o.status !== 'cancelled')
       .map((o) => o.id),
   )
   const orderBoothName = new Map<string, string>()
@@ -351,7 +363,7 @@ export function calcCustomerStats(data: StatsRawData): CustomerStats {
     if (p.status !== 'paid') continue
     const row = byPhone.get(p.phone) ?? { visits: 0, totalAmount: 0 }
     row.visits += 1
-    row.totalAmount += p.total_amount
+    row.totalAmount += p.total_amount - (p.refunded_amount ?? 0)
     byPhone.set(p.phone, row)
   }
 
@@ -402,13 +414,14 @@ export interface PaymentBehaviorStats {
 }
 
 export function calcPaymentBehaviorStats(data: StatsRawData): PaymentBehaviorStats {
-  // 객단가 분포 (paid 만)
+  // 객단가 분포 (paid 만, 부분환불 차감)
   const buckets = { b10: 0, b20: 0, b30: 0, b30plus: 0 }
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
-    if (p.total_amount < 10_000) buckets.b10 += 1
-    else if (p.total_amount < 20_000) buckets.b20 += 1
-    else if (p.total_amount < 30_000) buckets.b30 += 1
+    const net = p.total_amount - (p.refunded_amount ?? 0)
+    if (net < 10_000) buckets.b10 += 1
+    else if (net < 20_000) buckets.b20 += 1
+    else if (net < 30_000) buckets.b30 += 1
     else buckets.b30plus += 1
   }
   const ticketSizeBuckets = [

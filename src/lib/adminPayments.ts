@@ -190,14 +190,29 @@ export async function fetchPaymentDetail(paymentId: string): Promise<PaymentDeta
   }
 }
 
-/** 환불 가능 여부 (client 측 pre-check, 서버도 동일하게 검증함) */
+/**
+ * 어드민 풀환불 가능 여부 (client 측 pre-check, 서버도 동일하게 검증함).
+ * 부분 환불 모델 도입 후:
+ *  - 이미 cancelled 된 부스 order 는 무시 (부스가 자체 거절한 이력)
+ *  - 남은 잔액 (total_amount - refunded_amount) > 0
+ *  - 남은 paid orders 가 전부 confirmed_at IS NULL AND ready_at IS NULL
+ *  - 환불액 = 남은 잔액
+ */
 export function isRefundable(detail: PaymentDetail): boolean {
   if (detail.payment.status !== 'paid') return false
-  if (detail.orders.length === 0) return false
-  return detail.orders.every(
+  const remaining = detail.payment.total_amount - (detail.payment.refunded_amount ?? 0)
+  if (remaining <= 0) return false
+  const liveOrders = detail.orders.filter(({ order }) => order.status !== 'cancelled')
+  if (liveOrders.length === 0) return false
+  return liveOrders.every(
     ({ order }) =>
       order.status === 'paid' && order.confirmed_at === null && order.ready_at === null,
   )
+}
+
+/** 남은 환불 가능 잔액 */
+export function remainingRefundable(detail: PaymentDetail): number {
+  return Math.max(0, detail.payment.total_amount - (detail.payment.refunded_amount ?? 0))
 }
 
 export interface CancelPaymentResponse {

@@ -82,6 +82,38 @@ export async function confirmBoothOrder(orderId: string): Promise<void> {
 }
 
 /**
+ * 주문 거절 — Toss 부분 환불 + DB 전이.
+ * 서버 endpoint /api/orders/cancel 에 위임 (Toss API 키가 server-only).
+ *
+ * 환불액은 order.subtotal 그대로 (큰 쿠폰 edge case 만 cap). 쿠폰 할인은
+ * 운영자 부담이라 영업점은 비율 분배 없이 풀 금액 환불.
+ *
+ * 거절 가능 조건:
+ *  - order.status in ('paid','confirmed')
+ *  - order.ready_at IS NULL
+ *  - payment.status='paid'
+ */
+export async function cancelBoothOrder(
+  orderId: string,
+  reason: string,
+): Promise<{ refundAmount: number; paymentFullyCancelled: boolean }> {
+  const response = await fetch('/api/orders/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, reason }),
+  })
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const msg = typeof json?.error === 'string' ? json.error : '주문 거절 실패'
+    throw new Error(msg)
+  }
+  return {
+    refundAmount: typeof json.refundAmount === 'number' ? json.refundAmount : 0,
+    paymentFullyCancelled: json.paymentFullyCancelled === true,
+  }
+}
+
+/**
  * 주문 "준비완료" — ready_at 채우고 status 를 'completed' 로 전이.
  * 확인을 건너뛴 경우 confirmed_at 도 함께 채움.
  */

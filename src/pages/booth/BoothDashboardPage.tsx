@@ -12,6 +12,7 @@ import {
 import {
   type BoothOrderCardData,
   type BoothOrderCardStatus,
+  cancelBoothOrder,
   confirmBoothOrder,
   fetchTodayBoothOrders,
   getBoothOrderCardStatus,
@@ -19,6 +20,7 @@ import {
   subscribeBoothOrders,
 } from '@/lib/boothOrders'
 import BoothMenuModal from '@/components/booth/BoothMenuModal'
+import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhone } from '@/lib/phone'
 import { useToast } from '@/components/ui/Toast'
@@ -128,6 +130,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [menuModalOpen, setMenuModalOpen] = useState(false)
+  const [cancelTarget, setCancelTarget] = useState<BoothOrderCard | null>(null)
 
   const cancelledRef = useRef(false)
 
@@ -249,6 +252,29 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     [busyOrderId, refetch],
   )
 
+  const handleCancelConfirm = useCallback(
+    async (reason: string) => {
+      if (!cancelTarget || busyOrderId) return
+      setBusyOrderId(cancelTarget.orderId)
+      try {
+        await cancelBoothOrder(cancelTarget.orderId, reason)
+        showToast(`[${cancelTarget.orderNumber}] 거절 + 환불 처리됐어요`, {
+          type: 'success',
+          duration: 4000,
+        })
+        setCancelTarget(null)
+        await refetch()
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '주문 거절 실패'
+        setError(msg)
+        showToast(msg, { type: 'error', duration: 5000 })
+      } finally {
+        setBusyOrderId(null)
+      }
+    },
+    [cancelTarget, busyOrderId, refetch, showToast],
+  )
+
   return (
     <div className={styles.container}>
       <ConnectionBanner />
@@ -358,6 +384,15 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         {card.totalAmount.toLocaleString()}원
                       </div>
                       <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionReject}`}
+                          onClick={() => setCancelTarget(card)}
+                          disabled={busy}
+                          aria-label="주문 거절"
+                        >
+                          {busy ? '...' : '거절'}
+                        </button>
                         {card.status === 'waiting' && (
                           <button
                             type="button"
@@ -433,6 +468,19 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         <BoothMenuModal
           boothId={boothId}
           onClose={() => setMenuModalOpen(false)}
+        />
+      )}
+
+      {cancelTarget && (
+        <BoothCancelOrderModal
+          orderNumber={cancelTarget.orderNumber}
+          refundAmount={cancelTarget.totalAmount}
+          busy={busyOrderId === cancelTarget.orderId}
+          onConfirm={handleCancelConfirm}
+          onClose={() => {
+            if (busyOrderId === cancelTarget.orderId) return
+            setCancelTarget(null)
+          }}
         />
       )}
     </div>

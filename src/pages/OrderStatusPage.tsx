@@ -7,19 +7,31 @@ import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
 
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'partial'
 
 function computePaymentStatus(data: PaymentWithOrders): UIStatus {
   const { payment, orders } = data
   if (payment.status === 'cancelled') return 'cancelled'
   if (payment.status === 'pending') return 'pending'
   if (orders.length === 0) return 'paid'
+  // 부스 일부만 cancelled 인 경우 = 부분 취소
+  const liveOrders = orders.filter((o) => o.order.status !== 'cancelled')
+  const hasCancelled = orders.some((o) => o.order.status === 'cancelled')
+  if (liveOrders.length === 0) return 'cancelled'
+  if (hasCancelled) {
+    // 일부 취소 + 살아 있는 주문들의 진행 상태
+    if (liveOrders.every((o) => o.order.ready_at)) return 'partial'
+    return 'partial'
+  }
   if (orders.every((o) => o.order.ready_at)) return 'completed'
   if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
   return 'paid'
 }
 
-function computeBoothStatus(order: Order): 'waiting' | 'preparing' | 'ready' {
+type BoothStatus = 'waiting' | 'preparing' | 'ready' | 'cancelled'
+
+function computeBoothStatus(order: Order): BoothStatus {
+  if (order.status === 'cancelled') return 'cancelled'
   if (order.ready_at) return 'ready'
   if (order.confirmed_at) return 'preparing'
   return 'waiting'
@@ -31,12 +43,14 @@ const STATUS_LABEL: Record<UIStatus, { title: string; sub: string }> = {
   confirmed: { title: '조리 중', sub: '매장에서 음식을 조리하고 있어요' },
   completed: { title: '조리 완료', sub: '매장에서 음식을 픽업해주세요' },
   cancelled: { title: '취소됨', sub: '주문이 취소되었습니다' },
+  partial: { title: '일부 취소', sub: '일부 매장이 주문을 거절해 환불 처리됐어요' },
 }
 
-const BOOTH_STATUS_LABEL: Record<'waiting' | 'preparing' | 'ready', string> = {
+const BOOTH_STATUS_LABEL: Record<BoothStatus, string> = {
   waiting: '확인 대기중',
   preparing: '조리 중',
   ready: '조리 완료',
+  cancelled: '취소됨',
 }
 
 export default function OrderStatusPage() {
@@ -191,6 +205,14 @@ export default function OrderStatusPage() {
               {payment.total_amount.toLocaleString()}원
             </span>
           </div>
+          {payment.refunded_amount > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>환불금액</span>
+              <span className={`${styles.metaValueStrong} ${styles.refundText}`}>
+                -{payment.refunded_amount.toLocaleString()}원
+              </span>
+            </div>
+          )}
         </div>
 
         {/* ─── 매장별 진행 상황 ─── */}
@@ -199,6 +221,7 @@ export default function OrderStatusPage() {
           <ul className={styles.boothList}>
             {orders.map(({ order, items }) => {
               const boothStatus = computeBoothStatus(order)
+              const isCancelled = boothStatus === 'cancelled'
               return (
                 <li
                   key={order.id}
@@ -213,9 +236,21 @@ export default function OrderStatusPage() {
                       {BOOTH_STATUS_LABEL[boothStatus]}
                     </span>
                   </div>
+                  {isCancelled && order.cancel_reason && (
+                    <div className={styles.boothCancelBox}>
+                      <div className={styles.boothCancelLabel}>거절 사유</div>
+                      <div className={styles.boothCancelReason}>{order.cancel_reason}</div>
+                      <div className={styles.boothCancelRefund}>
+                        {order.subtotal.toLocaleString()}원 환불 처리됐어요
+                      </div>
+                    </div>
+                  )}
                   <ul className={styles.itemList}>
                     {items.map((item) => (
-                      <li key={item.id} className={styles.item}>
+                      <li
+                        key={item.id}
+                        className={`${styles.item} ${isCancelled ? styles.itemCancelled : ''}`}
+                      >
                         <span className={styles.itemName}>
                           {item.menu_name}
                           <span className={styles.itemQty}> × {item.quantity}</span>
