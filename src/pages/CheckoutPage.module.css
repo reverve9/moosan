@@ -352,3 +352,98 @@
   font-size: var(--text-form-helper);
   margin-right: 6px;
 }
+
+/* ── 자동 쿠폰 카드 (전화번호 기반) ── */
+
+.autoCouponCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 var(--space-5) 16px;
+  padding: 16px 18px;
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, transparent);
+  border-radius: 14px;
+}
+
+.autoCouponIcon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.autoCouponBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.autoCouponTitle {
+  font-size: var(--text-form-label);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.autoCouponMeta {
+  font-size: var(--text-form-caption);
+  color: #6B7280;
+}
+
+.autoCouponWarn {
+  margin-top: 4px;
+  font-size: var(--text-form-helper);
+  color: #B45309;
+  font-weight: 600;
+}
+
+.autoCouponActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.autoCouponApply {
+  height: 32px;
+  padding: 0 16px;
+  font-size: var(--text-form-caption);
+  font-weight: 700;
+  color: #FFFFFF;
+  background: #283648;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.autoCouponApply:hover:not(:disabled) {
+  background: #17202E;
+}
+
+.autoCouponApply:disabled {
+  background: #94A3B8;
+  cursor: not-allowed;
+}
+
+.autoCouponDismiss {
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--text-form-helper);
+  font-weight: 500;
+  color: #6B7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.autoCouponDismiss:hover {
+  color: #374151;
+}

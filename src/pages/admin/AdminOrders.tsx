@@ -11,7 +11,7 @@ import {
   type PaymentRowWithSummary,
   type PaymentsListFilters,
 } from '@/lib/adminPayments'
-import { formatPhone } from '@/lib/phone'
+import { formatPhoneDisplay } from '@/lib/phone'
 import styles from './AdminOrders.module.css'
 
 function todayKstString(): string {
@@ -304,7 +304,7 @@ export default function AdminOrders() {
                     </td>
                     <td className={styles.mono}>{formatDateTime(r.payment.created_at)}</td>
                     <td className={styles.mono}>{firstOrderNo}</td>
-                    <td>{formatPhone(r.payment.phone)}</td>
+                    <td>{formatPhoneDisplay(r.payment.phone)}</td>
                     <td>
                       <span className={styles.menuCell}>{formatMenuSummary(r.menuLines)}</span>
                     </td>
@@ -457,7 +457,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>전화번호</span>
-                <span className={styles.metaValue}>{formatPhone(detail.payment.phone)}</span>
+                <span className={styles.metaValue}>{formatPhoneDisplay(detail.payment.phone)}</span>
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>결제상태</span>

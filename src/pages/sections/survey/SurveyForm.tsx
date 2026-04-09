@@ -6,6 +6,8 @@ import SurveyStep2Experience from './SurveyStep2Experience'
 import SurveyStep3Evaluation from './SurveyStep3Evaluation'
 import SurveyStep4Opinion from './SurveyStep4Opinion'
 import { submitSurvey } from '@/lib/survey'
+import { DuplicateSurveyCouponError } from '@/lib/coupons'
+import { normalizePhone } from '@/lib/phone'
 import styles from './SurveyForm.module.css'
 
 const TOTAL_STEPS = 4
@@ -99,6 +101,7 @@ export default function SurveyForm() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [duplicateCoupon, setDuplicateCoupon] = useState(false)
 
   const updateForm = (updates: Partial<SurveyFormData>) => {
     setForm((prev) => ({ ...prev, ...updates }))
@@ -159,7 +162,7 @@ export default function SurveyForm() {
         age: Number(form.age),
         region: form.region,
         name: form.name,
-        phone: form.phone,
+        phone: normalizePhone(form.phone),
         privacyConsented: form.privacyConsented,
         answers,
       })
@@ -167,8 +170,13 @@ export default function SurveyForm() {
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
-      const message = err instanceof Error ? err.message : '설문 제출에 실패했습니다.'
-      setSubmitError(message)
+      if (err instanceof DuplicateSurveyCouponError) {
+        // 이미 발급받은 번호 — 설문 저장 자체 차단 (오염 방지)
+        setDuplicateCoupon(true)
+      } else {
+        const message = err instanceof Error ? err.message : '설문 제출에 실패했습니다.'
+        setSubmitError(message)
+      }
     } finally {
       setSubmitting(false)
     }
@@ -181,15 +189,23 @@ export default function SurveyForm() {
         <h3 className={styles.successTitle}>설문조사에 참여해 주셔서 감사합니다</h3>
         <p className={styles.successDesc}>
           소중한 의견은 내년 축전 준비에 반영하겠습니다.
-          <br />
-          건강하고 즐거운 하루 되세요.
         </p>
+        <div className={styles.couponNotice}>
+          <div className={styles.couponNoticeTitle}>
+            🎟 2,000원 할인 쿠폰이 발급되었습니다
+          </div>
+          <p className={styles.couponNoticeDesc}>
+            음식 결제 시 입력하신 전화번호를 그대로 사용하면
+            <br />
+            쿠폰이 자동으로 적용됩니다.
+          </p>
+        </div>
         <button
           type="button"
           className={styles.successBtn}
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/program/food')}
         >
-          홈으로
+          음식 주문하러 가기
         </button>
       </div>
     )
@@ -197,6 +213,43 @@ export default function SurveyForm() {
 
   return (
     <div className={styles.form}>
+      {duplicateCoupon && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setDuplicateCoupon(false)}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalIcon}>!</div>
+            <h3 className={styles.modalTitle}>이미 쿠폰이 발급된 번호입니다</h3>
+            <p className={styles.modalDesc}>
+              입력하신 전화번호로 이미 설문조사 참여 쿠폰이 발급되어
+              <br />
+              추가 발급이 불가능합니다.
+              <br />
+              <br />
+              음식 결제 시 해당 번호를 입력하면
+              <br />
+              쿠폰이 자동으로 적용됩니다.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalBtnSecondary}
+                onClick={() => setDuplicateCoupon(false)}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                className={styles.modalBtnPrimary}
+                onClick={() => navigate('/program/food')}
+              >
+                음식 주문하러 가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <StepIndicator current={step} total={TOTAL_STEPS} />
 
       {step === 1 && (

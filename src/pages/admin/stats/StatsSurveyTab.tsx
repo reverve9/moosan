@@ -1,5 +1,6 @@
 import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   SURVEY_ITEMS,
   SURVEY_LABELS,
@@ -11,7 +12,9 @@ import {
   type LikertSubItem,
   type SurveyStats,
 } from '@/lib/survey'
-import type { Survey } from '@/types/database'
+import type { Coupon, Survey } from '@/types/database'
+import { fetchSurveyCouponByPhone } from '@/lib/coupons'
+import { formatPhoneDisplay } from '@/lib/phone'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import styles from './StatsSurveyTab.module.css'
 
@@ -202,7 +205,7 @@ export default function StatsSurveyTab() {
                         <td className={`${styles.alignCenter} ${styles.mono}`}>
                           {q11 ?? '—'}
                         </td>
-                        <td className={styles.mono}>{r.phone}</td>
+                        <td className={styles.mono}>{formatPhoneDisplay(r.phone)}</td>
                       </tr>
                     )
                   })}
@@ -544,6 +547,9 @@ interface SurveyDetailModalProps {
 }
 
 function SurveyDetailModal({ survey, onClose }: SurveyDetailModalProps) {
+  const navigate = useNavigate()
+  const [surveyCoupon, setSurveyCoupon] = useState<Coupon | null>(null)
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -551,6 +557,29 @@ function SurveyDetailModal({ survey, onClose }: SurveyDetailModalProps) {
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
+
+  // 이 응답자에게 발급된 설문 쿠폰 조회 (phone 기반)
+  useEffect(() => {
+    let cancelled = false
+    fetchSurveyCouponByPhone(survey.phone)
+      .then((c) => {
+        if (!cancelled) setSurveyCoupon(c)
+      })
+      .catch(() => {
+        if (!cancelled) setSurveyCoupon(null)
+      })
+  }, [survey.phone])
+
+  const couponStatus = useMemo(() => {
+    if (!surveyCoupon) return null
+    if (surveyCoupon.status === 'used') {
+      return { label: '사용완료', tone: 'used' as const }
+    }
+    if (new Date(surveyCoupon.expires_at).getTime() < Date.now()) {
+      return { label: '만료', tone: 'expired' as const }
+    }
+    return { label: '미사용', tone: 'active' as const }
+  }, [surveyCoupon])
 
   const a = (survey.answers ?? {}) as Record<string, unknown>
 
@@ -602,14 +631,26 @@ function SurveyDetailModal({ survey, onClose }: SurveyDetailModalProps) {
               {survey.name} · {formatDateTime(survey.created_at)}
             </p>
           </div>
-          <button
-            type="button"
-            className={styles.modalClose}
-            onClick={onClose}
-            aria-label="닫기"
-          >
-            <X />
-          </button>
+          <div className={styles.modalHeaderRight}>
+            {surveyCoupon && couponStatus && (
+              <button
+                type="button"
+                className={`${styles.couponBadge} ${styles[`couponBadge_${couponStatus.tone}`]}`}
+                onClick={() => navigate('/coupons')}
+                title="쿠폰 관리로 이동"
+              >
+                🎟 {surveyCoupon.discount_amount.toLocaleString()}원 · {couponStatus.label}
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={onClose}
+              aria-label="닫기"
+            >
+              <X />
+            </button>
+          </div>
         </div>
 
         <div className={styles.modalBody}>
@@ -621,7 +662,7 @@ function SurveyDetailModal({ survey, onClose }: SurveyDetailModalProps) {
               label="거주지역"
               value={SURVEY_LABELS.region[survey.region] ?? survey.region}
             />
-            <DetailRow label="전화" value={survey.phone} />
+            <DetailRow label="전화" value={formatPhoneDisplay(survey.phone)} />
             <DetailRow
               label="개인정보 동의"
               value={survey.privacy_consented ? '동의' : '미동의'}

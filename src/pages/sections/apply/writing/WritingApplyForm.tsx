@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 import StepIndicator from '../StepIndicator'
 import Input from '@/components/ui/Input'
 import RadioGroup from '@/components/ui/RadioGroup'
@@ -72,9 +73,9 @@ export default function WritingApplyForm() {
       applicant_name: form.name,
       applicant_birth: form.birth || null,
       school_name: form.school,
-      phone: form.phone,
+      phone: normalizePhone(form.phone),
       email: form.email || null,
-      parent_phone: form.parentPhone || null,
+      parent_phone: form.parentPhone ? normalizePhone(form.parentPhone) : null,
       privacy_agreed: form.privacyAgreed,
       privacy_agreed_at: form.privacyAgreed ? new Date().toISOString() : null,
       meta: {

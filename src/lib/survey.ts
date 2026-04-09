@@ -1,5 +1,10 @@
 import { supabase } from './supabase'
-import type { Json, Survey } from '@/types/database'
+import {
+  DuplicateSurveyCouponError,
+  hasSurveyCouponByPhone,
+  issueSurveyCoupon,
+} from './coupons'
+import type { Coupon, Json, Survey } from '@/types/database'
 import {
   GENDER_OPTIONS,
   REGION_OPTIONS,
@@ -477,7 +482,29 @@ export interface SubmitSurveyInput {
   answers: Record<string, unknown>
 }
 
-export async function submitSurvey(input: SubmitSurveyInput): Promise<Survey> {
+export interface SubmitSurveyResult {
+  survey: Survey
+  coupon: Coupon
+}
+
+/**
+ * 설문 제출 + 자동 쿠폰 발급 (원자성 없음, 2단계).
+ *
+ *  1. 기존 설문 쿠폰 존재 여부 선체크 → 있으면 DuplicateSurveyCouponError
+ *     (설문 insert 자체를 차단. 데이터 오염 방지)
+ *  2. surveys insert (기존 phone+festival unique 제약은 유지)
+ *  3. 쿠폰 insert. 만약 (1) 과 (3) 사이 레이스로 unique 위반 나면
+ *     설문은 이미 저장된 상태라 어드민에서 수동 재발급 필요 (로그만 throw)
+ */
+export async function submitSurvey(
+  input: SubmitSurveyInput,
+): Promise<SubmitSurveyResult> {
+  // 1) 중복 쿠폰 사전 체크
+  if (await hasSurveyCouponByPhone(input.phone)) {
+    throw new DuplicateSurveyCouponError()
+  }
+
+  // 2) 설문 insert
   const { data, error } = await supabase
     .from('surveys')
     .insert({
@@ -494,12 +521,15 @@ export async function submitSurvey(input: SubmitSurveyInput): Promise<Survey> {
     .single()
 
   if (error) {
-    // Postgres unique violation
+    // Postgres unique violation — 같은 phone+festival 재제출
     if (error.code === '23505') {
       throw new Error('이미 제출하신 연락처입니다. 설문은 한 번만 참여 가능합니다.')
     }
     throw new Error(error.message || '설문 제출에 실패했습니다.')
   }
 
-  return data as Survey
+  // 3) 쿠폰 자동 발급
+  const coupon = await issueSurveyCoupon(input.phone)
+
+  return { survey: data as Survey, coupon }
 }

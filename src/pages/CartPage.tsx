@@ -6,7 +6,7 @@ import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
 import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
-import { formatPhone, isValidPhone, loadLastPhone } from '@/lib/phone'
+import { formatPhone, isValidPhone, loadLastPhone, normalizePhone } from '@/lib/phone'
 import styles from './CartPage.module.css'
 
 interface BoothGroup {
@@ -101,7 +101,7 @@ export default function CartPage() {
     let cancelled = false
     setLoadingOrders(true)
     setOrdersError(null)
-    fetchPaymentsByPhoneToday(submittedPhone)
+    fetchPaymentsByPhoneToday(normalizePhone(submittedPhone))
       .then((data) => {
         if (!cancelled) setPayments(data)
       })

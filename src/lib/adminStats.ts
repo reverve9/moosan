@@ -349,7 +349,8 @@ export interface CustomerStats {
 }
 
 function maskPhone(phone: string): string {
-  // 010-1234-5678 → 010-****-5678
+  // 01012345678 또는 010-1234-5678 → 010-****-5678
+  // DB 저장 포맷은 하이픈 없음 (normalizePhone 통과), 표시용 마스킹.
   const cleaned = phone.replace(/\D/g, '')
   if (cleaned.length >= 8) {
     return `${cleaned.slice(0, 3)}-****-${cleaned.slice(-4)}`
@@ -361,10 +362,12 @@ export function calcCustomerStats(data: StatsRawData): CustomerStats {
   const byPhone = new Map<string, { visits: number; totalAmount: number }>()
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
-    const row = byPhone.get(p.phone) ?? { visits: 0, totalAmount: 0 }
+    // 과거 하이픈 포함 row 와 신규 하이픈 없는 row 가 섞여 있어도 동일인으로 집계
+    const key = p.phone.replace(/\D/g, '')
+    const row = byPhone.get(key) ?? { visits: 0, totalAmount: 0 }
     row.visits += 1
     row.totalAmount += p.total_amount - (p.refunded_amount ?? 0)
-    byPhone.set(p.phone, row)
+    byPhone.set(key, row)
   }
 
   const totalUniquePhones = byPhone.size

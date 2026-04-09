@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
+import { formatPhoneDisplay } from '@/lib/phone'
 import type { Application, Program, Json } from '@/types/database'
 import styles from './AdminApplications.module.css'
 
@@ -222,7 +223,7 @@ export default function AdminApplications() {
             >
               <span className={styles.colName}>
                 <strong>{app.applicant_name}</strong>
-                <small>{app.phone}</small>
+                <small>{formatPhoneDisplay(app.phone)}</small>
               </span>
               <span className={styles.colProgram}>{app.programs?.name || '-'}</span>
               <span className={styles.colDivision}>{app.division || '-'}</span>
@@ -274,7 +275,7 @@ export default function AdminApplications() {
                 <MetaField label="생년월일" value={selected.applicant_birth} />
                 <MetaField label="소속" value={selected.school_name || undefined} />
                 <MetaField label="학년" value={selected.school_grade} />
-                <MetaField label="연락처" value={selected.phone} />
+                <MetaField label="연락처" value={formatPhoneDisplay(selected.phone)} />
                 <MetaField label="이메일" value={selected.email} />
               </div>
 
@@ -282,7 +283,7 @@ export default function AdminApplications() {
                 <div className={styles.detailSection}>
                   <h3 className={styles.detailSectionTitle}>보호자 정보</h3>
                   <MetaField label="이름" value={selected.parent_name} />
-                  <MetaField label="연락처" value={selected.parent_phone} />
+                  <MetaField label="연락처" value={formatPhoneDisplay(selected.parent_phone)} />
                   <MetaField label="관계" value={selected.parent_relation} />
                 </div>
               )}
@@ -291,7 +292,7 @@ export default function AdminApplications() {
                 <div className={styles.detailSection}>
                   <h3 className={styles.detailSectionTitle}>지도교사 정보</h3>
                   <MetaField label="이름" value={selected.teacher_name} />
-                  <MetaField label="연락처" value={selected.teacher_phone} />
+                  <MetaField label="연락처" value={formatPhoneDisplay(selected.teacher_phone)} />
                   <MetaField label="이메일" value={selected.teacher_email} />
                 </div>
               )}

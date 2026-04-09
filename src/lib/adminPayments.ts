@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { normalizePhone } from './phone'
 import type { Order, OrderItem, Payment } from '@/types/database'
 
 /**
@@ -63,7 +64,10 @@ export async function fetchPaymentsList(
     q = q.lt('created_at', kstDateToUtc(filters.dateTo, true))
   }
   if (filters.phone && filters.phone.trim().length > 0) {
-    q = q.ilike('phone', `%${filters.phone.trim()}%`)
+    // 입력값이 하이픈 유무 어떤 형태든 숫자만 추출해서 ilike 부분매칭
+    // (DB 는 normalizePhone 통과한 숫자 11자리로 저장)
+    const digits = normalizePhone(filters.phone)
+    if (digits.length > 0) q = q.ilike('phone', `%${digits}%`)
   }
 
   const { data: payments, error } = await q.limit(300)

@@ -7,8 +7,9 @@ import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
 import { getTossPayments } from '@/lib/toss'
 import { createPendingPayment } from '@/lib/orders'
-import { validateCouponByCode } from '@/lib/coupons'
-import { formatPhone, isValidPhone, saveLastPhone } from '@/lib/phone'
+import { fetchAvailableCouponByPhone, validateCouponByCode } from '@/lib/coupons'
+import type { Coupon } from '@/types/database'
+import { formatPhone, isValidPhone, normalizePhone, saveLastPhone } from '@/lib/phone'
 import {
   calcWaitingInfo,
   fetchBoothWaitingSummariesByIds,
@@ -50,13 +51,16 @@ export default function CheckoutPage() {
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [waitingSummaries, setWaitingSummaries] = useState<BoothWaitingSummary[]>([])
-  // 쿠폰
+  // 쿠폰 — 수동 코드 입력 경로 (AdminCoupons 로 수동발급된 쿠폰용)
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState<string | null>(null)
   const [couponApplying, setCouponApplying] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<
     { id: string; code: string; discount: number } | null
   >(null)
+  // 전화번호 기반 자동 쿠폰 — 설문조사 자동발급분
+  const [autoCoupon, setAutoCoupon] = useState<Coupon | null>(null)
+  const [autoCouponDismissed, setAutoCouponDismissed] = useState(false)
 
   // 빈 장바구니면 카트로 돌려보냄
   useEffect(() => {
@@ -83,6 +87,27 @@ export default function CheckoutPage() {
   const groups = useMemo(() => groupByBooth(items), [items])
   const phoneValid = isValidPhone(phone)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
+
+  // 전화번호 11자리 완성 시 자동 쿠폰 조회
+  useEffect(() => {
+    if (!phoneValid) {
+      setAutoCoupon(null)
+      setAutoCouponDismissed(false)
+      return
+    }
+    let cancelled = false
+    fetchAvailableCouponByPhone(normalizePhone(phone))
+      .then((c) => {
+        if (!cancelled) setAutoCoupon(c)
+      })
+      .catch(() => {
+        // 자동 조회 실패는 조용히 무시 (수동 코드 입력 경로는 살아있음)
+        if (!cancelled) setAutoCoupon(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [phone, phoneValid])
 
   const discount = appliedCoupon?.discount ?? 0
   const finalAmount = Math.max(0, totalAmount - discount)
@@ -122,6 +147,36 @@ export default function CheckoutPage() {
     setAppliedCoupon(null)
     setCouponCode('')
     setCouponError(null)
+    // 자동 쿠폰을 해제한 경우 다시 카드로 제안하지 않도록 dismiss
+    if (autoCoupon) setAutoCouponDismissed(true)
+  }
+
+  const handleApplyAutoCoupon = async () => {
+    if (!autoCoupon || couponApplying) return
+    setCouponApplying(true)
+    setCouponError(null)
+    try {
+      // 서버 검증 재사용 (min_order_amount, status, expires_at)
+      const result = await validateCouponByCode(autoCoupon.code, totalAmount)
+      if (!result.valid || !result.couponId) {
+        setCouponError(result.error ?? '쿠폰 적용 실패')
+        return
+      }
+      setAppliedCoupon({
+        id: result.couponId,
+        code: result.code ?? autoCoupon.code,
+        discount: result.discount ?? autoCoupon.discount_amount,
+      })
+      showToast('쿠폰이 적용됐어요', { type: 'success' })
+    } catch (e) {
+      setCouponError(e instanceof Error ? e.message : '쿠폰 적용 실패')
+    } finally {
+      setCouponApplying(false)
+    }
+  }
+
+  const handleDismissAutoCoupon = () => {
+    setAutoCouponDismissed(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,12 +214,15 @@ export default function CheckoutPage() {
         return
       }
 
+      // DB/API 저장용 — 하이픈 제거 (01012345678)
+      const normalizedPhone = normalizePhone(phone)
+
       // 1) payments + 부스별 orders + order_items INSERT (status: pending)
       //    - 트리거가 payments.toss_order_id 자동 채움 (전역 sequence)
       //    - 트리거가 orders.order_number 자동 채움 (부스별 누적)
       //    - 쿠폰 적용 시 할인 후 금액을 total_amount 로 저장
       const { payment } = await createPendingPayment({
-        phone,
+        phone: normalizedPhone,
         totalAmount: finalAmount,
         items,
         couponId: appliedCoupon?.id ?? null,
@@ -172,6 +230,7 @@ export default function CheckoutPage() {
       })
 
       // 결제 시도하는 phone 을 localStorage 에 저장 → /cart 의 주문 내역 섹션 auto-prefill
+      // (UI 표시용이므로 포맷된 값 그대로)
       saveLastPhone(phone)
 
       // 2) 토스 결제창 호출 (orderId = payments.toss_order_id)
@@ -186,7 +245,7 @@ export default function CheckoutPage() {
         amount: finalAmount,
         orderId: payment.toss_order_id,
         orderName,
-        customerMobilePhone: phone.replace(/-/g, ''),
+        customerMobilePhone: normalizedPhone,
         successUrl: `${window.location.origin}/checkout/success`,
         failUrl: `${window.location.origin}/checkout/fail`,
         windowTarget: 'self',
@@ -259,7 +318,46 @@ export default function CheckoutPage() {
           />
         </div>
 
-        {/* ─── 쿠폰 ─── */}
+        {/* ─── 자동 쿠폰 카드 (전화번호 기반) ─── */}
+        {phoneValid && !appliedCoupon && autoCoupon && !autoCouponDismissed && (
+          <div className={styles.autoCouponCard}>
+            <div className={styles.autoCouponIcon}>🎟</div>
+            <div className={styles.autoCouponBody}>
+              <div className={styles.autoCouponTitle}>
+                {autoCoupon.discount_amount.toLocaleString()}원 할인 쿠폰
+              </div>
+              <div className={styles.autoCouponMeta}>
+                {autoCoupon.min_order_amount.toLocaleString()}원 이상 주문 시 사용 가능
+              </div>
+              {totalAmount < autoCoupon.min_order_amount && (
+                <div className={styles.autoCouponWarn}>
+                  최소 주문액 미달 — {(autoCoupon.min_order_amount - totalAmount).toLocaleString()}원 부족
+                </div>
+              )}
+            </div>
+            <div className={styles.autoCouponActions}>
+              <button
+                type="button"
+                className={styles.autoCouponApply}
+                onClick={handleApplyAutoCoupon}
+                disabled={
+                  couponApplying || totalAmount < autoCoupon.min_order_amount
+                }
+              >
+                {couponApplying ? '…' : '적용'}
+              </button>
+              <button
+                type="button"
+                className={styles.autoCouponDismiss}
+                onClick={handleDismissAutoCoupon}
+              >
+                사용 안 함
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ─── 쿠폰 (수동 코드 입력) ─── */}
         <div className={styles.section}>
           <h3 className={styles.sectionTitle}>쿠폰</h3>
           {appliedCoupon ? (

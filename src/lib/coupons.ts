@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { normalizePhone } from './phone'
 import type { Coupon } from '@/types/database'
 
 /**
@@ -41,6 +42,124 @@ async function generateUniqueCouponCode(): Promise<string> {
   throw new Error('쿠폰 코드 생성 실패 — 잠시 후 다시 시도해주세요')
 }
 
+// ─── 설문 자동 발급 만료일 ──────────────────────────────────
+// 축제 종료 시점 — 2026-05-17 23:59:59 KST 로 하드코딩. 활성 festival
+// 조회 lib 가 들어오면 이 상수를 동적으로 교체.
+export const SURVEY_COUPON_EXPIRES_AT = new Date(
+  '2026-05-17T23:59:59+09:00',
+).toISOString()
+
+// 설문 쿠폰 기본값
+const SURVEY_COUPON_DISCOUNT = 2000
+const SURVEY_COUPON_MIN_ORDER = 10000
+
+/** 설문 자동 발급 중복 에러 — surveys 저장 이전에 throw 해서 호출부에서 팝업 */
+export class DuplicateSurveyCouponError extends Error {
+  constructor() {
+    super('이미 쿠폰이 발급된 번호입니다')
+    this.name = 'DuplicateSurveyCouponError'
+  }
+}
+
+// ─── 전화번호 기반 조회 (체크아웃 자동 적용) ────────────────
+
+/**
+ * 전화번호로 지금 사용 가능한 쿠폰 1장 조회.
+ *  - status='active'
+ *  - expires_at > now()
+ *  - 가장 최근 생성된 1장
+ * 수동 발급 쿠폰이 여러 장 있을 수 있으므로 최신 1장만 반환.
+ */
+export async function fetchAvailableCouponByPhone(
+  phone: string,
+): Promise<Coupon | null> {
+  if (!phone) return null
+  const { data, error } = await supabase
+    .from('coupons')
+    .select()
+    .eq('phone', normalizePhone(phone))
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data ?? null
+}
+
+/**
+ * 전화번호로 발급된 설문 자동쿠폰 1장 조회 (status/만료 무관 · 최신 1장).
+ * AdminSurvey 상세 모달 배지용.
+ */
+export async function fetchSurveyCouponByPhone(
+  phone: string,
+): Promise<Coupon | null> {
+  if (!phone) return null
+  const { data, error } = await supabase
+    .from('coupons')
+    .select()
+    .eq('phone', normalizePhone(phone))
+    .eq('issued_source', 'survey')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data ?? null
+}
+
+/**
+ * 전화번호로 이미 설문 자동발급 쿠폰이 존재하는지 확인 (used/expired 포함).
+ * 설문 제출 시 중복 체크용 — 과거에 발급됐으면 재설문 자체를 차단.
+ */
+export async function hasSurveyCouponByPhone(phone: string): Promise<boolean> {
+  if (!phone) return false
+  const { data, error } = await supabase
+    .from('coupons')
+    .select('id')
+    .eq('phone', normalizePhone(phone))
+    .eq('issued_source', 'survey')
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return !!data
+}
+
+/**
+ * 설문 제출 직후 자동 쿠폰 발급.
+ *  - 할인 2,000원 / 최소 10,000원 / 만료 2026-05-17 23:59 KST 고정
+ *  - partial unique index (issued_source='survey' + phone) 로 DB 수준에서도
+ *    중복 방지. unique 위반이면 DuplicateSurveyCouponError 로 변환.
+ */
+export async function issueSurveyCoupon(phone: string): Promise<Coupon> {
+  const normalized = normalizePhone(phone)
+  if (normalized.length !== 11) {
+    throw new Error('전화번호 형식이 올바르지 않습니다')
+  }
+  const code = await generateUniqueCouponCode()
+  const { data, error } = await supabase
+    .from('coupons')
+    .insert({
+      code,
+      discount_amount: SURVEY_COUPON_DISCOUNT,
+      min_order_amount: SURVEY_COUPON_MIN_ORDER,
+      status: 'active',
+      issued_source: 'survey',
+      expires_at: SURVEY_COUPON_EXPIRES_AT,
+      phone: normalized,
+      note: '만족도조사 참여 쿠폰',
+    })
+    .select()
+    .single()
+  if (error || !data) {
+    // Postgres unique_violation = 23505
+    if (error?.code === '23505') {
+      throw new DuplicateSurveyCouponError()
+    }
+    throw new Error(`설문 쿠폰 발급 실패: ${error?.message ?? 'unknown'}`)
+  }
+  return data
+}
+
 // ─── 수동 발급 (어드민) ─────────────────────────────────────
 
 export interface CreateCouponManualInput {
@@ -66,7 +185,7 @@ export async function createCouponManually(
       issued_source: 'manual',
       expires_at: input.expiresAt,
       note: input.note ?? null,
-      issued_phone: input.issuedPhone ?? null,
+      issued_phone: input.issuedPhone ? normalizePhone(input.issuedPhone) : null,
       festival_id: input.festivalId ?? null,
     })
     .select()

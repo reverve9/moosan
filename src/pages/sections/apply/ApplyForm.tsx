@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 import StepIndicator from './StepIndicator'
 import Step1Agreement from './Step1Agreement'
 import Step2Info from './Step2Info'
@@ -105,13 +106,13 @@ export default function ApplyForm({ defaultProgramId }: Props) {
       applicant_birth: form.applicantBirth || null,
       school_name: form.schoolName,
       school_grade: form.schoolGrade || null,
-      phone: form.phone,
+      phone: normalizePhone(form.phone),
       email: form.email || null,
       parent_name: form.parentName || null,
-      parent_phone: form.parentPhone || null,
+      parent_phone: form.parentPhone ? normalizePhone(form.parentPhone) : null,
       parent_relation: form.parentRelation || null,
       teacher_name: form.teacherName || null,
-      teacher_phone: form.teacherPhone || null,
+      teacher_phone: form.teacherPhone ? normalizePhone(form.teacherPhone) : null,
       teacher_email: form.teacherEmail || null,
       privacy_agreed: form.privacyAgreed,
       privacy_agreed_at: form.privacyAgreed ? new Date().toISOString() : null,

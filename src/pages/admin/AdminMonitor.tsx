@@ -6,7 +6,7 @@ import {
   subscribeMonitor,
 } from '@/lib/boothMonitor'
 import { confirmBoothOrder } from '@/lib/boothOrders'
-import { formatPhone } from '@/lib/phone'
+import { formatPhoneDisplay } from '@/lib/phone'
 import styles from './AdminMonitor.module.css'
 
 const ALERT_SECONDS = 60
@@ -230,7 +230,7 @@ export default function AdminMonitor() {
                     </div>
                     <div className={styles.modalItemBody}>
                       <div className={styles.modalItemMenu}>{menuSummary}</div>
-                      <div className={styles.modalItemPhone}>{formatPhone(order.phone)}</div>
+                      <div className={styles.modalItemPhone}>{formatPhoneDisplay(order.phone)}</div>
                     </div>
                     <div className={styles.modalItemElapsed}>{formatElapsed(elapsed)}</div>
                     {ALLOW_ADMIN_CONFIRM && (

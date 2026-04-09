@@ -19,7 +19,7 @@ import {
 import BoothMenuModal from '@/components/booth/BoothMenuModal'
 import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
-import { formatPhone } from '@/lib/phone'
+import { formatPhoneDisplay } from '@/lib/phone'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import styles from './BoothDashboardPage.module.css'
@@ -362,7 +362,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                           {formatElapsed(elapsedSec)}
                         </span>
                       </div>
-                      <div className={styles.cardPhone}>{formatPhone(card.phone)}</div>
+                      <div className={styles.cardPhone}>{formatPhoneDisplay(card.phone)}</div>
                     </div>
                     <ul className={styles.itemList}>
                       {Array.from({ length: Math.max(2, card.items.length) }).map((_, i) => {

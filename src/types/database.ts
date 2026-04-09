@@ -640,6 +640,7 @@ export interface Database {
           status: 'active' | 'used'
           issued_source: 'manual' | 'survey'
           issued_phone: string | null
+          phone: string | null
           note: string | null
           expires_at: string
           used_at: string | null
@@ -657,6 +658,7 @@ export interface Database {
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
           issued_phone?: string | null
+          phone?: string | null
           note?: string | null
           expires_at: string
           used_at?: string | null
@@ -674,6 +676,7 @@ export interface Database {
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
           issued_phone?: string | null
+          phone?: string | null
           note?: string | null
           expires_at?: string
           used_at?: string | null

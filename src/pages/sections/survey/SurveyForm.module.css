@@ -199,3 +199,111 @@
 .successBtn:hover {
   background-color: var(--color-primary-dark);
 }
+
+/* ── 쿠폰 안내 (success 화면) ── */
+
+.couponNotice {
+  margin: 0 0 24px;
+  padding: 20px 18px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  text-align: center;
+}
+
+.couponNoticeTitle {
+  font-size: var(--text-form-input);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: 8px;
+}
+
+.couponNoticeDesc {
+  font-size: var(--text-form-caption);
+  color: #4B5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── 중복 쿠폰 경고 모달 ── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 28px 24px 20px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+
+.modalIcon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  background-color: #FEF2F2;
+  color: #DC2626;
+  font-size: 28px;
+  font-weight: 700;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalTitle {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.modalDesc {
+  font-size: var(--text-form-caption);
+  color: #6B7280;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 10px;
+}
+
+.modalBtnPrimary {
+  flex: 1;
+  height: 44px;
+  font-size: var(--text-form-input);
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: var(--color-primary);
+  border-radius: 10px;
+}
+
+.modalBtnPrimary:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.modalBtnSecondary {
+  width: 80px;
+  height: 44px;
+  font-size: var(--text-form-input);
+  font-weight: 600;
+  color: #374151;
+  background-color: #F3F4F6;
+  border-radius: 10px;
+}
+
+.modalBtnSecondary:hover {
+  background-color: #E5E7EB;
+}

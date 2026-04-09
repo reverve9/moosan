@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 import Checkbox from '@/components/ui/Checkbox'
 import StepIndicator from '../StepIndicator'
 import ChoirStep2Info from './ChoirStep2Info'
@@ -75,7 +76,7 @@ export default function ChoirApplyForm() {
       participation_type: 'team' as const,
       team_name: form.teamName,
       applicant_name: form.representativeName,
-      phone: form.representativePhone,
+      phone: normalizePhone(form.representativePhone),
       school_name: '',
       privacy_agreed: form.privacyAgreed,
       privacy_agreed_at: form.privacyAgreed ? new Date().toISOString() : null,

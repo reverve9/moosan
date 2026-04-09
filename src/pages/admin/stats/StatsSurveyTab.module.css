@@ -590,6 +590,51 @@
   height: 20px;
 }
 
+/* 모달 헤더 우측 — 쿠폰 배지 + 닫기 버튼 */
+.modalHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.couponBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.couponBadge:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.97);
+}
+
+.couponBadge_active {
+  background: #ECFDF5;
+  color: #047857;
+  border-color: #A7F3D0;
+}
+
+.couponBadge_used {
+  background: #F3F4F6;
+  color: #6B7280;
+  border-color: #E5E7EB;
+}
+
+.couponBadge_expired {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
 .modalBody {
   padding: 20px 22px 24px;
   overflow-y: auto;
