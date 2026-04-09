@@ -1,8 +1,11 @@
 /* ── 부스 태블릿 대시보드 (1280×800 가정, 가로 모드) ── */
 
 .container {
-  width: 100vw;
-  height: 100vh;
+  /* fixed inset:0 → 안드로이드 PWA 가로 모드에서 100vh 가 viewport 보다
+     크게 잡히는 케이스를 우회. viewport 에 정확히 fit 되어 페이지 자체
+     스크롤이 발생하지 않음. */
+  position: fixed;
+  inset: 0;
   display: grid;
   grid-template-rows: 56px minmax(0, 1fr);
   overflow: hidden;
