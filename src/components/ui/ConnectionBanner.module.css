@@ -1,0 +1,80 @@
+.banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+  background-color: #DC2626;
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  z-index: 9999;
+  animation: bannerSlideIn 220ms ease-out;
+}
+
+@keyframes bannerSlideIn {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  animation: bannerDotPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes bannerDotPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0);
+    opacity: 0.6;
+  }
+}
+
+.message {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.retryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #DC2626;
+  background-color: #FFFFFF;
+  border-radius: 6px;
+  transition: background-color 150ms ease, transform 120ms ease;
+}
+
+.retryBtn:hover {
+  background-color: #FEF2F2;
+}
+
+.retryBtn:active {
+  transform: translateY(1px);
+}
+
+.retryIcon {
+  width: 14px;
+  height: 14px;
+}

@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import type { ComponentType, SVGProps } from 'react'
 import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
+import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import styles from './AdminLayout.module.css'
 
 const MONITOR_PATH = '/monitor'
@@ -153,6 +154,7 @@ export default function AdminLayout() {
 
   return (
     <div className={styles.layout}>
+      <ConnectionBanner />
       <aside className={styles.sidebar}>
         <div className={styles.logo} onClick={() => navigate('/')}>
           설악무산문화축전

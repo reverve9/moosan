@@ -19,8 +19,10 @@ import {
   subscribeBoothOrders,
 } from '@/lib/boothOrders'
 import BoothMenuModal from '@/components/booth/BoothMenuModal'
+import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhone } from '@/lib/phone'
 import { useToast } from '@/components/ui/Toast'
+import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import styles from './BoothDashboardPage.module.css'
 
 type CardStatus = BoothOrderCardStatus
@@ -112,6 +114,8 @@ interface DashboardInnerProps {
 function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const boothId = session.boothId
   const { showToast } = useToast()
+  const { status: realtimeStatus } = useRealtimeHealth()
+  const connected = realtimeStatus === 'healthy'
 
   const [data, setData] = useState<BoothOrderCardData[]>([])
   const dataRef = useRef<BoothOrderCardData[]>([])
@@ -122,7 +126,6 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const [error, setError] = useState<string | null>(null)
   const [highlightOrderIds, setHighlightOrderIds] = useState<Set<string>>(new Set())
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null)
-  const [connected, setConnected] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const [menuModalOpen, setMenuModalOpen] = useState(false)
 
@@ -170,10 +173,6 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       },
       onChange: () => {
         void refetch()
-      },
-      onConnectionChange: (c) => {
-        if (cancelledRef.current) return
-        setConnected(c)
       },
     })
 
@@ -252,6 +251,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
   return (
     <div className={styles.container}>
+      <ConnectionBanner />
       {/* ── 헤더 ── */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>

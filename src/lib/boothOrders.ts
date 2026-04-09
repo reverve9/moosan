@@ -118,18 +118,12 @@ export interface BoothOrdersSubscribeCallbacks {
   onOrderCancelled?: (orderId: string) => void
   /** orders 또는 order_items 변화 후 refetch 트리거 */
   onChange?: () => void
-  /** 채널 연결 상태 */
-  onConnectionChange?: (connected: boolean) => void
 }
 
 export function subscribeBoothOrders(
   boothId: string,
   callbacks: BoothOrdersSubscribeCallbacks,
 ): () => void {
-  let ordersConnected = false
-  let itemsConnected = false
-  const emit = () => callbacks.onConnectionChange?.(ordersConnected && itemsConnected)
-
   const ordersChannel = supabase
     .channel(`booth-orders-${boothId}-orders`)
     .on(
@@ -158,10 +152,7 @@ export function subscribeBoothOrders(
         callbacks.onChange?.()
       },
     )
-    .subscribe((status) => {
-      ordersConnected = status === 'SUBSCRIBED'
-      emit()
-    })
+    .subscribe()
 
   // order_items 는 order_id 로만 join 가능 → booth 필터 못 걸어서 전체 구독.
   // 사실상 item 변경은 거의 없지만 INSERT/UPDATE 시 refetch 트리거로만 사용.
@@ -174,10 +165,7 @@ export function subscribeBoothOrders(
         callbacks.onChange?.()
       },
     )
-    .subscribe((status) => {
-      itemsConnected = status === 'SUBSCRIBED'
-      emit()
-    })
+    .subscribe()
 
   return () => {
     void supabase.removeChannel(ordersChannel)
