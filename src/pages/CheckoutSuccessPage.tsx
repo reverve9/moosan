@@ -58,9 +58,12 @@ export default function CheckoutSuccessPage() {
         setPaymentId(payment.id)
         setPhase('success')
 
-        // 잠시 보여주고 주문 상태 페이지로 이동
+        // 잠시 보여주고 주문 상태 페이지로 이동.
+        // ?from=checkout 쿼리로 마킹 → Header 가 back 버튼 숨겨서
+        // history 한 칸 뒤가 토스 도메인인 사고를 차단한다.
+        // URL 에 들어가므로 새로고침 / 백그라운드 복원에도 안전.
         window.setTimeout(() => {
-          navigate(`/order/${payment.id}`, { replace: true })
+          navigate(`/order/${payment.id}?from=checkout`, { replace: true })
         }, 1200)
       } catch (err) {
         const message = err instanceof Error ? err.message : '결제 승인 중 오류가 발생했습니다'
@@ -88,7 +91,11 @@ export default function CheckoutSuccessPage() {
             <p className={styles.message}>결제가 완료되었어요</p>
             <p className={styles.submessage}>주문 상태 페이지로 이동합니다…</p>
             {paymentId && (
-              <Link to={`/order/${paymentId}`} replace className={styles.cta}>
+              <Link
+                to={`/order/${paymentId}?from=checkout`}
+                replace
+                className={styles.cta}
+              >
                 지금 이동하기
               </Link>
             )}
