@@ -6,9 +6,9 @@ type Align = 'left' | 'center'
 
 interface Props {
   title: ReactNode
-  /** 영문/짧은 부제 — title 옆에 baseline 정렬으로 인라인 배치 */
+  /** 영문/짧은 부제 — 국문 title 하단에 별도 라인으로 스택 배치 */
   subtitle?: ReactNode
-  /** 한국어/긴 설명 텍스트 — title 하단에 별도 단락으로 배치 */
+  /** 한국어/긴 설명 텍스트 — title row 하단에 별도 단락으로 배치 */
   description?: ReactNode
   align?: Align
   meta?: ReactNode

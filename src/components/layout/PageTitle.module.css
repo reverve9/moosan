@@ -7,10 +7,8 @@
 
 .titleRow {
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 4cqw; /* 24px @ 600 */
+  flex-direction: column;
+  gap: 1.5cqw; /* 9px @ 600 / 6.45 @ 430 — 국문 title ↔ 영문 subtitle */
 }
 
 .left {
@@ -18,7 +16,7 @@
 }
 
 .left .titleRow {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .center {
@@ -26,7 +24,7 @@
 }
 
 .center .titleRow {
-  justify-content: center;
+  align-items: center;
 }
 
 .meta {
@@ -43,9 +41,10 @@
   letter-spacing: -0.01em;
 }
 
-/* cqw 는 가장 가까운 container 조상(.layout / .home, 최대 600px) 기준
-   .wrapper .title/.subtitle 로 specificity 높여서 Text variant 의 값 덮어씀
-   line-height 1 + flex-end 로 한/영 라인 박스 하단이 정확히 같은 y 에 정렬됨 */
+/* cqw 는 가장 가까운 container 조상(.layout / .home, 최대 600px) 기준.
+   .wrapper .title/.subtitle 로 specificity 높여 Text variant 값 덮어씀.
+   국문 title 위, 영문 subtitle 아래로 스택. line-height 1 로 두 줄 사이 간격은
+   .titleRow gap 으로만 통제. */
 .wrapper .title {
   font-size: var(--text-cq-display);
   font-weight: 800;
@@ -57,4 +56,10 @@
   font-size: var(--text-cq-subtitle);
   font-weight: 200;
   line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+/* 영문 부제는 좌측에 약간 들여써서 국문 title 과 시각적 리듬 분리 (left align 한정) */
+.left .subtitle {
+  padding-left: 1cqw; /* 6px @ 600 / 4.3 @ 430 */
 }
