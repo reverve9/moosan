@@ -168,11 +168,6 @@
 .statusTogglePaused {
   background-color: #F59E0B;
   color: #FFFFFF;
-  padding: 0 58px 0 18px;
-}
-
-.statusTogglePaused .statusToggleKnob {
-  transform: translateX(98px);
 }
 
 .statusToggle:disabled {
@@ -322,7 +317,7 @@
 }
 
 .toggleOn {
-  background-color: #EF4444;
+  background-color: #1E3A2F;
   color: #FFFFFF;
   padding: 0 56px 0 16px;
 }

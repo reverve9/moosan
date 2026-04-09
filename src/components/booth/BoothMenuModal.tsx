@@ -234,11 +234,11 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                           </div>
                           <button
                             type="button"
-                            className={`${styles.toggle} ${soldOut ? styles.toggleOn : ''}`}
+                            className={`${styles.toggle} ${!soldOut ? styles.toggleOn : ''}`}
                             onClick={() => handleToggleMenu(menu)}
                             disabled={menuBusy || busy !== null}
-                            aria-pressed={soldOut}
-                            aria-label={`${menu.name} 품절 토글`}
+                            aria-pressed={!soldOut}
+                            aria-label={`${menu.name} 판매 토글`}
                           >
                             <span className={styles.toggleKnob} />
                             <span className={styles.toggleLabel}>
