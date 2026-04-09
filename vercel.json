@@ -1,5 +1,15 @@
 {
   "rewrites": [
+    {
+      "source": "/manifest.webmanifest",
+      "has": [{ "type": "host", "value": "booth\\..*" }],
+      "destination": "/booth-manifest.webmanifest"
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "has": [{ "type": "host", "value": ".*-booth\\..*" }],
+      "destination": "/booth-manifest.webmanifest"
+    },
     { "source": "/((?!api/|src/|node_modules/|@|.*\\.).*)", "destination": "/index.html" }
   ]
 }
