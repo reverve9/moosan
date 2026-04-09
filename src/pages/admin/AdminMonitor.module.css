@@ -418,7 +418,7 @@
   font-size: 13px;
   font-weight: 700;
   color: #ffffff;
-  background-color: #2563EB;
+  background-color: #283648;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -427,10 +427,10 @@
 }
 
 .modalItemConfirmBtn:hover:not(:disabled) {
-  background-color: #1D4ED8;
+  background-color: #17202E;
 }
 
 .modalItemConfirmBtn:disabled {
-  background-color: #93C5FD;
+  background-color: #94A3B8;
   cursor: not-allowed;
 }

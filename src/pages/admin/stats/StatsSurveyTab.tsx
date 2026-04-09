@@ -245,12 +245,9 @@ function KpiSection({ stats }: { stats: SurveyStats }) {
               : '—'
           }
         />
+        <Kpi label="전반 만족도" value={fmtPct(stats.overallSatisfactionTopBox)} />
         <Kpi
-          label="전반 만족도 (5~7점 비율)"
-          value={fmtPct(stats.overallSatisfactionTopBox)}
-        />
-        <Kpi
-          label="종합 만족도 (100점 환산)"
+          label="종합 만족도"
           value={fmtPct(stats.overallSatisfactionAvg100, '점')}
         />
       </div>
@@ -389,7 +386,7 @@ function Q11Section({ stats }: { stats: SurveyStats }) {
   return (
     <section className={styles.section}>
       <h2 className={styles.sectionTitle}>11. 종합 만족도</h2>
-      <div className={styles.kpiGrid}>
+      <div className={styles.kpiGridDual}>
         <Kpi
           label="전반 만족도 (5~7점 비율)"
           value={fmtPct(stats.overallSatisfactionTopBox)}

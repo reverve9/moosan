@@ -115,7 +115,8 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  /* 총응답 / 평균연령 / 최다거주지역(넓게) / 전반만족 / 종합만족 */
+  grid-template-columns: 1fr 0.85fr 1.7fr 0.85fr 0.85fr;
   gap: 12px;
 }
 
@@ -129,6 +130,12 @@
   .kpiGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.kpiGridDual {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .kpiCard {
