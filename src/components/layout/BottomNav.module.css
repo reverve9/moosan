@@ -42,6 +42,14 @@
   color: var(--color-primary);
 }
 
+.item.dimmed {
+  opacity: 0.4;
+}
+
+.item.dimmed:hover {
+  color: #737373;
+}
+
 .item.active {
   color: var(--color-primary);
 }

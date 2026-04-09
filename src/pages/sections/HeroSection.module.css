@@ -73,6 +73,10 @@
   opacity: 0.7;
 }
 
+.markerDimmed {
+  opacity: 0.4;
+}
+
 .left {
   left: 2.5%;
   text-align: left;

@@ -3,13 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isNoBackPage, isSubPage } from '@/lib/routing'
 import { useCart } from '@/store/cartStore'
+import { isDevMode } from '@/config/flags'
 import styles from './Header.module.css'
 
 const MENU_ITEMS = [
-  { label: '공지사항', path: '/notice', icon: Megaphone },
-  { label: '참가신청', path: '/apply', icon: SquarePen },
-  { label: '만족도조사', path: '/survey', icon: ClipboardCheck },
-  { label: '오시는 길', path: '/location', icon: MapPin },
+  { label: '공지사항', path: '/notice', icon: Megaphone, dimmed: false },
+  { label: '참가신청', path: '/apply', icon: SquarePen, dimmed: false },
+  { label: '만족도조사', path: '/survey', icon: ClipboardCheck, dimmed: !isDevMode },
+  { label: '오시는 길', path: '/location', icon: MapPin, dimmed: !isDevMode },
 ]
 
 const SCROLL_THRESHOLD = 40
@@ -92,7 +93,7 @@ export default function Header() {
           <button
             type="button"
             onClick={() => navigate('/cart')}
-            className={styles.cartButton}
+            className={`${styles.cartButton} ${!isDevMode ? styles.dimmed : ''}`}
             aria-label={
               totalCount > 0
                 ? `내 주문 (장바구니 ${totalCount}개 담김)`
@@ -125,7 +126,7 @@ export default function Header() {
                       key={item.path}
                       type="button"
                       onClick={() => handleSelect(item.path)}
-                      className={styles.dropdownItem}
+                      className={`${styles.dropdownItem} ${item.dimmed ? styles.dimmed : ''}`}
                       role="menuitem"
                     >
                       <Icon className={styles.dropdownIcon} />

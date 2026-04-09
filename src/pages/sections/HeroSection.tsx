@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { isDevMode } from '@/config/flags'
 import styles from './HeroSection.module.css'
 
 type Align = 'left' | 'right'
@@ -62,24 +63,29 @@ export default function HeroSection() {
         </span>
       </div>
       <div className={styles.markers}>
-        {markers.map((m, i) => (
-          <Link
-            key={i}
-            to={m.to}
-            className={`${styles.marker} ${styles[m.align]}`}
-            style={{
-              top: m.top,
-              ...(m.inset ? { [m.align]: m.inset } : null),
-            }}
-          >
-            <span className={styles.date}>{m.date}</span>
-            {m.title.map((line, i) => (
-              <span key={i} className={styles.name}>
-                {line}
-              </span>
-            ))}
-          </Link>
-        ))}
+        {markers.map((m, i) => {
+          const dimmed = !isDevMode && m.to === '/program/food'
+          return (
+            <Link
+              key={i}
+              to={m.to}
+              className={`${styles.marker} ${styles[m.align]} ${
+                dimmed ? styles.markerDimmed : ''
+              }`}
+              style={{
+                top: m.top,
+                ...(m.inset ? { [m.align]: m.inset } : null),
+              }}
+            >
+              <span className={styles.date}>{m.date}</span>
+              {m.title.map((line, i) => (
+                <span key={i} className={styles.name}>
+                  {line}
+                </span>
+              ))}
+            </Link>
+          )
+        })}
       </div>
     </section>
   )

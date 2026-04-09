@@ -109,6 +109,10 @@
   opacity: 0.6;
 }
 
+.cartButton.dimmed {
+  opacity: 0.4;
+}
+
 .cartIcon {
   width: var(--icon-md);
   height: var(--icon-md);
@@ -192,6 +196,10 @@
 
 .dropdownItem:active {
   background-color: var(--color-bg-secondary);
+}
+
+.dropdownItem.dimmed {
+  opacity: 0.4;
 }
 
 .dropdownIcon {
