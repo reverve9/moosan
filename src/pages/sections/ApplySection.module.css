@@ -12,7 +12,7 @@
 .tab {
   flex: 1;
   padding: 12px 4px;
-  font-size: 12px;
+  font-size: var(--text-form-caption);
   font-weight: 500;
   color: #9CA3AF;
   background: none;
@@ -40,6 +40,6 @@
   border-radius: var(--radius-lg);
   border: 2px dashed var(--color-border);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-form-helper);
   text-align: center;
 }

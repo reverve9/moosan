@@ -42,6 +42,14 @@
   font-size: var(--text-base);
 }
 
+/* form variant — 입력 페이지(Apply/Checkout/Survey)의 제출/액션 버튼.
+   iOS 줌 회피선(16px) 보장. lg 와 동일 높이 사용. */
+.form {
+  height: var(--btn-height-lg);
+  padding: 0 calc(var(--btn-padding-x) + var(--space-2));
+  font-size: var(--text-form-input);
+}
+
 /* ── Variants ── */
 .primary {
   background-color: var(--color-primary);

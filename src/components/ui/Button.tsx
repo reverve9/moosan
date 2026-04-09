@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import styles from './Button.module.css'
 
 type Variant = 'primary' | 'secondary' | 'ghost'
-type Size = 'sm' | 'md' | 'lg'
+type Size = 'sm' | 'md' | 'lg' | 'form'
 
 interface BaseProps {
   variant?: Variant

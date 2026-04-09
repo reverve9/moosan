@@ -5,7 +5,7 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: var(--text-form-label);
   font-weight: 600;
   color: #111827;
 }
@@ -16,7 +16,7 @@
 }
 
 .hint {
-  font-size: 12px;
+  font-size: var(--text-form-caption);
   color: #9CA3AF;
   line-height: 1.4;
   margin-top: -4px;
@@ -74,6 +74,6 @@
 }
 
 .optionLabel {
-  font-size: 14px;
+  font-size: var(--text-form-label);
   color: #374151;
 }

@@ -50,7 +50,7 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: var(--text-form-label);
   color: #374151;
   line-height: 1.5;
 }

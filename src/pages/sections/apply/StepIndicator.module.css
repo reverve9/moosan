@@ -7,7 +7,7 @@
 }
 
 .count {
-  font-size: 13px;
+  font-size: var(--text-form-helper);
   font-weight: 600;
   color: #6B7280;
   background-color: #F3F4F6;

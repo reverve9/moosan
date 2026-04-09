@@ -12,14 +12,14 @@
 }
 
 .cardTitle {
-  font-size: 16px;
+  font-size: var(--text-form-input);
   font-weight: 700;
   color: #111827;
   margin-bottom: 16px;
 }
 
 .notice {
-  font-size: 14px;
+  font-size: var(--text-form-label);
   color: #374151;
   line-height: 1.6;
   margin-bottom: 16px;
@@ -42,7 +42,7 @@
 
 .rulesList li {
   list-style: disc;
-  font-size: 13px;
+  font-size: var(--text-form-helper);
   line-height: 1.5;
 }
 
@@ -75,7 +75,7 @@
   width: 80px;
   flex-shrink: 0;
   padding: 12px;
-  font-size: 12px;
+  font-size: var(--text-form-caption);
   font-weight: 600;
   color: #374151;
   background-color: #F9FAFB;
@@ -85,7 +85,7 @@
 .privacyValue {
   flex: 1;
   padding: 12px;
-  font-size: 12px;
+  font-size: var(--text-form-caption);
   color: #6B7280;
   line-height: 1.5;
 }
@@ -99,7 +99,7 @@
 .btnPrimary {
   flex: 1;
   height: 48px;
-  font-size: 15px;
+  font-size: var(--text-form-input);
   font-weight: 600;
   color: #FFFFFF;
   background-color: #1E3A2F;
@@ -119,7 +119,7 @@
 .btnSecondary {
   width: 100px;
   height: 48px;
-  font-size: 15px;
+  font-size: var(--text-form-input);
   font-weight: 600;
   color: #374151;
   background-color: #F3F4F6;
@@ -141,14 +141,14 @@
 
 .rulesSection strong {
   display: block;
-  font-size: 13px;
+  font-size: var(--text-form-helper);
   font-weight: 700;
   color: #374151;
   margin-bottom: 6px;
 }
 
 .privacyNote {
-  font-size: 12px;
+  font-size: var(--text-form-caption);
   color: #9CA3AF;
   margin-bottom: 12px;
 }
