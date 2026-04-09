@@ -188,18 +188,6 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <button
-            className={styles.logoutBtn}
-            onClick={() => {
-              // admin.* → 손님 도메인 (subdomain prefix 제거) 로 새 탭
-              const host = window.location.hostname.replace(/^admin\./, '')
-              const port = window.location.port ? `:${window.location.port}` : ''
-              window.open(`${window.location.protocol}//${host}${port}/`, '_blank')
-            }}
-          >
-            <ArrowRightOnRectangleIcon className={styles.navIcon} />
-            <span>사이트로 이동</span>
-          </button>
           <button className={styles.logoutBtn} onClick={handleLogout}>
             <ArrowRightOnRectangleIcon className={styles.navIcon} />
             <span>로그아웃</span>
