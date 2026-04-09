@@ -6,9 +6,9 @@
 
 :root {
   /* ── Brand ── */
-  --color-primary: #1E7F3A;        /* 포스터 메인 그린 (산) */
-  --color-primary-light: #2CA34C;  /* Button hover */
-  --color-primary-dark: #14321E;   /* primary 계열 섀도 (필요 시) */
+  --color-primary: #387594;        /* Steel blue + green hint, brighter */
+  --color-primary-light: #4486A7;  /* Button hover */
+  --color-primary-dark: #24536B;   /* primary 계열 섀도 (필요 시) */
 
   --color-accent: #D95028;         /* 테라코타 (포스터 실루엣) */
   --color-accent-light: #E8704C;
