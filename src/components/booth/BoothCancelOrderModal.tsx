@@ -1,5 +1,5 @@
+import { TriangleAlert, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import styles from './BoothCancelOrderModal.module.css'
 
 interface BoothCancelOrderModalProps {
@@ -64,7 +64,7 @@ export default function BoothCancelOrderModal({
       <div className={styles.modal} role="dialog" aria-modal="true">
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <ExclamationTriangleIcon className={styles.warningIcon} />
+            <TriangleAlert className={styles.warningIcon} />
             <h2 className={styles.title}>주문 거절</h2>
           </div>
           <button
@@ -74,7 +74,7 @@ export default function BoothCancelOrderModal({
             aria-label="닫기"
             disabled={busy}
           >
-            <XMarkIcon className={styles.closeIcon} />
+            <X className={styles.closeIcon} />
           </button>
         </header>
 

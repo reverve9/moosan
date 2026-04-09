@@ -1,4 +1,4 @@
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import styles from './Pagination.module.css'
 
 interface PaginationProps {
@@ -42,7 +42,7 @@ export default function Pagination({
           disabled={clampedPage <= 1}
           aria-label="이전 페이지"
         >
-          <ChevronLeftIcon className={styles.pageIcon} />
+          <ChevronLeft className={styles.pageIcon} />
         </button>
         <span className={styles.pageLabel}>
           {clampedPage} / {totalPages}
@@ -54,7 +54,7 @@ export default function Pagination({
           disabled={clampedPage >= totalPages}
           aria-label="다음 페이지"
         >
-          <ChevronRightIcon className={styles.pageIcon} />
+          <ChevronRight className={styles.pageIcon} />
         </button>
       </div>
     </div>

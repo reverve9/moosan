@@ -1,6 +1,6 @@
+import { Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import IOSInstallGuide from './IOSInstallGuide'
 import InstallConfirmModal from './InstallConfirmModal'
@@ -73,7 +73,7 @@ export default function FloatingInstallButton() {
           className={styles.button}
           aria-label="홈 화면에 앱 설치"
         >
-          <ArrowDownTrayIcon className={styles.icon} />
+          <Download className={styles.icon} />
         </button>
       </div>
       <InstallConfirmModal

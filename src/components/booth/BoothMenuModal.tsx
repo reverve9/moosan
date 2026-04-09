@@ -1,5 +1,5 @@
+import { X, Image as ImageIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/solid'
 import {
   fetchBoothMenus,
   fetchBoothStatus,
@@ -126,7 +126,7 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
             onClick={onClose}
             aria-label="닫기"
           >
-            <XMarkIcon className={styles.closeIcon} />
+            <X className={styles.closeIcon} />
           </button>
         </header>
 
@@ -217,7 +217,7 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                               <img src={menu.image_url} alt={menu.name} />
                             ) : (
                               <div className={styles.thumbPlaceholder}>
-                                <PhotoIcon />
+                                <ImageIcon />
                               </div>
                             )}
                             {soldOut && <div className={styles.soldOutBadge}>품절</div>}

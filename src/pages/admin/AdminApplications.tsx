@@ -1,6 +1,6 @@
+import { X } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
-import { XMarkIcon } from '@heroicons/react/24/outline'
 import type { Application, Program, Json } from '@/types/database'
 import styles from './AdminApplications.module.css'
 
@@ -253,7 +253,7 @@ export default function AdminApplications() {
                 </p>
               </div>
               <button className={styles.closeBtn} onClick={() => setSelected(null)}>
-                <XMarkIcon width={20} height={20} />
+                <X width={20} height={20} />
               </button>
             </div>
 

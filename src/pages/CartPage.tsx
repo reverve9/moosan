@@ -1,16 +1,6 @@
+import { CircleCheck, Clock, Flame, Search, Minus, Plus, ShoppingBag, Trash2, CircleX } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  FireIcon,
-  MagnifyingGlassIcon,
-  MinusIcon,
-  PlusIcon,
-  ShoppingBagIcon,
-  TrashIcon,
-  XCircleIcon,
-} from '@heroicons/react/24/outline'
 import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
@@ -67,10 +57,10 @@ const STATUS_LABEL: Record<UIStatus, string> = {
 }
 
 function StatusIcon({ status }: { status: UIStatus }) {
-  if (status === 'completed') return <CheckCircleIcon />
-  if (status === 'confirmed') return <FireIcon />
-  if (status === 'cancelled') return <XCircleIcon />
-  return <ClockIcon />
+  if (status === 'completed') return <CircleCheck />
+  if (status === 'confirmed') return <Flame />
+  if (status === 'cancelled') return <CircleX />
+  return <Clock />
 }
 
 function summarizePaymentOrders(orders: PaymentWithOrders['orders']): string {
@@ -186,7 +176,7 @@ export default function CartPage() {
                               onClick={() => removeItem(item.menuId)}
                               aria-label={`${item.menuName} 삭제`}
                             >
-                              <TrashIcon className={styles.removeIcon} />
+                              <Trash2 className={styles.removeIcon} />
                             </button>
                           </div>
                           <div className={styles.itemBottom}>
@@ -199,7 +189,7 @@ export default function CartPage() {
                                 }
                                 aria-label="수량 줄이기"
                               >
-                                <MinusIcon className={styles.stepIcon} />
+                                <Minus className={styles.stepIcon} />
                               </button>
                               <span className={styles.stepValue}>{item.quantity}</span>
                               <button
@@ -210,7 +200,7 @@ export default function CartPage() {
                                 }
                                 aria-label="수량 늘리기"
                               >
-                                <PlusIcon className={styles.stepIcon} />
+                                <Plus className={styles.stepIcon} />
                               </button>
                             </div>
                             <span className={styles.itemPrice}>
@@ -231,7 +221,7 @@ export default function CartPage() {
       {/* ─────────────────── 장바구니 비어있음 hint (cart 없을 때만) ─────────────────── */}
       {!hasCart && (
         <div className={styles.emptyCartHint}>
-          <ShoppingBagIcon className={styles.emptyCartIcon} />
+          <ShoppingBag className={styles.emptyCartIcon} />
           <p className={styles.emptyCartText}>장바구니가 비어있어요</p>
           <Link to="/program/food" className={styles.emptyCartCta}>
             메뉴 보러가기
@@ -265,7 +255,7 @@ export default function CartPage() {
             className={styles.lookupBtn}
             disabled={!phoneValid || loadingOrders}
           >
-            <MagnifyingGlassIcon className={styles.lookupBtnIcon} />
+            <Search className={styles.lookupBtnIcon} />
             {loadingOrders ? '조회 중…' : '조회하기'}
           </button>
         </form>
@@ -280,7 +270,7 @@ export default function CartPage() {
 
         {!loadingOrders && ordersError && (
           <div className={styles.center}>
-            <XCircleIcon className={styles.errorIcon} />
+            <CircleX className={styles.errorIcon} />
             <p className={styles.muted}>{ordersError}</p>
           </div>
         )}

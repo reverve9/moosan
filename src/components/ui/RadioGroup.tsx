@@ -1,4 +1,4 @@
-import { CheckIcon } from '@heroicons/react/24/solid'
+import { Check } from 'lucide-react'
 import styles from './RadioGroup.module.css'
 
 interface RadioGroupProps {
@@ -27,7 +27,7 @@ export default function RadioGroup({ label, required, options, value, onChange, 
             onClick={() => onChange(opt.value)}
           >
             <span className={`${styles.radio} ${value === opt.value ? styles.radioSelected : ''}`}>
-              {value === opt.value && <CheckIcon className={styles.checkIcon} />}
+              {value === opt.value && <Check className={styles.checkIcon} />}
             </span>
             <span className={styles.optionLabel}>{opt.label}</span>
           </button>

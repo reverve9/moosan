@@ -1,6 +1,6 @@
+import { CircleCheck, Clock, Flame, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CheckCircleIcon, ClockIcon, FireIcon, ShoppingBagIcon } from '@heroicons/react/24/outline'
 import PageTitle from '@/components/layout/PageTitle'
 import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
 import { supabase } from '@/lib/supabase'
@@ -141,7 +141,7 @@ export default function OrderStatusPage() {
       <section className={styles.page}>
         <PageTitle title="주문 상태" />
         <div className={styles.center}>
-          <ShoppingBagIcon className={styles.errorIcon} />
+          <ShoppingBag className={styles.errorIcon} />
           <p className={styles.muted}>{error ?? '주문을 찾을 수 없어요'}</p>
           <Link to="/program/food" className={styles.cta}>
             메뉴 보러가기
@@ -177,11 +177,11 @@ export default function OrderStatusPage() {
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>
           <div className={styles.statusIcon}>
             {uiStatus === 'completed' ? (
-              <CheckCircleIcon />
+              <CircleCheck />
             ) : uiStatus === 'confirmed' ? (
-              <FireIcon />
+              <Flame />
             ) : (
-              <ClockIcon />
+              <Clock />
             )}
           </div>
           <div className={styles.statusText}>

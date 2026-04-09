@@ -1,5 +1,5 @@
+import { CircleX } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { XCircleIcon } from '@heroicons/react/24/outline'
 import PageTitle from '@/components/layout/PageTitle'
 import styles from './CheckoutResult.module.css'
 
@@ -22,7 +22,7 @@ export default function CheckoutFailPage() {
     <section className={styles.page}>
       <PageTitle title="결제 실패" />
       <div className={styles.center}>
-        <XCircleIcon className={`${styles.icon} ${styles.iconError}`} />
+        <CircleX className={`${styles.icon} ${styles.iconError}`} />
         <p className={styles.message}>{friendly}</p>
         {code && <p className={styles.errorDetail}>코드: {code}</p>}
         <Link to="/cart" className={styles.cta}>

@@ -1,5 +1,5 @@
+import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import {
   fetchMonitorSummary,
   type MonitorBoothSummary,
@@ -152,7 +152,7 @@ export default function AdminMonitor() {
             onClick={handleRefresh}
             disabled={refreshing}
           >
-            <ArrowPathIcon
+            <RotateCw
               className={`${styles.refreshIcon} ${refreshing ? styles.refreshIconSpin : ''}`}
             />
             <span>새로고침</span>
@@ -209,7 +209,7 @@ export default function AdminMonitor() {
                 onClick={() => setSelectedBoothId(null)}
                 aria-label="닫기"
               >
-                <XMarkIcon />
+                <X />
               </button>
             </header>
             <ul className={styles.modalList}>

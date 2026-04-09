@@ -1,11 +1,5 @@
+import { Upload, Plus, Trash2, Check, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  ArrowUpTrayIcon,
-  PlusIcon,
-  TrashIcon,
-  CheckIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import {
@@ -483,7 +477,7 @@ export default function AdminFood() {
           <span className={styles.count}>{booths.length}개</span>
         </div>
         <button className={styles.addBtn} onClick={handleAddBooth}>
-          <PlusIcon width={16} height={16} /> 매장 추가
+          <Plus width={16} height={16} /> 매장 추가
         </button>
       </div>
 
@@ -530,7 +524,7 @@ export default function AdminFood() {
                 disabled={catBusy}
                 aria-label={`${c.label} 삭제`}
               >
-                <XMarkIcon width={14} height={14} />
+                <X width={14} height={14} />
               </button>
             </div>
           ))}
@@ -565,7 +559,7 @@ export default function AdminFood() {
             onClick={handleAddCategory}
             disabled={catBusy}
           >
-            <PlusIcon width={14} height={14} />
+            <Plus width={14} height={14} />
             추가
           </button>
         </div>
@@ -645,7 +639,7 @@ export default function AdminFood() {
                   onClick={closeModal}
                   aria-label="닫기"
                 >
-                  <XMarkIcon width={20} height={20} />
+                  <X width={20} height={20} />
                 </button>
               </div>
 
@@ -755,7 +749,7 @@ export default function AdminFood() {
                       onClick={() => fileInputs.current[booth.id]?.click()}
                       disabled={uploadingId === booth.id}
                     >
-                      <ArrowUpTrayIcon width={16} height={16} />
+                      <Upload width={16} height={16} />
                       {uploadingId === booth.id ? '업로드 중...' : '썸네일 교체'}
                     </button>
                   </div>
@@ -770,7 +764,7 @@ export default function AdminFood() {
                         '저장 중...'
                       ) : savedBoothId === booth.id ? (
                         <>
-                          <CheckIcon width={16} height={16} /> 저장됨
+                          <Check width={16} height={16} /> 저장됨
                         </>
                       ) : (
                         '매장 정보 저장'
@@ -780,7 +774,7 @@ export default function AdminFood() {
                       className={styles.deleteBtn}
                       onClick={() => handleDeleteBooth(booth.id)}
                     >
-                      <TrashIcon width={16} height={16} /> 매장 삭제
+                      <Trash2 width={16} height={16} /> 매장 삭제
                     </button>
                   </div>
                 </div>
@@ -793,7 +787,7 @@ export default function AdminFood() {
                       className={styles.addMenuBtn}
                       onClick={() => handleAddMenu(booth)}
                     >
-                      <PlusIcon width={14} height={14} /> 메뉴 추가
+                      <Plus width={14} height={14} /> 메뉴 추가
                     </button>
                   </div>
 
@@ -837,7 +831,7 @@ export default function AdminFood() {
                                 }
                                 disabled={uploadingMenuId === m.id}
                               >
-                                <ArrowUpTrayIcon width={14} height={14} />
+                                <Upload width={14} height={14} />
                                 {uploadingMenuId === m.id
                                   ? '업로드 중...'
                                   : '메뉴 사진'}
@@ -884,7 +878,7 @@ export default function AdminFood() {
                                   '저장 중...'
                                 ) : savedMenuId === m.id ? (
                                   <>
-                                    <CheckIcon width={14} height={14} /> 저장됨
+                                    <Check width={14} height={14} /> 저장됨
                                   </>
                                 ) : (
                                   '저장'
@@ -895,7 +889,7 @@ export default function AdminFood() {
                                 onClick={() => handleDeleteMenu(m.id)}
                                 aria-label="메뉴 삭제"
                               >
-                                <TrashIcon width={14} height={14} />
+                                <Trash2 width={14} height={14} />
                               </button>
                             </div>
                           </div>

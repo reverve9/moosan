@@ -1,5 +1,5 @@
+import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import {
   cancelPayment,
@@ -175,7 +175,7 @@ export default function AdminOrders() {
             onClick={() => void refetch()}
             disabled={loading}
           >
-            <ArrowPathIcon
+            <RotateCw
               className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
             />
             <span>새로고침</span>
@@ -438,7 +438,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
             onClick={onClose}
             aria-label="닫기"
           >
-            <XMarkIcon />
+            <X />
           </button>
         </header>
 

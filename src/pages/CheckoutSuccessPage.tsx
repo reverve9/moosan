@@ -1,6 +1,6 @@
+import { CircleCheck, TriangleAlert } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import PageTitle from '@/components/layout/PageTitle'
 import { confirmPayment } from '@/lib/toss'
 import { findPaymentByTossOrderId, markPaymentPaid } from '@/lib/orders'
@@ -87,7 +87,7 @@ export default function CheckoutSuccessPage() {
 
         {phase === 'success' && (
           <>
-            <CheckCircleIcon className={`${styles.icon} ${styles.iconSuccess}`} />
+            <CircleCheck className={`${styles.icon} ${styles.iconSuccess}`} />
             <p className={styles.message}>결제가 완료되었어요</p>
             <p className={styles.submessage}>주문 상태 페이지로 이동합니다…</p>
             {paymentId && (
@@ -104,7 +104,7 @@ export default function CheckoutSuccessPage() {
 
         {phase === 'failed' && (
           <>
-            <ExclamationTriangleIcon className={`${styles.icon} ${styles.iconError}`} />
+            <TriangleAlert className={`${styles.icon} ${styles.iconError}`} />
             <p className={styles.message}>결제 승인에 실패했어요</p>
             {errorMessage && <p className={styles.errorDetail}>{errorMessage}</p>}
             <Link to="/cart" className={styles.cta}>

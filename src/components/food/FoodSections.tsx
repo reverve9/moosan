@@ -1,5 +1,5 @@
+import { Minus, Plus, X, Image as ImageIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { MinusIcon, PhotoIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
@@ -421,7 +421,7 @@ function BoothModal({
           onClick={onClose}
           aria-label="닫기"
         >
-          <XMarkIcon className={styles.modalCloseIcon} />
+          <X className={styles.modalCloseIcon} />
         </button>
 
         <div className={styles.modalHeader}>
@@ -553,7 +553,7 @@ function MenuItemRow({
           <img src={menuImg} alt={menu.name} />
         ) : (
           <div className={styles.menuItemThumbPlaceholder} aria-hidden="true">
-            <PhotoIcon />
+            <ImageIcon />
           </div>
         )}
         {soldOut && (
@@ -584,7 +584,7 @@ function MenuItemRow({
                   aria-label="수량 줄이기"
                   disabled={pendingQty <= 1}
                 >
-                  <MinusIcon className={styles.stepIcon} />
+                  <Minus className={styles.stepIcon} />
                 </button>
                 <span className={styles.stepValue}>{pendingQty}</span>
                 <button
@@ -593,7 +593,7 @@ function MenuItemRow({
                   onClick={() => setPendingQty((q) => q + 1)}
                   aria-label="수량 늘리기"
                 >
-                  <PlusIcon className={styles.stepIcon} />
+                  <Plus className={styles.stepIcon} />
                 </button>
               </div>
               <button type="button" className={styles.addBtn} onClick={handleAdd}>

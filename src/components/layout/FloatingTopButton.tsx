@@ -1,5 +1,5 @@
+import { ArrowUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { ArrowUpIcon } from '@heroicons/react/24/outline'
 import styles from './FloatingTopButton.module.css'
 
 // Header.tsx 의 SCROLL_THRESHOLD 와 동기화 — 헤더가 솔리드로 전환될 때 같이 등장
@@ -31,7 +31,7 @@ export default function FloatingTopButton() {
         aria-hidden={!visible}
         tabIndex={visible ? 0 : -1}
       >
-        <ArrowUpIcon className={styles.icon} />
+        <ArrowUp className={styles.icon} />
       </button>
     </div>
   )

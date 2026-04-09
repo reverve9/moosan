@@ -1,5 +1,5 @@
+import { RotateCw } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import { useToast } from './Toast'
 import styles from './ConnectionBanner.module.css'
@@ -37,7 +37,7 @@ export default function ConnectionBanner() {
         className={styles.retryBtn}
         onClick={forceReconnect}
       >
-        <ArrowPathIcon className={styles.retryIcon} />
+        <RotateCw className={styles.retryIcon} />
         <span>다시 시도</span>
       </button>
     </div>

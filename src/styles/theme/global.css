@@ -1,5 +1,10 @@
 /* ── Global Styles ── */
 
+/* Lucide icon default stroke width — thin-line baseline */
+svg.lucide {
+  stroke-width: 1.5;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

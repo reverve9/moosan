@@ -1,13 +1,7 @@
+import { Upload, Check, Info, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getAssetUrl } from '@/lib/festival'
-import {
-  ArrowUpTrayIcon,
-  CheckIcon,
-  InformationCircleIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline'
 import type { Festival, Program } from '@/types/database'
 import type { FestivalEvent, FestivalGuest } from '@/types/festival_extras'
 import styles from './AdminContentDetail.module.css'
@@ -552,7 +546,7 @@ export default function AdminContentDetail({ slug }: Props) {
                   onClick={() => festivalFileRef.current?.click()}
                   disabled={festivalUploading}
                 >
-                  <ArrowUpTrayIcon width={16} height={16} />
+                  <Upload width={16} height={16} />
                   {festivalUploading ? '업로드 중...' : '포스터 교체'}
                 </button>
               </div>
@@ -653,7 +647,7 @@ export default function AdminContentDetail({ slug }: Props) {
                     '저장 중...'
                   ) : festivalSaved ? (
                     <>
-                      <CheckIcon width={16} height={16} /> 저장됨
+                      <Check width={16} height={16} /> 저장됨
                     </>
                   ) : (
                     '저장'
@@ -723,7 +717,7 @@ export default function AdminContentDetail({ slug }: Props) {
                         }
                         disabled={programUploadingId === program.id}
                       >
-                        <ArrowUpTrayIcon width={16} height={16} />
+                        <Upload width={16} height={16} />
                         {programUploadingId === program.id
                           ? '업로드 중...'
                           : '썸네일 교체'}
@@ -856,7 +850,7 @@ export default function AdminContentDetail({ slug }: Props) {
                             '저장 중...'
                           ) : programSavedId === program.id ? (
                             <>
-                              <CheckIcon width={16} height={16} /> 저장됨
+                              <Check width={16} height={16} /> 저장됨
                             </>
                           ) : (
                             '저장'
@@ -953,7 +947,7 @@ export default function AdminContentDetail({ slug }: Props) {
                                   '저장 중...'
                                 ) : eventSavedId === ev.id ? (
                                   <>
-                                    <CheckIcon width={16} height={16} /> 저장됨
+                                    <Check width={16} height={16} /> 저장됨
                                   </>
                                 ) : (
                                   '저장'
@@ -979,7 +973,7 @@ export default function AdminContentDetail({ slug }: Props) {
                     className={styles.addBtn}
                     onClick={handleGuestAdd}
                   >
-                    <PlusIcon width={14} height={14} /> 게스트 추가
+                    <Plus width={14} height={14} /> 게스트 추가
                   </button>
                 </div>
               </header>
@@ -1008,7 +1002,7 @@ export default function AdminContentDetail({ slug }: Props) {
                             onClick={() => handleGuestDelete(g)}
                             aria-label="삭제"
                           >
-                            <TrashIcon width={16} height={16} />
+                            <Trash2 width={16} height={16} />
                           </button>
                         </div>
                         <div className={styles.cardBody}>
@@ -1044,7 +1038,7 @@ export default function AdminContentDetail({ slug }: Props) {
                               onClick={() => guestFileInputs.current[g.id]?.click()}
                               disabled={guestUploadingId === g.id}
                             >
-                              <ArrowUpTrayIcon width={16} height={16} />
+                              <Upload width={16} height={16} />
                               {guestUploadingId === g.id ? '업로드 중...' : '사진 교체'}
                             </button>
                           </div>
@@ -1092,7 +1086,7 @@ export default function AdminContentDetail({ slug }: Props) {
                                   '저장 중...'
                                 ) : guestSavedId === g.id ? (
                                   <>
-                                    <CheckIcon width={16} height={16} /> 저장됨
+                                    <Check width={16} height={16} /> 저장됨
                                   </>
                                 ) : (
                                   '저장'
@@ -1118,7 +1112,7 @@ export default function AdminContentDetail({ slug }: Props) {
                     className={styles.addBtn}
                     onClick={() => handleEventAdd('program')}
                   >
-                    <PlusIcon width={14} height={14} /> 프로그램 추가
+                    <Plus width={14} height={14} /> 프로그램 추가
                   </button>
                 </div>
               </header>
@@ -1146,7 +1140,7 @@ export default function AdminContentDetail({ slug }: Props) {
                             onClick={() => handleEventDelete(ev)}
                             aria-label="삭제"
                           >
-                            <TrashIcon width={16} height={16} />
+                            <Trash2 width={16} height={16} />
                           </button>
                         </div>
                         <div className={styles.cardBodyFull}>
@@ -1204,7 +1198,7 @@ export default function AdminContentDetail({ slug }: Props) {
                                   '저장 중...'
                                 ) : eventSavedId === ev.id ? (
                                   <>
-                                    <CheckIcon width={16} height={16} /> 저장됨
+                                    <Check width={16} height={16} /> 저장됨
                                   </>
                                 ) : (
                                   '저장'
@@ -1225,7 +1219,7 @@ export default function AdminContentDetail({ slug }: Props) {
         {/* food — 가맹점 안내 */}
         {slug === 'food' && (
           <div className={styles.notice}>
-            <InformationCircleIcon className={styles.noticeIcon} />
+            <Info className={styles.noticeIcon} />
             <div className={styles.noticeBody}>
               <strong>참여 매장 / 메뉴는 [참여 매장 관리] 메뉴에서 관리합니다.</strong>
               <p>

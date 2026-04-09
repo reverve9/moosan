@@ -1,5 +1,5 @@
+import { RotateCw, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowPathIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import {
   createCouponManually,
   fetchCouponsList,
@@ -113,7 +113,7 @@ export default function AdminCoupons() {
             onClick={() => void refetch()}
             disabled={loading}
           >
-            <ArrowPathIcon
+            <RotateCw
               className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
             />
             <span>새로고침</span>
@@ -123,7 +123,7 @@ export default function AdminCoupons() {
             className={styles.issueBtn}
             onClick={() => setIssueModalOpen(true)}
           >
-            <PlusIcon className={styles.refreshIcon} />
+            <Plus className={styles.refreshIcon} />
             <span>수동 발급</span>
           </button>
         </div>
@@ -340,7 +340,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
             onClick={onClose}
             aria-label="닫기"
           >
-            <XMarkIcon />
+            <X />
           </button>
         </header>
         <div className={styles.modalBody}>

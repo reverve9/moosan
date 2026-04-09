@@ -1,5 +1,5 @@
+import { Key, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { KeyIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { supabase } from '@/lib/supabase'
 import { hashBoothPassword } from '@/lib/boothAuth'
 import type { BoothAccount, FoodBooth } from '@/types/database'
@@ -213,7 +213,7 @@ export default function AdminBoothAccounts() {
                         onClick={() => handleUpdatePassword(row)}
                         disabled={busy || !row.passwordInput}
                       >
-                        <KeyIcon />
+                        <Key />
                         <span>{busy ? '처리 중' : 'PW 변경'}</span>
                       </button>
                       <button
@@ -222,7 +222,7 @@ export default function AdminBoothAccounts() {
                         onClick={() => handleDelete(row)}
                         disabled={busy}
                       >
-                        <TrashIcon />
+                        <Trash2 />
                         <span>삭제</span>
                       </button>
                     </>

@@ -1,6 +1,6 @@
+import { ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDownIcon } from '@heroicons/react/24/outline'
 import { getAssetUrl } from '@/lib/festival'
 import type { Program } from '@/types/database'
 import styles from './ProgramAccordion.module.css'
@@ -37,7 +37,7 @@ function ProgramCard({
           <h3 className={styles.name}>{data.name}</h3>
           {data.description && <p className={styles.desc}>{data.description}</p>}
         </div>
-        <ChevronDownIcon className={styles.chevron} />
+        <ChevronDown className={styles.chevron} />
       </button>
 
       <div className={styles.bodyWrap}>

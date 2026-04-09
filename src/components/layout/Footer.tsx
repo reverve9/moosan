@@ -1,4 +1,4 @@
-import { AtSymbolIcon, EnvelopeIcon, PhoneIcon } from '@heroicons/react/24/outline'
+import { AtSign, Mail, Phone } from 'lucide-react'
 import Text from '@/components/ui/Text'
 import styles from './Footer.module.css'
 
@@ -23,13 +23,13 @@ export default function Footer() {
           <div className={styles.contactList}>
             <div className={styles.contactRow}>
               <a href="tel:01048182674" className={styles.contactItem}>
-                <PhoneIcon className={styles.contactIcon} aria-hidden="true" />
+                <Phone className={styles.contactIcon} aria-hidden="true" />
                 <Text variant="caption" color="secondary" className={styles.contactText}>
                   010-4818-2674
                 </Text>
               </a>
               <a href="mailto:seorakyouthfestival@gmail.com" className={styles.contactItem}>
-                <EnvelopeIcon className={styles.contactIcon} aria-hidden="true" />
+                <Mail className={styles.contactIcon} aria-hidden="true" />
                 <Text variant="caption" color="secondary" className={styles.contactTextEn}>
                   seorakyouthfestival@gmail.com
                 </Text>
@@ -41,7 +41,7 @@ export default function Footer() {
               rel="noopener noreferrer"
               className={`${styles.contactItem} ${styles.contactItemInsta}`}
             >
-              <AtSymbolIcon className={styles.contactIcon} aria-hidden="true" />
+              <AtSign className={styles.contactIcon} aria-hidden="true" />
               <Text variant="caption" color="secondary" className={styles.contactTextEn}>
                 @seorak_youth_festival
               </Text>

@@ -1,5 +1,5 @@
+import { RotateCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowPathIcon } from '@heroicons/react/24/outline'
 import {
   calcBoothStats,
   calcCustomerStats,
@@ -93,7 +93,7 @@ export default function StatsRevenueTab() {
           onClick={() => void refetch()}
           disabled={loading}
         >
-          <ArrowPathIcon
+          <RotateCw
             className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
           />
           <span>새로고침</span>

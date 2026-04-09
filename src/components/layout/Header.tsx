@@ -1,23 +1,15 @@
+import { ArrowLeft, Menu, ClipboardCheck, ClipboardList, Megaphone, MapPin, SquarePen } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import {
-  ArrowLeftIcon,
-  Bars3Icon,
-  ClipboardDocumentCheckIcon,
-  ClipboardDocumentListIcon,
-  MegaphoneIcon,
-  MapPinIcon,
-  PencilSquareIcon,
-} from '@heroicons/react/24/outline'
 import { isNoBackPage, isSubPage } from '@/lib/routing'
 import { useCart } from '@/store/cartStore'
 import styles from './Header.module.css'
 
 const MENU_ITEMS = [
-  { label: '공지사항', path: '/notice', icon: MegaphoneIcon },
-  { label: '참가신청', path: '/apply', icon: PencilSquareIcon },
-  { label: '만족도조사', path: '/survey', icon: ClipboardDocumentCheckIcon },
-  { label: '오시는 길', path: '/location', icon: MapPinIcon },
+  { label: '공지사항', path: '/notice', icon: Megaphone },
+  { label: '참가신청', path: '/apply', icon: SquarePen },
+  { label: '만족도조사', path: '/survey', icon: ClipboardCheck },
+  { label: '오시는 길', path: '/location', icon: MapPin },
 ]
 
 const SCROLL_THRESHOLD = 40
@@ -86,7 +78,7 @@ export default function Header() {
             className={styles.backButton}
             aria-label="이전 페이지"
           >
-            <ArrowLeftIcon className={styles.backIcon} />
+            <ArrowLeft className={styles.backIcon} />
           </button>
         )}
         <Link to="/" className={styles.logo} aria-label="설악무산문화축전 홈">
@@ -107,7 +99,7 @@ export default function Header() {
                 : '내 주문'
             }
           >
-            <ClipboardDocumentListIcon className={styles.cartIcon} />
+            <ClipboardList className={styles.cartIcon} />
             {totalCount > 0 && (
               <span className={styles.cartBadge} aria-hidden="true">
                 {totalCount > 99 ? '99+' : totalCount}
@@ -122,7 +114,7 @@ export default function Header() {
               aria-label="메뉴"
               aria-expanded={open}
             >
-              <Bars3Icon className={styles.menuIcon} />
+              <Menu className={styles.menuIcon} />
             </button>
             {open && (
               <div className={styles.dropdown} role="menu">

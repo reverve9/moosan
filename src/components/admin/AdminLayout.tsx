@@ -1,19 +1,6 @@
+import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal, ChartColumn, ReceiptText, Ticket, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import {
-  SparklesIcon,
-  AcademicCapIcon,
-  CakeIcon,
-  DocumentTextIcon,
-  MegaphoneIcon,
-  BuildingStorefrontIcon,
-  KeyIcon,
-  SignalIcon,
-  ChartBarSquareIcon,
-  ReceiptRefundIcon,
-  TicketIcon,
-  ArrowRightOnRectangleIcon,
-} from '@heroicons/react/24/outline'
 import type { ComponentType, SVGProps } from 'react'
 import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
@@ -37,27 +24,27 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: '운영',
     items: [
-      { label: '대시보드', path: '/', icon: ChartBarSquareIcon, end: true },
-      { label: '참가신청 관리', path: '/applications', icon: DocumentTextIcon },
-      { label: '쿠폰 관리', path: '/coupons', icon: TicketIcon },
-      { label: '공지사항 관리', path: '/notices', icon: MegaphoneIcon },
+      { label: '대시보드', path: '/', icon: ChartColumn, end: true },
+      { label: '참가신청 관리', path: '/applications', icon: FileText },
+      { label: '쿠폰 관리', path: '/coupons', icon: Ticket },
+      { label: '공지사항 관리', path: '/notices', icon: Megaphone },
     ],
   },
   {
     title: '콘텐츠',
     items: [
-      { label: '설악무산문화축전', path: '/content/musan', icon: SparklesIcon },
-      { label: '청소년문화축전', path: '/content/youth', icon: AcademicCapIcon },
-      { label: '음식문화페스티벌', path: '/content/food', icon: CakeIcon },
+      { label: '설악무산문화축전', path: '/content/musan', icon: Sparkles },
+      { label: '청소년문화축전', path: '/content/youth', icon: GraduationCap },
+      { label: '음식문화페스티벌', path: '/content/food', icon: Cake },
     ],
   },
   {
     title: '매장 관리',
     items: [
-      { label: '실시간 모니터', path: MONITOR_PATH, icon: SignalIcon },
-      { label: '주문/결제 관리', path: '/orders', icon: ReceiptRefundIcon },
-      { label: '참여 매장 관리', path: '/food', icon: BuildingStorefrontIcon },
-      { label: '매장 계정 관리', path: '/booth-accounts', icon: KeyIcon },
+      { label: '실시간 모니터', path: MONITOR_PATH, icon: Signal },
+      { label: '주문/결제 관리', path: '/orders', icon: ReceiptText },
+      { label: '참여 매장 관리', path: '/food', icon: Store },
+      { label: '매장 계정 관리', path: '/booth-accounts', icon: Key },
     ],
   },
   {
@@ -191,7 +178,7 @@ export default function AdminLayout() {
         </nav>
         <div className={styles.sidebarFooter}>
           <button className={styles.logoutBtn} onClick={handleLogout}>
-            <ArrowRightOnRectangleIcon className={styles.navIcon} />
+            <LogOut className={styles.navIcon} />
             <span>로그아웃</span>
           </button>
         </div>

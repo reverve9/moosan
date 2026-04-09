@@ -1,23 +1,12 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import {
-  HomeIcon,
-  CalendarDaysIcon,
-  RectangleGroupIcon,
-  SparklesIcon,
-} from '@heroicons/react/24/outline'
-import {
-  HomeIcon as HomeIconSolid,
-  CalendarDaysIcon as CalendarDaysIconSolid,
-  RectangleGroupIcon as RectangleGroupIconSolid,
-  SparklesIcon as SparklesIconSolid,
-} from '@heroicons/react/24/solid'
+import { Home, CalendarDays, LayoutGrid, Sparkles } from 'lucide-react'
 import styles from './BottomNav.module.css'
 
 const NAV_ITEMS = [
-  { label: '홈', path: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
-  { label: '설악무산문화축전', path: '/program/musan', icon: CalendarDaysIcon, activeIcon: CalendarDaysIconSolid },
-  { label: '청소년문화축전', path: '/program/youth', icon: RectangleGroupIcon, activeIcon: RectangleGroupIconSolid },
-  { label: '음식문화페스티벌', path: '/program/food', icon: SparklesIcon, activeIcon: SparklesIconSolid },
+  { label: '홈', path: '/', icon: Home },
+  { label: '설악무산문화축전', path: '/program/musan', icon: CalendarDays },
+  { label: '청소년문화축전', path: '/program/youth', icon: LayoutGrid },
+  { label: '음식문화페스티벌', path: '/program/food', icon: Sparkles },
 ]
 
 export default function BottomNav() {
@@ -32,7 +21,7 @@ export default function BottomNav() {
             const isActive = item.path === '/'
               ? location.pathname === '/'
               : location.pathname.startsWith(item.path)
-            const Icon = isActive ? item.activeIcon : item.icon
+            const Icon = item.icon
 
             return (
               <button

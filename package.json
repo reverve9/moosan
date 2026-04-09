@@ -10,11 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.99.2",
     "@tosspayments/payment-sdk": "^1.9.2",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.3",
+    "lucide-react": "^1.8.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.1"

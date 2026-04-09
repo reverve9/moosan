@@ -1,9 +1,6 @@
+import { LogOut, Ban } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ArrowRightOnRectangleIcon,
-  NoSymbolIcon,
-} from '@heroicons/react/24/outline'
 import {
   type BoothSession,
   clearBoothSession,
@@ -305,7 +302,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
             className={styles.headerBtn}
             onClick={() => setMenuModalOpen(true)}
           >
-            <NoSymbolIcon className={styles.headerBtnIcon} />
+            <Ban className={styles.headerBtnIcon} />
             <span>매장 관리</span>
           </button>
           <button
@@ -313,7 +310,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
             className={styles.headerBtn}
             onClick={onLogout}
           >
-            <ArrowRightOnRectangleIcon className={styles.headerBtnIcon} />
+            <LogOut className={styles.headerBtnIcon} />
             <span>로그아웃</span>
           </button>
         </div>
