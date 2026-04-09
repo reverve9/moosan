@@ -105,6 +105,59 @@ export default function FoodSections({ festival }: Props) {
     }
   }, [festival.id])
 
+  /* ─── food_menus 품절 토글 Realtime 반영 ─── */
+  // 부스 대시보드에서 메뉴 품절을 토글하면 FoodSections 가 들고 있는 booths
+  // 안의 menus 배열에서 해당 메뉴의 is_sold_out / is_active 를 즉시 업데이트.
+  // food_menus 는 booth_id 컬럼만 있고 festival_id 는 없어서 publication 전체
+  // 구독 후 클라이언트 측에서 booth_id 매칭으로 필터링.
+  useEffect(() => {
+    const channel = supabase
+      .channel('food-menus-status')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'food_menus',
+        },
+        (payload) => {
+          const updated = payload.new as
+            | {
+                id?: string
+                booth_id?: string
+                is_sold_out?: boolean
+                is_active?: boolean
+                price?: number | null
+              }
+            | null
+          if (!updated?.id || !updated.booth_id) return
+          setBooths((prev) =>
+            prev.map((b) => {
+              if (b.id !== updated.booth_id) return b
+              return {
+                ...b,
+                menus: b.menus.map((m) =>
+                  m.id === updated.id
+                    ? {
+                        ...m,
+                        is_sold_out: updated.is_sold_out ?? m.is_sold_out,
+                        is_active: updated.is_active ?? m.is_active,
+                        price: updated.price !== undefined ? updated.price : m.price,
+                      }
+                    : m,
+                ),
+              }
+            }),
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [])
+
   /* ─── 매장별 대기 건수 — mount 시 일괄 fetch + Realtime 구독 ─── */
   useEffect(() => {
     let cancelled = false

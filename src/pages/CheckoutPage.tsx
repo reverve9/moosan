@@ -4,6 +4,7 @@ import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
+import { supabase } from '@/lib/supabase'
 import { getTossPayments } from '@/lib/toss'
 import { createPendingPayment } from '@/lib/orders'
 import { validateCouponByCode } from '@/lib/coupons'
@@ -134,6 +135,30 @@ export default function CheckoutPage() {
     setSubmitting(true)
 
     try {
+      // 0) sold-out 재검증 — Festival 페이지의 realtime 구독을 거치지 않고
+      //    카트 진입(localStorage 복원, 다른 탭 등)한 케이스 안전망. 부스가
+      //    품절 토글한 메뉴가 카트에 남아 있으면 결제 자체를 막는다.
+      const menuIds = items.map((i) => i.menuId)
+      const { data: latestMenus, error: menuErr } = await supabase
+        .from('food_menus')
+        .select('id, name, is_sold_out, is_active')
+        .in('id', menuIds)
+      if (menuErr) {
+        throw new Error(`메뉴 상태 확인 실패: ${menuErr.message}`)
+      }
+      const blocked = (latestMenus ?? []).filter(
+        (m) => m.is_sold_out || !m.is_active,
+      )
+      if (blocked.length > 0) {
+        const names = blocked.map((m) => m.name).join(', ')
+        showToast(`${names} — 품절된 메뉴가 있어 결제할 수 없어요`, {
+          type: 'error',
+          duration: 5000,
+        })
+        setSubmitting(false)
+        return
+      }
+
       // 1) payments + 부스별 orders + order_items INSERT (status: pending)
       //    - 트리거가 payments.toss_order_id 자동 채움 (전역 sequence)
       //    - 트리거가 orders.order_number 자동 채움 (부스별 누적)
