@@ -9,6 +9,8 @@ export type NoticeCategory = 'general' | 'program' | 'result'
 export interface NoticeInput {
   title: string
   content: string
+  /** 업로드된 이미지 public URL 배열 — 순서 유지, 본문 위에 렌더 */
+  images: string[]
   category: NoticeCategory
   is_pinned: boolean
   is_published: boolean
@@ -106,8 +108,8 @@ export async function deleteNotice(id: string): Promise<void> {
 }
 
 /**
- * 공지 본문에 삽입할 이미지를 Supabase Storage 에 업로드.
- * 반환값 = 공개 URL (마크다운 `![alt](url)` 에 그대로 사용).
+ * 공지에 첨부할 이미지를 Supabase Storage 에 업로드.
+ * 반환값 = 공개 URL. `NoticeInput.images` 배열에 그대로 push.
  */
 export async function uploadNoticeImage(file: File): Promise<string> {
   const ext = (file.name.split('.').pop() || 'png').toLowerCase()

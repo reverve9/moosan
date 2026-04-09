@@ -73,87 +73,27 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── 첨부 이미지 리스트 (본문 위) ── */
+
+.imageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.contentImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+/* ── 본문 (플레인 텍스트) ── */
+
 .content {
   font-size: var(--text-base);
   line-height: 1.7;
   color: var(--color-text);
   word-break: break-word;
-}
-
-.content p {
-  margin: 0 0 var(--space-4);
-}
-
-.content h1,
-.content h2,
-.content h3 {
-  margin: var(--space-5) 0 var(--space-2);
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.content h1 { font-size: var(--text-lg); }
-.content h2 { font-size: var(--text-base); }
-.content h3 { font-size: var(--text-base); }
-
-.content ul,
-.content ol {
-  margin: 0 0 var(--space-4);
-  padding-left: var(--space-5);
-}
-
-.content li {
-  margin-bottom: 4px;
-}
-
-.content a {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-.content strong {
-  font-weight: 700;
-}
-
-.content em {
-  font-style: italic;
-}
-
-.content img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin: var(--space-3) 0;
-  border-radius: var(--radius-md);
-}
-
-.content blockquote {
-  margin: 0 0 var(--space-4);
-  padding: var(--space-2) var(--space-4);
-  border-left: 3px solid var(--color-primary);
-  color: var(--color-text-secondary);
-  background-color: var(--color-bg-secondary);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-}
-
-.content code {
-  padding: 2px 6px;
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-sm);
-  font-size: 0.9em;
-  font-family: 'SF Mono', 'Consolas', monospace;
-}
-
-.content pre {
-  margin: 0 0 var(--space-4);
-  padding: var(--space-3);
-  background-color: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
-  overflow-x: auto;
-  font-size: var(--text-sm);
-}
-
-.content pre code {
-  padding: 0;
-  background: transparent;
+  white-space: pre-wrap;
 }

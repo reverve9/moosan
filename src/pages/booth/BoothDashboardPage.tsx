@@ -20,8 +20,10 @@ import BoothMenuModal from '@/components/booth/BoothMenuModal'
 import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
+import { playSound } from '@/lib/audioCue'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
+import { useWakeLock } from '@/hooks/useWakeLock'
 import styles from './BoothDashboardPage.module.css'
 
 type CardStatus = BoothOrderCardStatus
@@ -38,7 +40,19 @@ interface BoothOrderCard {
 
 const HIGHLIGHT_MS = 5_000
 const ALERT_SECONDS = 60
+const ALERT2_SECONDS = 120
 const COMPLETED_LIMIT = 20
+
+/** navigator.vibrate 안전 호출 — 미지원/비모바일 브라우저는 no-op */
+function vibrateSafe(pattern: number[]): void {
+  try {
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      navigator.vibrate(pattern)
+    }
+  } catch {
+    /* 무시 */
+  }
+}
 
 function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
   return data.map(({ order, items }) => ({
@@ -118,6 +132,9 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const { status: realtimeStatus } = useRealtimeHealth()
   const connected = realtimeStatus === 'healthy'
 
+  // 탭 활성인 동안 화면 절전 방지 (미지원 브라우저는 no-op)
+  useWakeLock(true)
+
   const [data, setData] = useState<BoothOrderCardData[]>([])
   const dataRef = useRef<BoothOrderCardData[]>([])
   useEffect(() => {
@@ -154,6 +171,11 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
     const unsubscribe = subscribeBoothOrders(boothId, {
       onOrderPaid: (orderId) => {
+        // 새 주문 알람 — 초기 로드는 refetch 경로라 여기 안 들어옴 (onOrderPaid
+        // 는 pending→paid UPDATE 이벤트만 잡음). 중복 알람 걱정 없음.
+        void playSound('alarm', 3)
+        vibrateSafe([300, 100, 300, 100, 300])
+
         setHighlightOrderIds((prev) => {
           const set = new Set(prev)
           set.add(orderId)
@@ -189,6 +211,42 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [])
+
+  // 1분/2분 초과 전이 감지 — 각 주문당 임계 넘어서는 순간 1회 경보음.
+  // waiting 카드의 paid_at 기준 elapsed 계산. 이전 tick 의 elapsed 와 비교해
+  // 임계를 교차한 순간만 알람. 한 번 울린 주문은 Set 에 기록해 재실행 차단.
+  const alertedIdsRef = useRef<{ one: Set<string>; two: Set<string> }>({
+    one: new Set(),
+    two: new Set(),
+  })
+  useEffect(() => {
+    const nowSec = Math.floor(now / 1000)
+    for (const { order } of data) {
+      if (order.status !== 'paid' || order.ready_at || order.cancelled_at) continue
+      const paidMs = new Date(order.paid_at ?? order.created_at).getTime()
+      const elapsed = nowSec - Math.floor(paidMs / 1000)
+      if (elapsed >= ALERT_SECONDS && !alertedIdsRef.current.one.has(order.id)) {
+        alertedIdsRef.current.one.add(order.id)
+        void playSound('alert', 3)
+        vibrateSafe([500, 200, 500])
+      }
+      if (elapsed >= ALERT2_SECONDS && !alertedIdsRef.current.two.has(order.id)) {
+        alertedIdsRef.current.two.add(order.id)
+        void playSound('alert', 3)
+        vibrateSafe([500, 200, 500, 200, 500])
+      }
+    }
+    // 완료/취소된 주문은 Set 에서 정리 — 메모리 누수 방지
+    const activeIds = new Set(
+      data.filter((d) => d.order.status === 'paid' && !d.order.ready_at).map((d) => d.order.id),
+    )
+    for (const id of alertedIdsRef.current.one) {
+      if (!activeIds.has(id)) alertedIdsRef.current.one.delete(id)
+    }
+    for (const id of alertedIdsRef.current.two) {
+      if (!activeIds.has(id)) alertedIdsRef.current.two.delete(id)
+    }
+  }, [now, data])
 
   const cards = useMemo(() => buildCards(data), [data])
 

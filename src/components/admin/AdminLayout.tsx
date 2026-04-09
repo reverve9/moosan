@@ -2,8 +2,8 @@ import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal,
 import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import type { ComponentType, SVGProps } from 'react'
-import { fetchMonitorSummary, subscribeMonitor } from '@/lib/boothMonitor'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
+import { AdminAlertProvider, useAdminAlert } from './AdminAlertContext'
 import styles from './AdminLayout.module.css'
 
 const MONITOR_PATH = '/monitor'
@@ -67,30 +67,6 @@ export default function AdminLayout() {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
-  const [monitorPending, setMonitorPending] = useState(0)
-
-  // 사이드바 모니터 배지 — 인증된 동안만 fetch + Realtime 구독
-  useEffect(() => {
-    if (!authed) return
-    let cancelled = false
-    const refresh = async () => {
-      try {
-        const summaries = await fetchMonitorSummary()
-        if (cancelled) return
-        setMonitorPending(summaries.reduce((sum, s) => sum + s.count, 0))
-      } catch {
-        // 사이드바 배지는 silent fail
-      }
-    }
-    refresh()
-    const unsub = subscribeMonitor(() => {
-      void refresh()
-    }, 'admin-layout-monitor')
-    return () => {
-      cancelled = true
-      unsub()
-    }
-  }, [authed])
 
   const handleLogin = () => {
     if (id === ADMIN_ID && pw === ADMIN_PW) {
@@ -143,6 +119,34 @@ export default function AdminLayout() {
   }
 
   return (
+    <AdminAlertProvider>
+      <AdminLayoutInner navigate={navigate} onLogout={handleLogout} />
+    </AdminAlertProvider>
+  )
+}
+
+interface AdminLayoutInnerProps {
+  navigate: ReturnType<typeof useNavigate>
+  onLogout: () => void
+}
+
+function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
+  const { alertCount, totalPending } = useAdminAlert()
+
+  // document.title 동적 변경 — 2분 초과 있으면 prefix `(N) `
+  useEffect(() => {
+    const BASE = '설악무산문화축전 어드민'
+    if (alertCount > 0) {
+      document.title = `(${alertCount}) 실시간 모니터 · ${BASE}`
+    } else {
+      document.title = BASE
+    }
+    return () => {
+      document.title = BASE
+    }
+  }, [alertCount])
+
+  return (
     <div className={styles.layout}>
       <ConnectionBanner />
       <aside className={styles.sidebar}>
@@ -156,7 +160,14 @@ export default function AdminLayout() {
               <div className={styles.navGroupTitle}>{group.title}</div>
               {group.items.map((item) => {
                 const Icon = item.icon
-                const showBadge = item.path === MONITOR_PATH && monitorPending > 0
+                const isMonitor = item.path === MONITOR_PATH
+                // 2분 초과 있으면 빨강(alertCount), 없지만 pending 있으면 회색
+                const badgeCount = isMonitor
+                  ? alertCount > 0
+                    ? alertCount
+                    : totalPending
+                  : 0
+                const badgeTone = isMonitor && alertCount > 0 ? 'alert' : 'pending'
                 return (
                   <NavLink
                     key={item.path}
@@ -168,8 +179,14 @@ export default function AdminLayout() {
                   >
                     <Icon className={styles.navIcon} />
                     <span>{item.label}</span>
-                    {showBadge && (
-                      <span className={styles.navBadge}>{monitorPending}</span>
+                    {isMonitor && badgeCount > 0 && (
+                      <span
+                        className={`${styles.navBadge} ${
+                          badgeTone === 'alert' ? styles.navBadgeAlert : ''
+                        }`}
+                      >
+                        {badgeCount}
+                      </span>
                     )}
                   </NavLink>
                 )
@@ -178,7 +195,7 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
+          <button className={styles.logoutBtn} onClick={onLogout}>
             <LogOut className={styles.navIcon} />
             <span>로그아웃</span>
           </button>

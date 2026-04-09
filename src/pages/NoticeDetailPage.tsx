@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
 import { ArrowLeft, Pin } from 'lucide-react'
 import { fetchPublishedNoticeById } from '@/lib/notices'
 import type { Notice } from '@/types/database'
@@ -71,9 +70,22 @@ export default function NoticeDetailPage() {
               {formatDate(notice.published_at ?? notice.created_at)}
             </div>
           </header>
-          <div className={styles.content}>
-            <ReactMarkdown>{notice.content}</ReactMarkdown>
-          </div>
+          {notice.images.length > 0 && (
+            <div className={styles.imageList}>
+              {notice.images.map((url, i) => (
+                <img
+                  key={`${url}-${i}`}
+                  src={url}
+                  alt={`${notice.title} 이미지 ${i + 1}`}
+                  className={styles.contentImage}
+                  loading="lazy"
+                />
+              ))}
+            </div>
+          )}
+          {notice.content.trim().length > 0 && (
+            <div className={styles.content}>{notice.content}</div>
+          )}
         </article>
       ) : null}
     </section>

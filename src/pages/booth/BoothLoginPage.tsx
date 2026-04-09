@@ -5,6 +5,7 @@ import {
   saveBoothSession,
   verifyBoothLogin,
 } from '@/lib/boothAuth'
+import { unlockAudio } from '@/lib/audioCue'
 import styles from './BoothLoginPage.module.css'
 
 export default function BoothLoginPage() {
@@ -24,6 +25,9 @@ export default function BoothLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (submitting) return
+
+    // iOS Safari autoplay 정책 우회 — 사용자 제스처 내에서 AudioContext unlock
+    unlockAudio()
 
     setSubmitting(true)
     setError(null)

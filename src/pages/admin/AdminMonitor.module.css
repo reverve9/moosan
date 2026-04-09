@@ -54,6 +54,28 @@
   border-color: #FECACA;
 }
 
+/* 2분 초과 스탯 박스 — 더 진한 빨강 + pulse */
+.statBoxAlert2 {
+  background-color: #FEE2E2;
+  border-color: #DC2626;
+  border-width: 2px;
+  animation: statBoxPulse 1s ease-in-out infinite;
+}
+
+.statBoxAlert2 .statValue,
+.statBoxAlert2 .statLabel {
+  color: #991B1B;
+}
+
+@keyframes statBoxPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
 .statValue {
   font-size: 24px;
   font-weight: 700;
@@ -120,6 +142,48 @@
   border-radius: 10px;
   font-size: 14px;
   color: #991B1B;
+}
+
+/* 2분 초과 경보 배너 — 페이지 최상단에 렌더 */
+.alertBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background-color: #FEE2E2;
+  border: 2px solid #DC2626;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  animation: alertBannerPulse 1.1s ease-in-out infinite;
+}
+
+@keyframes alertBannerPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+  }
+}
+
+.alertBannerIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  color: #DC2626;
+}
+
+.alertBannerText {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  color: #991B1B;
+  line-height: 1.4;
+}
+
+.alertBannerText strong {
+  font-weight: 800;
+  color: #7F1D1D;
 }
 
 .placeholder {
@@ -196,6 +260,30 @@
   }
   50% {
     box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15);
+  }
+}
+
+/* 2분 초과 — 더 진한 빨강 + 더 빠르고 강한 pulse + 테두리 두께감 */
+.level_alert2 {
+  background-color: #FEE2E2;
+  border-color: #DC2626;
+  border-width: 2px;
+  animation: alertPulse2 0.9s ease-in-out infinite;
+}
+
+.level_alert2 .countValue,
+.level_alert2 .boothName,
+.level_alert2 .countUnit,
+.level_alert2 .elapsedRow {
+  color: #991B1B;
+}
+
+@keyframes alertPulse2 {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.65), inset 0 0 0 0 rgba(220, 38, 38, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0), inset 0 0 0 2px rgba(220, 38, 38, 0.15);
   }
 }
 
@@ -359,6 +447,17 @@
 .modalItemAlert {
   background-color: #FEF2F2;
   border-color: #FCA5A5;
+}
+
+.modalItemAlert2 {
+  background-color: #FEE2E2;
+  border-color: #DC2626;
+  border-width: 2px;
+}
+
+.modalItemAlert2 .modalItemElapsed {
+  color: #991B1B;
+  font-weight: 800;
 }
 
 .modalItemLeft {

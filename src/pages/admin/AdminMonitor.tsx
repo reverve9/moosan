@@ -1,23 +1,17 @@
-import { RotateCw, X } from 'lucide-react'
+import { RotateCw, TriangleAlert, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  fetchMonitorSummary,
-  type MonitorBoothSummary,
-  subscribeMonitor,
-} from '@/lib/boothMonitor'
 import { confirmBoothOrder } from '@/lib/boothOrders'
 import { formatPhoneDisplay } from '@/lib/phone'
+import {
+  ALERT_SECONDS,
+  WARN_SECONDS,
+  elapsedSeconds,
+  useAdminAlert,
+} from '@/components/admin/AdminAlertContext'
 import styles from './AdminMonitor.module.css'
 
-const ALERT_SECONDS = 60
-const TICK_MS = 1_000
 // 테스트 단계 한정: 어드민 모니터에서도 "확인" 가능. 운영 배포 시 자동으로 숨김.
 const ALLOW_ADMIN_CONFIRM = import.meta.env.DEV
-
-function elapsedSeconds(iso: string, nowMs: number): number {
-  const t = new Date(iso).getTime()
-  return Math.max(0, Math.floor((nowMs - t) / 1000))
-}
 
 function formatElapsed(seconds: number): string {
   if (seconds < 60) return `${seconds}초`
@@ -36,44 +30,22 @@ function formatHm(iso: string): string {
 }
 
 export default function AdminMonitor() {
-  const [summaries, setSummaries] = useState<MonitorBoothSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
-  const [now, setNow] = useState(() => Date.now())
+  const {
+    summaries,
+    now,
+    alertCount,
+    warnCount,
+    totalPending,
+    loading,
+    error: ctxError,
+    refreshing,
+    refetch,
+  } = useAdminAlert()
+  const [localError, setLocalError] = useState<string | null>(null)
   const [selectedBoothId, setSelectedBoothId] = useState<string | null>(null)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
-  const refetch = useCallback(async () => {
-    try {
-      const data = await fetchMonitorSummary()
-      setSummaries(data)
-      setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '데이터 조회 실패')
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    refetch().finally(() => {
-      if (!cancelled) setLoading(false)
-    })
-    const unsub = subscribeMonitor(() => {
-      void refetch()
-    }, 'admin-monitor-page')
-    return () => {
-      cancelled = true
-      unsub()
-    }
-  }, [refetch])
-
-  // 1초 tick (카운트업용)
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), TICK_MS)
-    return () => window.clearInterval(id)
-  }, [])
+  const error = localError ?? ctxError
 
   // ESC 로 모달 닫기
   useEffect(() => {
@@ -86,9 +58,8 @@ export default function AdminMonitor() {
   }, [selectedBoothId])
 
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true)
+    setLocalError(null)
     await refetch()
-    setRefreshing(false)
   }, [refetch])
 
   const handleAdminConfirm = useCallback(
@@ -99,30 +70,12 @@ export default function AdminMonitor() {
         await confirmBoothOrder(orderId)
         await refetch()
       } catch (e) {
-        setError(e instanceof Error ? e.message : '확인 처리 실패')
+        setLocalError(e instanceof Error ? e.message : '확인 처리 실패')
       } finally {
         setConfirmingId(null)
       }
     },
     [refetch],
-  )
-
-  const totalPending = useMemo(
-    () => summaries.reduce((sum, s) => sum + s.count, 0),
-    [summaries],
-  )
-
-  // 1분 초과 주문 개수 (부스 수가 아니라 order 단위 — 총 미확인과 단위 일치)
-  const alertCount = useMemo(
-    () =>
-      summaries.reduce(
-        (sum, s) =>
-          sum +
-          s.orders.filter((o) => elapsedSeconds(o.paid_at, now) >= ALERT_SECONDS)
-            .length,
-        0,
-      ),
-    [summaries, now],
   )
 
   const selectedBooth = useMemo(
@@ -135,11 +88,17 @@ export default function AdminMonitor() {
       <header className={styles.pageHeader}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>실시간 모니터</h1>
-          <p className={styles.sub}>1분 초과 미확인 주문은 빨간색으로 표시됩니다.</p>
+          <p className={styles.sub}>
+            1분 초과 주황, 2분 초과 빨강 + 경보 — 부스에서 처리되지 않은 주문입니다.
+          </p>
         </div>
         <div className={styles.headerRight}>
-          <div className={`${styles.statBox} ${alertCount > 0 ? styles.statBoxAlert : ''}`}>
+          <div className={`${styles.statBox} ${alertCount > 0 ? styles.statBoxAlert2 : ''}`}>
             <div className={styles.statValue}>{alertCount}</div>
+            <div className={styles.statLabel}>2분 초과</div>
+          </div>
+          <div className={`${styles.statBox} ${warnCount > 0 ? styles.statBoxAlert : ''}`}>
+            <div className={styles.statValue}>{warnCount}</div>
             <div className={styles.statLabel}>1분 초과</div>
           </div>
           <div className={styles.statBox}>
@@ -160,6 +119,16 @@ export default function AdminMonitor() {
         </div>
       </header>
 
+      {alertCount > 0 && (
+        <div className={styles.alertBanner}>
+          <TriangleAlert className={styles.alertBannerIcon} />
+          <div className={styles.alertBannerText}>
+            <strong>2분 이상 지연된 주문 {alertCount}건</strong>
+            <span> — 부스에서 처리되지 않았습니다. 해당 매장에 즉시 확인하세요.</span>
+          </div>
+        </div>
+      )}
+
       {error && <div className={styles.errorBanner}>{error}</div>}
 
       {loading ? (
@@ -168,15 +137,24 @@ export default function AdminMonitor() {
         <div className={styles.boothGrid}>
           {summaries.map((s) => {
             const elapsed = s.oldestPaidAt ? elapsedSeconds(s.oldestPaidAt, now) : 0
-            let level: 'idle' | 'pending' | 'alert' = 'idle'
+            let levelClass = ''
             if (s.count > 0) {
-              level = elapsed >= ALERT_SECONDS ? 'alert' : 'pending'
+              if (elapsed >= ALERT_SECONDS) {
+                // 2분 초과 — alert 스타일 위에 alert2 덮어쓰기 (더 강한 pulse)
+                levelClass = `${styles.level_alert} ${styles.level_alert2}`
+              } else if (elapsed >= WARN_SECONDS) {
+                levelClass = styles.level_alert
+              } else {
+                levelClass = styles.level_pending
+              }
+            } else {
+              levelClass = styles.level_idle
             }
             return (
               <button
                 key={s.boothId}
                 type="button"
-                className={`${styles.boothCard} ${styles[`level_${level}`]}`}
+                className={`${styles.boothCard} ${levelClass}`}
                 onClick={() => s.count > 0 && setSelectedBoothId(s.boothId)}
                 disabled={s.count === 0}
               >
@@ -215,14 +193,21 @@ export default function AdminMonitor() {
             <ul className={styles.modalList}>
               {selectedBooth.orders.map((order) => {
                 const elapsed = elapsedSeconds(order.paid_at, now)
-                const isAlert = elapsed >= ALERT_SECONDS
+                const isAlert2 = elapsed >= ALERT_SECONDS
+                const isAlert = elapsed >= WARN_SECONDS
                 const menuSummary = order.items
                   .map((it) => `${it.menu_name} × ${it.quantity}`)
                   .join(', ')
                 return (
                   <li
                     key={order.id}
-                    className={`${styles.modalItem} ${isAlert ? styles.modalItemAlert : ''}`}
+                    className={`${styles.modalItem} ${
+                      isAlert2
+                        ? styles.modalItemAlert2
+                        : isAlert
+                        ? styles.modalItemAlert
+                        : ''
+                    }`}
                   >
                     <div className={styles.modalItemLeft}>
                       <div className={styles.modalItemTime}>{formatHm(order.paid_at)}</div>

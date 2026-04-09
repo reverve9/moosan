@@ -305,6 +305,7 @@ export interface Database {
           id: string
           title: string
           content: string
+          images: string[]
           category: 'general' | 'program' | 'result'
           is_pinned: boolean
           is_published: boolean
@@ -316,6 +317,7 @@ export interface Database {
           id?: string
           title: string
           content: string
+          images?: string[]
           category?: 'general' | 'program' | 'result'
           is_pinned?: boolean
           is_published?: boolean
@@ -327,6 +329,7 @@ export interface Database {
           id?: string
           title?: string
           content?: string
+          images?: string[]
           category?: 'general' | 'program' | 'result'
           is_pinned?: boolean
           is_published?: boolean

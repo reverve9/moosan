@@ -1,4 +1,4 @@
-import { Plus, X, Trash2, RotateCw, Upload } from 'lucide-react'
+import { Plus, X, Trash2, RotateCw, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createNotice,
@@ -246,6 +246,7 @@ interface NoticeFormModalProps {
 function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
   const [title, setTitle] = useState(target?.title ?? '')
   const [content, setContent] = useState(target?.content ?? '')
+  const [images, setImages] = useState<string[]>(target?.images ?? [])
   const [category, setCategory] = useState<NoticeCategory>(
     (target?.category as NoticeCategory) ?? 'general',
   )
@@ -254,7 +255,6 @@ function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
   const [submitting, setSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
@@ -265,33 +265,37 @@ function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const handleImageFile = async (file: File) => {
+  const handleImageFiles = async (files: FileList) => {
     if (uploading) return
+    if (files.length === 0) return
     setUploading(true)
     setError(null)
     try {
-      const url = await uploadNoticeImage(file)
-      const markdown = `\n![](${url})\n`
-      const textarea = textareaRef.current
-      if (textarea) {
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
-        const next = content.slice(0, start) + markdown + content.slice(end)
-        setContent(next)
-        // 커서 위치 복원
-        requestAnimationFrame(() => {
-          textarea.focus()
-          const pos = start + markdown.length
-          textarea.setSelectionRange(pos, pos)
-        })
-      } else {
-        setContent((c) => c + markdown)
+      const urls: string[] = []
+      for (const file of Array.from(files)) {
+        const url = await uploadNoticeImage(file)
+        urls.push(url)
       }
+      setImages((prev) => [...prev, ...urls])
     } catch (e) {
       setError('이미지 업로드 실패: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setUploading(false)
     }
+  }
+
+  const handleRemoveImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleMoveImage = (index: number, direction: -1 | 1) => {
+    setImages((prev) => {
+      const next = [...prev]
+      const target = index + direction
+      if (target < 0 || target >= next.length) return prev
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
   }
 
   const handleSubmit = async () => {
@@ -300,13 +304,14 @@ function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
       setError('제목을 입력해주세요')
       return
     }
-    if (!content.trim()) {
-      setError('내용을 입력해주세요')
+    if (!content.trim() && images.length === 0) {
+      setError('내용 또는 이미지를 추가해주세요')
       return
     }
     const payload: NoticeInput = {
       title: title.trim(),
       content: content.trim(),
+      images,
       category,
       is_pinned: isPinned,
       is_published: isPublished,
@@ -388,9 +393,12 @@ function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
             </label>
           </div>
 
+          {/* ── 이미지 섹션 (본문 위) ── */}
           <div className={styles.field}>
             <div className={styles.contentLabelRow}>
-              <label className={styles.fieldLabel}>내용 (Markdown)</label>
+              <label className={styles.fieldLabel}>
+                이미지 <span className={styles.fieldLabelSub}>({images.length}장)</span>
+              </label>
               <button
                 type="button"
                 className={styles.imageBtn}
@@ -398,29 +406,79 @@ function NoticeFormModal({ target, onClose, onSaved }: NoticeFormModalProps) {
                 disabled={uploading}
               >
                 <Upload className={styles.btnIcon} />
-                <span>{uploading ? '업로드 중...' : '이미지 삽입'}</span>
+                <span>{uploading ? '업로드 중...' : '이미지 추가'}</span>
               </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
+                multiple
                 className={styles.hiddenFileInput}
                 onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) void handleImageFile(f)
+                  const fs = e.target.files
+                  if (fs && fs.length > 0) void handleImageFiles(fs)
                   e.target.value = ''
                 }}
               />
             </div>
+            {images.length === 0 ? (
+              <div className={styles.imageEmpty}>
+                첨부된 이미지가 없습니다. 상단 "이미지 추가" 버튼으로 올려주세요.
+              </div>
+            ) : (
+              <ul className={styles.imageGrid}>
+                {images.map((url, i) => (
+                  <li key={`${url}-${i}`} className={styles.imageCard}>
+                    <div className={styles.imageThumbWrap}>
+                      <img src={url} alt={`첨부 ${i + 1}`} className={styles.imageThumb} />
+                      <span className={styles.imageIndex}>{i + 1}</span>
+                    </div>
+                    <div className={styles.imageActions}>
+                      <button
+                        type="button"
+                        className={styles.imageActionBtn}
+                        onClick={() => handleMoveImage(i, -1)}
+                        disabled={i === 0}
+                        aria-label="앞으로"
+                        title="앞으로"
+                      >
+                        <ChevronLeft />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.imageActionBtn}
+                        onClick={() => handleMoveImage(i, 1)}
+                        disabled={i === images.length - 1}
+                        aria-label="뒤로"
+                        title="뒤로"
+                      >
+                        <ChevronRight />
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.imageActionBtn} ${styles.imageDeleteBtn}`}
+                        onClick={() => handleRemoveImage(i)}
+                        aria-label="삭제"
+                        title="삭제"
+                      >
+                        <Trash2 />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* ── 본문 (이미지 아래) ── */}
+          <div className={styles.field}>
+            <label className={styles.fieldLabel}>본문</label>
             <textarea
-              ref={textareaRef}
               className={styles.contentTextarea}
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder={
-                '공지 내용을 입력하세요.\n\n마크다운 사용 가능:\n# 제목\n**굵게**\n*기울임*\n[링크](https://example.com)\n![이미지](url) ← 이미지 삽입 버튼 사용'
-              }
-              rows={14}
+              placeholder="공지 내용을 입력하세요. 줄바꿈과 빈 줄로 단락이 구분됩니다."
+              rows={12}
             />
           </div>
 
