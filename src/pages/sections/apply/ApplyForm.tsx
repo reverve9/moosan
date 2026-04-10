@@ -134,7 +134,7 @@ export default function ApplyForm({ defaultProgramId }: Props) {
         <p className={styles.successDesc}>
           신청 내역은 검토 후 승인됩니다.
           <br />
-          문의사항은 주최 측으로 연락해 주세요.
+          참가신청 여부는 추후 개별 문자로 통보됩니다.
         </p>
         <button
           className={styles.successBtn}
