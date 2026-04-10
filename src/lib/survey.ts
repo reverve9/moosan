@@ -175,6 +175,12 @@ export interface SurveyStats {
   religion: CountBucket[]
   religionSince: CountBucket[]
   religionFrequency: CountBucket[]
+  pastReligion: CountBucket[] // Q2
+  religionInfluencePersonal: CountBucket[] // Q3
+  religionInfluenceSociety: CountBucket[] // Q3-1
+  pastParticipation: CountBucket[] // Q4
+  decisionMaker: CountBucket[] // Q5
+  expectation: CountBucket[] // Q7
   // 행사성과 평가
   overallSatisfactionAvg100: number | null // Q11 100점환산 평균
   overallSatisfactionTopBox: number | null // Q11 5,6,7 비율
@@ -337,6 +343,12 @@ export function calcSurveyStats(rows: Survey[]): SurveyStats {
   const religionVals: string[] = []
   const religionSinceVals: string[] = []
   const religionFreqVals: string[] = []
+  const pastReligionVals: string[] = []
+  const q3Vals: string[] = []
+  const q3_1Vals: string[] = []
+  const pastParticipationVals: string[] = []
+  const decisionMakerVals: string[] = []
+  const expectationVals: string[] = []
   const infoSourceVals: string[] = []
   const futureVals: string[] = []
 
@@ -350,6 +362,12 @@ export function calcSurveyStats(rows: Survey[]): SurveyStats {
     if (typeof a.q1 === 'string') religionVals.push(a.q1)
     if (typeof a.q1_1 === 'string') religionSinceVals.push(a.q1_1)
     if (typeof a.q1_2 === 'string') religionFreqVals.push(a.q1_2)
+    if (typeof a.q2 === 'string') pastReligionVals.push(a.q2)
+    if (typeof a.q3 === 'string') q3Vals.push(a.q3)
+    if (typeof a.q3_1 === 'string') q3_1Vals.push(a.q3_1)
+    if (typeof a.q4 === 'string') pastParticipationVals.push(a.q4)
+    if (typeof a.q5 === 'string') decisionMakerVals.push(a.q5)
+    if (typeof a.q7 === 'string') expectationVals.push(a.q7)
     if (Array.isArray(a.q6)) {
       for (const s of a.q6) if (typeof s === 'string') infoSourceVals.push(s)
     }
@@ -442,6 +460,12 @@ export function calcSurveyStats(rows: Survey[]): SurveyStats {
     religion,
     religionSince,
     religionFrequency,
+    pastReligion: countBuckets(pastReligionVals, RELIGION_LABELS),
+    religionInfluencePersonal: countBuckets(q3Vals, INFLUENCE_LABELS),
+    religionInfluenceSociety: countBuckets(q3_1Vals, INFLUENCE_LABELS),
+    pastParticipation: countBuckets(pastParticipationVals, YES_NO_LABELS),
+    decisionMaker: countBuckets(decisionMakerVals, DECISION_MAKER_LABELS),
+    expectation: countBuckets(expectationVals, EXPECTATION_LABELS),
     overallSatisfactionAvg100,
     overallSatisfactionTopBox,
     sections,
