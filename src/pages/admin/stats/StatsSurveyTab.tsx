@@ -71,7 +71,7 @@ export default function StatsSurveyTab() {
 
   const stats: SurveyStats = useMemo(() => calcSurveyStats(rows), [rows])
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const cols = [
       { key: 'created_at', label: '제출일시' },
       { key: 'name', label: '이름' },
@@ -125,7 +125,7 @@ export default function StatsSurveyTab() {
         q20: a.q20 ?? '',
       }
     })
-    exportToExcel(data, cols, '만족도조사')
+    await exportToExcel(data, cols, '만족도조사')
   }
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))

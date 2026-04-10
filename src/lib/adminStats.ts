@@ -454,11 +454,3 @@ export function calcPaymentBehaviorStats(data: StatsRawData): PaymentBehaviorSta
 
 // ─── 날짜 유틸 ────────────────────────────────────
 
-export function todayKstString(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}

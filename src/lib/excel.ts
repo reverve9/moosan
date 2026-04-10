@@ -1,16 +1,18 @@
-import * as XLSX from 'xlsx'
-
 /**
  * 엑셀 Export/Import 공용 유틸.
  * xlsx(SheetJS) 래퍼 — 어드민 페이지에서 공통 사용.
+ * dynamic import 로 번들 분리 (~420KB).
  */
 
+const loadXLSX = () => import('xlsx')
+
 /** 2D 배열(헤더 + 데이터)을 .xlsx 파일로 다운로드 */
-export function exportToExcel(
+export async function exportToExcel(
   rows: Record<string, unknown>[],
   columns: { key: string; label: string }[],
   fileName: string,
-): void {
+): Promise<void> {
+  const XLSX = await loadXLSX()
   const header = columns.map((c) => c.label)
   const data = rows.map((row) =>
     columns.map((c) => {
@@ -43,6 +45,7 @@ export function exportToExcel(
 export async function importFromExcel(
   file: File,
 ): Promise<Record<string, string>[]> {
+  const XLSX = await loadXLSX()
   const buffer = await file.arrayBuffer()
   const wb = XLSX.read(buffer, { type: 'array' })
   const ws = wb.Sheets[wb.SheetNames[0]]
@@ -65,14 +68,3 @@ export function fmtDateKst(iso: string | null): string {
   }).format(d)
 }
 
-/** KST 날짜만 (시간 없이) */
-export function fmtDateOnlyKst(iso: string | null): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  return new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d)
-}

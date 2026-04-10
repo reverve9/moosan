@@ -77,7 +77,7 @@ export default function AdminCoupons() {
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = rows.slice(pageStart, pageStart + PAGE_SIZE)
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const cols = [
       { key: 'code', label: '쿠폰코드' },
       { key: 'discount_amount', label: '할인금액' },
@@ -100,7 +100,7 @@ export default function AdminCoupons() {
       used_at: fmtDateKst(r.used_at),
       note: r.note ?? '',
     }))
-    exportToExcel(data, cols, '쿠폰_관리')
+    await exportToExcel(data, cols, '쿠폰_관리')
   }
 
   const totals = useMemo(() => {

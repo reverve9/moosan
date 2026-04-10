@@ -262,15 +262,18 @@ export async function fetchPaymentWithOrders(
 /**
  * 오늘 KST 자정 (UTC ISO) 을 반환.
  */
-export function startOfTodayKstAsUtc(): Date {
-  const now = new Date()
-  const kstDateStr = new Intl.DateTimeFormat('en-CA', {
+/** 오늘 KST 날짜를 "YYYY-MM-DD" 문자열로 반환 */
+export function todayKstString(): string {
+  return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(now)
-  return new Date(`${kstDateStr}T00:00:00+09:00`)
+  }).format(new Date())
+}
+
+export function startOfTodayKstAsUtc(): Date {
+  return new Date(`${todayKstString()}T00:00:00+09:00`)
 }
 
 /**

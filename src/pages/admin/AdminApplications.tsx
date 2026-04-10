@@ -174,7 +174,7 @@ function ParticipantList({ programs }: { programs: Program[] }) {
     return { total: applications.length, pending, approved, rejected, waitlist }
   }, [applications])
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const selectedProgram = programs.find((p) => p.id === programFilter)
     const slug = selectedProgram?.slug ?? ''
 
@@ -281,7 +281,7 @@ function ParticipantList({ programs }: { programs: Program[] }) {
     })
 
     const fileName = selectedProgram ? `참가신청_${selectedProgram.name}` : '참가신청_전체'
-    exportToExcel(rows, cols, fileName)
+    await exportToExcel(rows, cols, fileName)
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
