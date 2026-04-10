@@ -123,26 +123,28 @@ export default function StatsRevenueTab() {
             className={styles.input}
           />
         </label>
-        <button
-          type="button"
-          className={styles.refreshBtn}
-          onClick={handleExport}
-          disabled={!raw || raw.orderItems.length === 0}
-        >
-          <Download className={styles.refreshIcon} />
-          <span>내보내기</span>
-        </button>
-        <button
-          type="button"
-          className={styles.refreshBtn}
-          onClick={() => void refetch()}
-          disabled={loading}
-        >
-          <RotateCw
-            className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
-          />
-          <span>새로고침</span>
-        </button>
+        <div className={styles.btnGroup}>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={handleExport}
+            disabled={!raw || raw.orderItems.length === 0}
+          >
+            <Download className={styles.refreshIcon} />
+            <span>내보내기</span>
+          </button>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={() => void refetch()}
+            disabled={loading}
+          >
+            <RotateCw
+              className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
+            />
+            <span>새로고침</span>
+          </button>
+        </div>
       </div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}

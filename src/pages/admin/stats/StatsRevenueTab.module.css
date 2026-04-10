@@ -46,6 +46,13 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
 }
 
+.btnGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .refreshBtn {
   display: inline-flex;
   align-items: center;
@@ -58,7 +65,6 @@
   background-color: var(--color-primary);
   border-radius: 10px;
   cursor: pointer;
-  margin-left: auto;
 }
 
 .refreshBtn:hover:not(:disabled) {
