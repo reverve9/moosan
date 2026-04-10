@@ -12,25 +12,14 @@ export interface FormData {
   // Step 1
   infoConfirmed: boolean
 
-  // Step 2
+  // Step 2 — 참가팀 정보
   programId: string
   division: string
-  participationType: 'individual' | 'team'
   teamName: string
-  applicantName: string
-  applicantBirth: string
   schoolName: string
-  schoolGrade: string
+  applicantName: string
   phone: string
   email: string
-  parentName: string
-  parentPhone: string
-  parentRelation: string
-  teacherName: string
-  teacherPhone: string
-  teacherEmail: string
-
-  // Team
   teamMemberCount: string
   teamComposition: string
   performanceDuration: string
@@ -44,20 +33,11 @@ const INITIAL_FORM: FormData = {
   infoConfirmed: false,
   programId: '',
   division: '',
-  participationType: 'individual',
   teamName: '',
-  applicantName: '',
-  applicantBirth: '',
   schoolName: '',
-  schoolGrade: '',
+  applicantName: '',
   phone: '',
   email: '',
-  parentName: '',
-  parentPhone: '',
-  parentRelation: '',
-  teacherName: '',
-  teacherPhone: '',
-  teacherEmail: '',
   teamMemberCount: '',
   teamComposition: '',
   performanceDuration: '',
@@ -102,20 +82,12 @@ export default function ApplyForm({ defaultProgramId }: Props) {
     const { error } = await supabase.from('applications').insert({
       program_id: program.id,
       division: form.division,
-      participation_type: form.participationType,
+      participation_type: 'team',
       team_name: form.teamName || null,
       applicant_name: form.applicantName,
-      applicant_birth: form.applicantBirth || null,
       school_name: form.schoolName,
-      school_grade: form.schoolGrade || null,
       phone: normalizePhone(form.phone),
       email: form.email || null,
-      parent_name: form.parentName || null,
-      parent_phone: form.parentPhone ? normalizePhone(form.parentPhone) : null,
-      parent_relation: form.parentRelation || null,
-      teacher_name: form.teacherName || null,
-      teacher_phone: form.teacherPhone ? normalizePhone(form.teacherPhone) : null,
-      teacher_email: form.teacherEmail || null,
       privacy_agreed: form.privacyAgreed,
       privacy_agreed_at: form.privacyAgreed ? new Date().toISOString() : null,
       meta: {

@@ -503,14 +503,6 @@ export function markSurveyDoneLocally(): void {
 }
 
 /** 오늘 날짜 KST YYYY-MM-DD */
-export function todayKstString(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
 
 /**
  * 만족도 조사 제출 — 같은 phone + festival_id 조합은 DB unique 제약으로 차단.

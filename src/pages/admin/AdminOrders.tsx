@@ -14,16 +14,8 @@ import {
 import { formatPhoneDisplay } from '@/lib/phone'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { ExportButton } from '@/components/admin/ExcelButtons'
+import { todayKstString } from '@/lib/orders'
 import styles from './AdminOrders.module.css'
-
-function todayKstString(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date())
-}
 
 function formatDateTime(iso: string): string {
   // mm/dd hh:mm (KST)
@@ -99,7 +91,7 @@ export default function AdminOrders() {
     void refetch()
   }, [refetch])
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const cols = [
       { key: 'order_numbers', label: '주문번호' },
       { key: 'booths', label: '매장명' },
@@ -122,7 +114,7 @@ export default function AdminOrders() {
       status: STATUS_LABEL[r.payment.status as keyof typeof STATUS_LABEL] ?? r.payment.status,
       toss_order_id: r.payment.toss_order_id ?? '',
     }))
-    exportToExcel(data, cols, '주문_결제_관리')
+    await exportToExcel(data, cols, '주문_결제_관리')
   }
 
   // 매장 검색 — 실시간 client-side 필터 (서버 재호출 X)

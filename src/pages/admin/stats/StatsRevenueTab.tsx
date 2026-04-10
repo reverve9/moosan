@@ -8,10 +8,10 @@ import {
   calcPaymentBehaviorStats,
   calcTimeStats,
   fetchStatsData,
-  todayKstString,
   type StatsFilters,
   type StatsRawData,
 } from '@/lib/adminStats'
+import { todayKstString } from '@/lib/orders'
 import { fetchCouponStats, type CouponStats } from '@/lib/coupons'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { ExportButton } from '@/components/admin/ExcelButtons'
@@ -57,7 +57,7 @@ export default function StatsRevenueTab() {
     void refetch()
   }, [refetch])
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!raw) return
     const cols = [
       { key: 'created_at', label: '결제일시' },
@@ -89,7 +89,7 @@ export default function StatsRevenueTab() {
         order_status: order?.status ?? '',
       }
     })
-    exportToExcel(data, cols, '매출_관리')
+    await exportToExcel(data, cols, '매출_관리')
   }
 
   const kpi = useMemo(() => (raw ? calcKpi(raw) : null), [raw])

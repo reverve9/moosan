@@ -174,7 +174,7 @@ function ParticipantList({ programs }: { programs: Program[] }) {
     return { total: applications.length, pending, approved, rejected, waitlist }
   }, [applications])
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const selectedProgram = programs.find((p) => p.id === programFilter)
     const slug = selectedProgram?.slug ?? ''
 
@@ -191,16 +191,10 @@ function ParticipantList({ programs }: { programs: Program[] }) {
     // 대회별 추가 컬럼
     const metaCols: Record<string, { key: string; label: string }[]> = {
       dance: [
-        { key: 'participation_type', label: '참가유형' },
-        { key: 'team_name', label: '팀명' },
-        { key: 'team_member_count', label: '팀 인원' },
+        { key: 'team_name', label: '참가팀 이름' },
+        { key: 'team_member_count', label: '총 인원' },
         { key: 'team_composition', label: '팀 구성' },
-        { key: 'performance_duration', label: '공연 시간' },
-        { key: 'school_grade', label: '학년' },
-        { key: 'parent_name', label: '보호자명' },
-        { key: 'parent_phone', label: '보호자연락처' },
-        { key: 'teacher_name', label: '지도교사' },
-        { key: 'teacher_phone', label: '지도교사연락처' },
+        { key: 'performance_duration', label: '공연 소요시간' },
       ],
       saesaeng: [
         { key: 'gender', label: '성별' },
@@ -281,7 +275,7 @@ function ParticipantList({ programs }: { programs: Program[] }) {
     })
 
     const fileName = selectedProgram ? `참가신청_${selectedProgram.name}` : '참가신청_전체'
-    exportToExcel(rows, cols, fileName)
+    await exportToExcel(rows, cols, fileName)
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

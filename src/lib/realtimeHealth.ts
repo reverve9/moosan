@@ -42,7 +42,6 @@ const listeners = new Set<(s: RealtimeHealthState) => void>()
 let everConnected = false
 let consecutiveDownTicks = 0
 let lastForceReconnectAt = 0
-let pollTimer: number | null = null
 let started = false
 
 function emit() {
@@ -120,7 +119,7 @@ function start() {
   started = true
   // 폴링 시작 전에 한 번 체크해서 초기 상태를 잡는다.
   tick()
-  pollTimer = window.setInterval(tick, POLL_INTERVAL_MS)
+  window.setInterval(tick, POLL_INTERVAL_MS)
 }
 
 export function subscribeRealtimeHealth(
@@ -139,16 +138,3 @@ export function getRealtimeHealth(): RealtimeHealthState {
   return state
 }
 
-/** 테스트 / dev 콘솔용 */
-export function _resetRealtimeHealthForTest(): void {
-  state = { status: 'healthy', degradedSince: null }
-  listeners.clear()
-  everConnected = false
-  consecutiveDownTicks = 0
-  lastForceReconnectAt = 0
-  if (pollTimer !== null) {
-    window.clearInterval(pollTimer)
-    pollTimer = null
-  }
-  started = false
-}

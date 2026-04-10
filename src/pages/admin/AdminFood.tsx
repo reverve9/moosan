@@ -446,7 +446,7 @@ export default function AdminFood() {
     refetch()
   }
 
-  const handleFoodExport = () => {
+  const handleFoodExport = async () => {
     const cols = [
       { key: 'booth_no', label: '부스번호' },
       { key: 'booth_name', label: '매장명' },
@@ -482,7 +482,7 @@ export default function AdminFood() {
         }
       }
     }
-    exportToExcel(data, cols, '참여매장_관리')
+    await exportToExcel(data, cols, '참여매장_관리')
   }
 
   const handleFoodImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
