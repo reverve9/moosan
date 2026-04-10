@@ -1,11 +1,12 @@
 import { CircleCheck, Clock, Flame, Search, Minus, Plus, ShoppingBag, Trash2, CircleX } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
 import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
+import { supabase } from '@/lib/supabase'
 import { formatPhone, isValidPhone, loadLastPhone, normalizePhone } from '@/lib/phone'
 import styles from './CartPage.module.css'
 
@@ -102,6 +103,18 @@ export default function CartPage() {
   const phoneValid = isValidPhone(phoneInput)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
 
+  const refetchOrders = useCallback(async () => {
+    if (!submittedPhone) return
+    try {
+      const data = await fetchPaymentsByPhoneToday(normalizePhone(submittedPhone))
+      setPayments(data)
+      setOrdersError(null)
+    } catch (err) {
+      setOrdersError(err instanceof Error ? err.message : '주문 조회 실패')
+      setPayments(null)
+    }
+  }, [submittedPhone])
+
   // submittedPhone 이 정해지면 (mount 시 localStorage 또는 사용자 submit) fetch
   useEffect(() => {
     if (!submittedPhone) {
@@ -128,6 +141,25 @@ export default function CartPage() {
       cancelled = true
     }
   }, [submittedPhone])
+
+  // Realtime: orders 변경 시 자동 refetch
+  useEffect(() => {
+    if (!submittedPhone) return
+    const channel = supabase
+      .channel('cart-orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => { void refetchOrders() },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        () => { void refetchOrders() },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [submittedPhone, refetchOrders])
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneInput(formatPhone(e.target.value))
