@@ -378,12 +378,12 @@ function ParticipantList({ programs }: { programs: Program[] }) {
         totalPages={totalPages}
         totalItems={visibleApplications.length}
         onChange={setPage}
-        actions={
+        actions={programFilter !== 'all' ? (
           <>
             <ImportButton onFile={handleImport} />
             <ExportButton onClick={handleExport} />
           </>
-        }
+        ) : undefined}
       />
 
       <div className={styles.table}>
