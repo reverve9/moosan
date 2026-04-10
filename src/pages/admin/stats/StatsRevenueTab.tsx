@@ -1,4 +1,4 @@
-import { RotateCw, Download } from 'lucide-react'
+import { RotateCw } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   calcBoothStats,
@@ -14,6 +14,7 @@ import {
 } from '@/lib/adminStats'
 import { fetchCouponStats, type CouponStats } from '@/lib/coupons'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import styles from './StatsRevenueTab.module.css'
 
 function fmtWon(n: number): string {
@@ -124,15 +125,7 @@ export default function StatsRevenueTab() {
           />
         </label>
         <div className={styles.btnGroup}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={handleExport}
-            disabled={!raw || raw.orderItems.length === 0}
-          >
-            <Download className={styles.refreshIcon} />
-            <span>내보내기</span>
-          </button>
+          <ExportButton onClick={handleExport} disabled={!raw || raw.orderItems.length === 0} />
           <button
             type="button"
             className={styles.refreshBtn}
