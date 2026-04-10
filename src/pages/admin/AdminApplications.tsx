@@ -6,6 +6,7 @@ import { ExportButton, ImportButton } from '@/components/admin/ExcelButtons'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import { formatPhoneDisplay } from '@/lib/phone'
 import type { Application, Program, Json } from '@/types/database'
+import AdminFormContents from './AdminFormContents'
 import styles from './AdminApplications.module.css'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,6 +26,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 type AppWithProgram = Application & { programs: { name: string; slug: string } | null }
+type SubSection = 'participants' | 'forms'
 
 function MetaField({ label, value }: { label: string; value: string | null | undefined }) {
   if (!value) return null
@@ -72,14 +74,8 @@ function renderMeta(app: AppWithProgram) {
 }
 
 export default function AdminApplications() {
-  const [applications, setApplications] = useState<AppWithProgram[]>([])
   const [programs, setPrograms] = useState<Program[]>([])
-  const [loading, setLoading] = useState(true)
-  const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
-  const [programFilter, setProgramFilter] = useState<string>('all')
-  const [selected, setSelected] = useState<AppWithProgram | null>(null)
-  const [page, setPage] = useState(1)
-  const PAGE_SIZE = DEFAULT_PAGE_SIZE
+  const [subSection, setSubSection] = useState<SubSection>('participants')
 
   useEffect(() => {
     supabase
@@ -89,9 +85,46 @@ export default function AdminApplications() {
       .then(({ data }) => setPrograms(data || []))
   }, [])
 
-  // 상단 통계 카드가 상태 필터와 무관하게 계산돼야 해서
-  // status 필터는 server 가 아닌 client 측에서 적용.
-  // program 필터만 server 쿼리에 적용됨.
+  return (
+    <div className={styles.page}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>참가신청 관리</h1>
+      </div>
+
+      <div className={styles.subTabs}>
+        <button
+          className={`${styles.subTab} ${subSection === 'participants' ? styles.subTabActive : ''}`}
+          onClick={() => setSubSection('participants')}
+        >
+          참가자 관리
+        </button>
+        <button
+          className={`${styles.subTab} ${subSection === 'forms' ? styles.subTabActive : ''}`}
+          onClick={() => setSubSection('forms')}
+        >
+          신청폼 관리
+        </button>
+      </div>
+
+      {subSection === 'participants' && <ParticipantList programs={programs} />}
+      {subSection === 'forms' && <AdminFormContents programs={programs} />}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 참가자 관리 (기존 리스트 + 모달)
+// ─────────────────────────────────────────────────────────────────
+
+function ParticipantList({ programs }: { programs: Program[] }) {
+  const [applications, setApplications] = useState<AppWithProgram[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
+  const [programFilter, setProgramFilter] = useState<string>('all')
+  const [selected, setSelected] = useState<AppWithProgram | null>(null)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = DEFAULT_PAGE_SIZE
+
   const fetchApplications = async () => {
     setLoading(true)
     let query = supabase
@@ -112,7 +145,6 @@ export default function AdminApplications() {
     fetchApplications()
   }, [programFilter])
 
-  // 상태 필터 적용된 리스트 (렌더링용)
   const visibleApplications = useMemo(
     () =>
       statusFilter === 'all'
@@ -126,10 +158,8 @@ export default function AdminApplications() {
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = visibleApplications.slice(pageStart, pageStart + PAGE_SIZE)
 
-  // 필터 변경 시 첫 페이지로
   useEffect(() => { setPage(1) }, [statusFilter, programFilter])
 
-  // 상단 카드용 집계 — 상태 필터와 무관, programFilter 만 반영됨
   const stats = useMemo(() => {
     let pending = 0
     let approved = 0
@@ -141,13 +171,7 @@ export default function AdminApplications() {
       else if (a.status === 'rejected' || a.status === 'cancelled') rejected += 1
       else if (a.status === 'waitlist') waitlist += 1
     }
-    return {
-      total: applications.length,
-      pending,
-      approved,
-      rejected,
-      waitlist,
-    }
+    return { total: applications.length, pending, approved, rejected, waitlist }
   }, [applications])
 
   const handleExport = () => {
@@ -186,7 +210,6 @@ export default function AdminApplications() {
     e.target.value = ''
     try {
       const data = await importFromExcel(file)
-      // 상태 일괄 업데이트: "신청자" + "연락처" 매칭으로 상태 변경
       const statusReverse: Record<string, string> = {}
       for (const [k, v] of Object.entries(STATUS_LABELS)) statusReverse[v] = k
       let updated = 0
@@ -220,11 +243,7 @@ export default function AdminApplications() {
   }
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>참가신청 관리</h1>
-      </div>
-
+    <>
       <div className={styles.statsGrid}>
         <div className={styles.statCard}>
           <p className={styles.statLabel}>총 신청</p>
@@ -414,6 +433,6 @@ export default function AdminApplications() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

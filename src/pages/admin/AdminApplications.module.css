@@ -61,6 +61,98 @@
   color: #111827;
 }
 
+/* ─── 소타이틀 탭 ─── */
+
+.subTabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.subTab {
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #9CA3AF;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.subTab:hover {
+  color: #374151;
+}
+
+.subTabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ─── 폼 편집기 ─── */
+
+.formEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fieldCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.fieldTextarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.fieldTextarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.saveBtn {
+  align-self: flex-end;
+  height: 40px;
+  padding: 0 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.saveBtn:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
 .count {
   font-size: 13px;
   font-weight: 600;
