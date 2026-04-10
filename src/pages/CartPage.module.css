@@ -510,10 +510,12 @@
   background-color: color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 
-.status_cancelled svg {
+.status_cancelled svg,
+.status_partial svg {
   color: #c0392b;
 }
-.statusBadge.status_cancelled {
+.statusBadge.status_cancelled,
+.statusBadge.status_partial {
   background-color: color-mix(in srgb, #c0392b 10%, var(--color-surface));
   color: #c0392b;
   border-color: color-mix(in srgb, #c0392b 30%, transparent);

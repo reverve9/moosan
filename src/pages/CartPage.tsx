@@ -36,13 +36,17 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
 }
 
 /* ──────────────── Order status helpers ──────────────── */
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'partial'
 
 function computePaymentUiStatus(data: PaymentWithOrders): UIStatus {
   const { payment, orders } = data
   if (payment.status === 'cancelled') return 'cancelled'
   if (payment.status === 'pending') return 'pending'
   if (orders.length === 0) return 'paid'
+  const liveOrders = orders.filter((o) => o.order.status !== 'cancelled')
+  const hasCancelled = orders.some((o) => o.order.status === 'cancelled')
+  if (liveOrders.length === 0) return 'cancelled'
+  if (hasCancelled) return 'partial'
   if (orders.every((o) => o.order.ready_at)) return 'completed'
   if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
   return 'paid'
@@ -54,12 +58,13 @@ const STATUS_LABEL: Record<UIStatus, string> = {
   confirmed: '조리 중',
   completed: '조리 완료',
   cancelled: '취소됨',
+  partial: '일부 취소',
 }
 
 function StatusIcon({ status }: { status: UIStatus }) {
   if (status === 'completed') return <CircleCheck />
   if (status === 'confirmed') return <Flame />
-  if (status === 'cancelled') return <CircleX />
+  if (status === 'cancelled' || status === 'partial') return <CircleX />
   return <Clock />
 }
 
