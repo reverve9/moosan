@@ -175,33 +175,113 @@ function ParticipantList({ programs }: { programs: Program[] }) {
   }, [applications])
 
   const handleExport = () => {
-    const cols = [
+    const selectedProgram = programs.find((p) => p.id === programFilter)
+    const slug = selectedProgram?.slug ?? ''
+
+    // 공통 컬럼
+    const baseCols: { key: string; label: string }[] = [
       { key: 'applicant_name', label: '신청자' },
       { key: 'phone', label: '연락처' },
-      { key: 'program', label: '프로그램' },
       { key: 'division', label: '부문' },
-      { key: 'participation_type', label: '참가유형' },
-      { key: 'team_name', label: '팀명' },
       { key: 'applicant_birth', label: '생년월일' },
       { key: 'school_name', label: '소속' },
       { key: 'email', label: '이메일' },
+    ]
+
+    // 대회별 추가 컬럼
+    const metaCols: Record<string, { key: string; label: string }[]> = {
+      dance: [
+        { key: 'participation_type', label: '참가유형' },
+        { key: 'team_name', label: '팀명' },
+        { key: 'team_member_count', label: '팀 인원' },
+        { key: 'team_composition', label: '팀 구성' },
+        { key: 'performance_duration', label: '공연 시간' },
+        { key: 'school_grade', label: '학년' },
+        { key: 'parent_name', label: '보호자명' },
+        { key: 'parent_phone', label: '보호자연락처' },
+        { key: 'teacher_name', label: '지도교사' },
+        { key: 'teacher_phone', label: '지도교사연락처' },
+      ],
+      saesaeng: [
+        { key: 'gender', label: '성별' },
+        { key: 'address', label: '주소' },
+        { key: 'parent_phone', label: '보호자연락처' },
+      ],
+      baekiljang: [
+        { key: 'gender', label: '성별' },
+        { key: 'address', label: '주소' },
+        { key: 'work_type', label: '작품유형' },
+        { key: 'parent_phone', label: '보호자연락처' },
+      ],
+      choir: [
+        { key: 'choir_composition', label: '합창단 구성' },
+        { key: 'choir_region', label: '합창단 지역' },
+        { key: 'member_count', label: '단원 수' },
+        { key: 'conductor_name', label: '지휘자' },
+        { key: 'accompanist_name', label: '반주자' },
+        { key: 'award_address', label: '수상 주소' },
+        { key: 'songs', label: '참가곡' },
+        { key: 'teacher_name', label: '지도교사' },
+        { key: 'teacher_phone', label: '지도교사연락처' },
+      ],
+    }
+
+    const extra = slug && metaCols[slug] ? metaCols[slug] : []
+    const cols = [
+      ...baseCols,
+      ...extra,
       { key: 'status', label: '상태' },
       { key: 'created_at', label: '신청일' },
     ]
-    const rows = visibleApplications.map((a) => ({
-      applicant_name: a.applicant_name,
-      phone: formatPhoneDisplay(a.phone),
-      program: a.programs?.name ?? '',
-      division: a.division ?? '',
-      participation_type: a.participation_type === 'team' ? '팀' : '개인',
-      team_name: a.team_name ?? '',
-      applicant_birth: a.applicant_birth ?? '',
-      school_name: a.school_name ?? '',
-      email: a.email ?? '',
-      status: STATUS_LABELS[a.status] ?? a.status,
-      created_at: fmtDateKst(a.created_at),
-    }))
-    exportToExcel(rows, cols, '참가신청_관리')
+
+    // 프로그램 미선택(전체)이면 프로그램 컬럼 추가
+    if (programFilter === 'all') {
+      cols.unshift({ key: 'program', label: '프로그램' })
+    }
+
+    const rows = visibleApplications.map((a) => {
+      const meta = (a.meta as Record<string, Json> | null) ?? {}
+      const base: Record<string, unknown> = {
+        program: a.programs?.name ?? '',
+        applicant_name: a.applicant_name,
+        phone: formatPhoneDisplay(a.phone),
+        division: a.division ?? '',
+        applicant_birth: a.applicant_birth ?? '',
+        school_name: a.school_name ?? '',
+        school_grade: a.school_grade ?? '',
+        email: a.email ?? '',
+        participation_type: a.participation_type === 'team' ? '팀' : '개인',
+        team_name: a.team_name ?? '',
+        parent_name: a.parent_name ?? '',
+        parent_phone: a.parent_phone ? formatPhoneDisplay(a.parent_phone) : '',
+        teacher_name: a.teacher_name ?? '',
+        teacher_phone: a.teacher_phone ? formatPhoneDisplay(a.teacher_phone) : '',
+        status: STATUS_LABELS[a.status] ?? a.status,
+        created_at: fmtDateKst(a.created_at),
+        // meta 필드
+        gender: (meta.gender as string) ?? '',
+        address: (meta.address as string) ?? '',
+        work_type: (meta.work_type as string) ?? '',
+        team_member_count: (meta.team_member_count as string) ?? '',
+        team_composition: (meta.team_composition as string) ?? '',
+        performance_duration: (meta.performance_duration as string) ?? '',
+        choir_composition: (meta.choir_composition as string) ?? '',
+        choir_region: (meta.choir_region as string) ?? '',
+        member_count: (meta.member_count as string) ?? '',
+        conductor_name: (meta.conductor_name as string) ?? '',
+        accompanist_name: (meta.accompanist_name as string) ?? '',
+        award_address: (meta.award_address as string) ?? '',
+        songs: Array.isArray(meta.songs)
+          ? (meta.songs as { title: string; composer: string; duration: string }[])
+              .map((s, i) => `${i + 1}. ${s.title} - ${s.composer} (${s.duration})`)
+              .join(' / ')
+          : '',
+      }
+      return base
+    })
+
+    const fileName = selectedProgram ? `참가신청_${selectedProgram.name}` : '참가신청_전체'
+    exportToExcel(rows, cols, fileName)
   }
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
