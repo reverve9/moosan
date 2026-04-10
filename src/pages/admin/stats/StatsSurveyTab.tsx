@@ -1,4 +1,4 @@
-import { RotateCw, Download, X } from 'lucide-react'
+import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -13,6 +13,7 @@ import {
   type SurveyStats,
 } from '@/lib/survey'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import type { Coupon, Survey } from '@/types/database'
 import { fetchSurveyCouponByPhone } from '@/lib/coupons'
 import { formatPhoneDisplay } from '@/lib/phone'
@@ -139,28 +140,17 @@ export default function StatsSurveyTab() {
         <div className={styles.headerLabel}>
           누적 응답 집계 · 총 <strong>{stats.total.toLocaleString()}</strong>명
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={handleExport}
-            disabled={rows.length === 0}
-          >
-            <Download className={styles.refreshIcon} />
-            <span>내보내기</span>
-          </button>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={() => void refetch()}
-            disabled={loading}
-          >
-            <RotateCw
-              className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
-            />
-            <span>새로고침</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={() => void refetch()}
+          disabled={loading}
+        >
+          <RotateCw
+            className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
+          />
+          <span>새로고침</span>
+        </button>
       </div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
@@ -262,6 +252,7 @@ export default function StatsSurveyTab() {
               totalItems={rows.length}
               onChange={setPage}
               unit="명"
+              actions={<ExportButton onClick={handleExport} disabled={rows.length === 0} />}
             />
             <div className={styles.tableWrap}>
               <table className={styles.table}>

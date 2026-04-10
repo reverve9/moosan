@@ -1,8 +1,9 @@
-import { Key, Trash2, Upload } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Key, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { hashBoothPassword } from '@/lib/boothAuth'
 import { importFromExcel } from '@/lib/excel'
+import { ImportButton } from '@/components/admin/ExcelButtons'
 import type { BoothAccount, FoodBooth } from '@/types/database'
 import styles from './AdminBoothAccounts.module.css'
 
@@ -147,8 +148,6 @@ export default function AdminBoothAccounts() {
     }
   }
 
-  const importAccountRef = useRef<HTMLInputElement>(null)
-
   const handleAccountImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -185,12 +184,7 @@ export default function AdminBoothAccounts() {
           <h1 className={styles.title}>매장 계정 관리</h1>
           <p className={styles.sub}>매장 직원이 /booth 로 로그인할 때 사용할 계정</p>
         </div>
-        <div>
-          <input ref={importAccountRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleAccountImport} />
-          <button type="button" onClick={() => importAccountRef.current?.click()} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: 14, fontWeight: 600, color: '#FFFFFF', backgroundColor: 'var(--color-primary)', borderRadius: 10, border: 'none', cursor: 'pointer' }}>
-            <Upload width={16} height={16} /> 일괄 가져오기
-          </button>
-        </div>
+        <ImportButton onFile={handleAccountImport} label="일괄 가져오기" />
       </header>
 
       {error && <div className={styles.errorBanner}>{error}</div>}

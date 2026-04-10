@@ -1,7 +1,9 @@
-import { Download, Upload, X } from 'lucide-react'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { X } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { exportToExcel, importFromExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton, ImportButton } from '@/components/admin/ExcelButtons'
+import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import { formatPhoneDisplay } from '@/lib/phone'
 import type { Application, Program, Json } from '@/types/database'
 import styles from './AdminApplications.module.css'
@@ -76,6 +78,8 @@ export default function AdminApplications() {
   const [statusFilter, setStatusFilter] = useState<Application['status'] | 'all'>('all')
   const [programFilter, setProgramFilter] = useState<string>('all')
   const [selected, setSelected] = useState<AppWithProgram | null>(null)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
   useEffect(() => {
     supabase
@@ -117,6 +121,14 @@ export default function AdminApplications() {
     [applications, statusFilter],
   )
 
+  const totalPages = Math.max(1, Math.ceil(visibleApplications.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const pageRows = visibleApplications.slice(pageStart, pageStart + PAGE_SIZE)
+
+  // 필터 변경 시 첫 페이지로
+  useEffect(() => { setPage(1) }, [statusFilter, programFilter])
+
   // 상단 카드용 집계 — 상태 필터와 무관, programFilter 만 반영됨
   const stats = useMemo(() => {
     let pending = 0
@@ -137,8 +149,6 @@ export default function AdminApplications() {
       waitlist,
     }
   }, [applications])
-
-  const importFileRef = useRef<HTMLInputElement>(null)
 
   const handleExport = () => {
     const cols = [
@@ -213,16 +223,6 @@ export default function AdminApplications() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>참가신청 관리</h1>
-        <span className={styles.count}>{visibleApplications.length}건</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleImport} />
-          <button type="button" className={styles.filterBtn} onClick={() => importFileRef.current?.click()}>
-            <Upload width={14} height={14} /> 가져오기
-          </button>
-          <button type="button" className={styles.filterBtn} onClick={handleExport}>
-            <Download width={14} height={14} /> 내보내기
-          </button>
-        </div>
       </div>
 
       <div className={styles.statsGrid}>
@@ -274,6 +274,19 @@ export default function AdminApplications() {
         ))}
       </div>
 
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={visibleApplications.length}
+        onChange={setPage}
+        actions={
+          <>
+            <ImportButton onFile={handleImport} />
+            <ExportButton onClick={handleExport} />
+          </>
+        }
+      />
+
       <div className={styles.table}>
         <div className={styles.tableHeader}>
           <span className={styles.colName}>신청자</span>
@@ -285,10 +298,10 @@ export default function AdminApplications() {
 
         {loading ? (
           <div className={styles.empty}>불러오는 중...</div>
-        ) : visibleApplications.length === 0 ? (
+        ) : pageRows.length === 0 ? (
           <div className={styles.empty}>신청 내역이 없습니다.</div>
         ) : (
-          visibleApplications.map((app) => (
+          pageRows.map((app) => (
             <div
               key={app.id}
               className={styles.tableRow}

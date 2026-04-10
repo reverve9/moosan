@@ -1,4 +1,4 @@
-import { Upload, Download, Plus, Trash2, Check, X } from 'lucide-react'
+import { Upload, Plus, Trash2, Check, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
@@ -10,6 +10,7 @@ import {
   type FoodCategoryRow,
 } from '@/lib/foodCategories'
 import { exportToExcel, importFromExcel } from '@/lib/excel'
+import { ExportButton, ImportButton } from '@/components/admin/ExcelButtons'
 import type { FoodBoothWithMenus, FoodMenu } from '@/types/festival_extras'
 import styles from './AdminFood.module.css'
 
@@ -445,8 +446,6 @@ export default function AdminFood() {
     refetch()
   }
 
-  const importFoodRef = useRef<HTMLInputElement>(null)
-
   const handleFoodExport = () => {
     const cols = [
       { key: 'booth_no', label: '부스번호' },
@@ -568,14 +567,9 @@ export default function AdminFood() {
           <h1 className={styles.title}>참여 매장 관리</h1>
           <span className={styles.count}>{booths.length}개</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input ref={importFoodRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleFoodImport} />
-          <button className={styles.addBtn} onClick={() => importFoodRef.current?.click()}>
-            <Upload width={16} height={16} /> 가져오기
-          </button>
-          <button className={styles.addBtn} onClick={handleFoodExport}>
-            <Download width={16} height={16} /> 내보내기
-          </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ImportButton onFile={handleFoodImport} />
+          <ExportButton onClick={handleFoodExport} />
           <button className={styles.addBtn} onClick={handleAddBooth}>
             <Plus width={16} height={16} /> 매장 추가
           </button>

@@ -1,4 +1,4 @@
-import { RotateCw, Plus, Download, X } from 'lucide-react'
+import { RotateCw, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createCouponManually,
@@ -7,6 +7,7 @@ import {
   type CouponsListFilters,
 } from '@/lib/coupons'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import styles from './AdminCoupons.module.css'
 
@@ -119,12 +120,7 @@ export default function AdminCoupons() {
       <header className={styles.pageHeader}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>쿠폰 관리</h1>
-          <p className={styles.sub}>
-            발급/사용 현황 · 수동 발급
-            <button type="button" onClick={handleExport} style={{ marginLeft: 12, background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Download width={14} height={14} /> 내보내기
-            </button>
-          </p>
+          <p className={styles.sub}>발급/사용 현황 · 수동 발급</p>
         </div>
         <div className={styles.headerRight}>
           <div className={styles.statBox}>
@@ -216,6 +212,7 @@ export default function AdminCoupons() {
         totalPages={totalPages}
         totalItems={rows.length}
         onChange={setPage}
+        actions={<ExportButton onClick={handleExport} disabled={rows.length === 0} />}
       />
 
       <div className={styles.tableWrap}>

@@ -1,4 +1,4 @@
-import { RotateCw, Download, X } from 'lucide-react'
+import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/lib/adminPayments'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import styles from './AdminOrders.module.css'
 
 function todayKstString(): string {
@@ -169,12 +170,7 @@ export default function AdminOrders() {
       <header className={styles.pageHeader}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>주문/결제 관리</h1>
-          <p className={styles.sub}>
-            결제 단위 주문 조회 · 환불 처리
-            <button type="button" onClick={handleExport} style={{ marginLeft: 12, background: 'none', border: 'none', color: 'var(--color-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <Download width={14} height={14} /> 내보내기
-            </button>
-          </p>
+          <p className={styles.sub}>결제 단위 주문 조회 · 환불 처리</p>
         </div>
         <div className={styles.headerRight}>
           <div className={styles.statBox}>
@@ -277,6 +273,7 @@ export default function AdminOrders() {
         totalPages={totalPages}
         totalItems={visibleRows.length}
         onChange={setPage}
+        actions={<ExportButton onClick={handleExport} disabled={visibleRows.length === 0} />}
       />
 
       <div className={styles.tableWrap}>
