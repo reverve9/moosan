@@ -1,3 +1,4 @@
+import { isDevMode } from '@/config/flags'
 import type { ChoirFormData } from './ChoirApplyForm'
 import Input from '@/components/ui/Input'
 import styles from '../StepCommon.module.css'
@@ -76,7 +77,7 @@ export default function ChoirStep3Songs({ form, update, onNext, onPrev }: Props)
       </div>
       <div className={styles.actions}>
         <button className={styles.btnSecondary} onClick={onPrev}>이전</button>
-        <button className={styles.btnPrimary} disabled={!canNext} onClick={onNext}>다음</button>
+        <button className={styles.btnPrimary} disabled={!canNext && !isDevMode} onClick={onNext}>다음</button>
       </div>
     </div>
   )

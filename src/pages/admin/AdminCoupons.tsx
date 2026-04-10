@@ -6,6 +6,8 @@ import {
   type CouponRow,
   type CouponsListFilters,
 } from '@/lib/coupons'
+import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import styles from './AdminCoupons.module.css'
 
@@ -74,6 +76,32 @@ export default function AdminCoupons() {
   const currentPage = Math.min(page, totalPages)
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = rows.slice(pageStart, pageStart + PAGE_SIZE)
+
+  const handleExport = () => {
+    const cols = [
+      { key: 'code', label: '쿠폰코드' },
+      { key: 'discount_amount', label: '할인금액' },
+      { key: 'status', label: '상태' },
+      { key: 'source', label: '발급구분' },
+      { key: 'phone', label: '전화번호' },
+      { key: 'created_at', label: '발급일' },
+      { key: 'expires_at', label: '만료일' },
+      { key: 'used_at', label: '사용일' },
+      { key: 'note', label: '메모' },
+    ]
+    const data = rows.map((r) => ({
+      code: r.code,
+      discount_amount: r.discount_amount,
+      status: STATUS_LABEL[r.effectiveStatus],
+      source: SOURCE_LABEL[r.issued_source as 'manual' | 'survey'] ?? r.issued_source,
+      phone: r.phone ?? '',
+      created_at: fmtDateKst(r.created_at),
+      expires_at: fmtDateKst(r.expires_at),
+      used_at: fmtDateKst(r.used_at),
+      note: r.note ?? '',
+    }))
+    exportToExcel(data, cols, '쿠폰_관리')
+  }
 
   const totals = useMemo(() => {
     let active = 0
@@ -184,6 +212,7 @@ export default function AdminCoupons() {
         totalPages={totalPages}
         totalItems={rows.length}
         onChange={setPage}
+        actions={<ExportButton onClick={handleExport} disabled={rows.length === 0} />}
       />
 
       <div className={styles.tableWrap}>

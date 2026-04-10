@@ -1,5 +1,6 @@
 import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
+import { isDevMode } from '@/config/flags'
 import type { FormData } from './ApplyForm'
 import styles from './StepCommon.module.css'
 
@@ -250,7 +251,7 @@ export default function Step2Info({ form, updateForm, onNext, onPrev }: Props) {
 
       <div className={styles.actions}>
         <button className={styles.btnSecondary} onClick={onPrev}>이전</button>
-        <button className={styles.btnPrimary} disabled={!canNext} onClick={onNext}>다음</button>
+        <button className={styles.btnPrimary} disabled={!canNext && !isDevMode} onClick={onNext}>다음</button>
       </div>
     </div>
   )

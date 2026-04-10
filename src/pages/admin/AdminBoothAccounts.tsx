@@ -2,6 +2,8 @@ import { Key, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { hashBoothPassword } from '@/lib/boothAuth'
+import { importFromExcel } from '@/lib/excel'
+import { ImportButton } from '@/components/admin/ExcelButtons'
 import type { BoothAccount, FoodBooth } from '@/types/database'
 import styles from './AdminBoothAccounts.module.css'
 
@@ -146,6 +148,35 @@ export default function AdminBoothAccounts() {
     }
   }
 
+  const handleAccountImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const data = await importFromExcel(file)
+      let created = 0
+      for (const row of data) {
+        const boothName = row['매장명']?.trim()
+        const loginId = row['아이디']?.trim()
+        const password = row['비밀번호']?.trim()
+        if (!boothName || !loginId || !password) continue
+        const match = rows.find((r) => r.booth.name === boothName)
+        if (!match || match.account) continue
+        const password_hash = await hashBoothPassword(password)
+        await supabase.from('booth_accounts').insert({
+          booth_id: match.booth.id,
+          login_id: loginId,
+          password_hash,
+        })
+        created++
+      }
+      alert(created > 0 ? `${created}개 계정 생성 완료` : '새로 생성할 계정이 없습니다')
+      void refetch()
+    } catch (err) {
+      alert('파일 처리 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'))
+    }
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -153,6 +184,7 @@ export default function AdminBoothAccounts() {
           <h1 className={styles.title}>매장 계정 관리</h1>
           <p className={styles.sub}>매장 직원이 /booth 로 로그인할 때 사용할 계정</p>
         </div>
+        <ImportButton onFile={handleAccountImport} label="일괄 가져오기" />
       </header>
 
       {error && <div className={styles.errorBanner}>{error}</div>}

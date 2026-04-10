@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDevMode } from '@/config/flags'
 import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import StepIndicator from '../StepIndicator'
@@ -88,7 +89,7 @@ export default function ArtApplyForm() {
         <h3 className={formStyles.successTitle}>참가신청이 완료되었습니다</h3>
         <p className={formStyles.successDesc}>
           신청 내역은 검토 후 승인됩니다.<br />
-          문의사항은 주최 측으로 연락해 주세요.
+          참가신청 여부는 추후 개별 문자로 통보됩니다.
         </p>
         <button
           className={formStyles.successBtn}
@@ -177,7 +178,7 @@ export default function ArtApplyForm() {
           <div className={styles.actions}>
             <button
               className={styles.btnPrimary}
-              disabled={!canNextStep1}
+              disabled={!canNextStep1 && !isDevMode}
               onClick={() => setStep(2)}
             >
               다음
@@ -268,7 +269,7 @@ export default function ArtApplyForm() {
             <button className={styles.btnSecondary} onClick={() => setStep(1)}>이전</button>
             <button
               className={styles.btnPrimary}
-              disabled={!(form.rulesAgreed && form.privacyAgreed && form.division)}
+              disabled={!(form.rulesAgreed && form.privacyAgreed && form.division) && !isDevMode}
               onClick={handleSubmit}
             >
               제출

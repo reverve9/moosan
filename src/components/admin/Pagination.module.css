@@ -5,17 +5,30 @@
   gap: 16px;
 }
 
+.metaGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
 .meta {
   font-size: 13px;
   color: #6B7280;
   font-weight: 500;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .pagination {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
 }
 
 .pageBtn {

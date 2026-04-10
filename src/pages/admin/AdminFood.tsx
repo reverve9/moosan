@@ -9,6 +9,8 @@ import {
   getCategoryColorIndex,
   type FoodCategoryRow,
 } from '@/lib/foodCategories'
+import { exportToExcel, importFromExcel } from '@/lib/excel'
+import { ExportButton, ImportButton } from '@/components/admin/ExcelButtons'
 import type { FoodBoothWithMenus, FoodMenu } from '@/types/festival_extras'
 import styles from './AdminFood.module.css'
 
@@ -444,6 +446,95 @@ export default function AdminFood() {
     refetch()
   }
 
+  const handleFoodExport = () => {
+    const cols = [
+      { key: 'booth_no', label: '부스번호' },
+      { key: 'booth_name', label: '매장명' },
+      { key: 'category', label: '카테고리' },
+      { key: 'description', label: '설명' },
+      { key: 'menu_name', label: '메뉴명' },
+      { key: 'price', label: '가격' },
+      { key: 'sort_order', label: '정렬순서' },
+    ]
+    const data: Record<string, unknown>[] = []
+    for (const booth of booths) {
+      if (booth.menus.length === 0) {
+        data.push({
+          booth_no: booth.booth_no ?? '',
+          booth_name: booth.name,
+          category: booth.category ?? '',
+          description: booth.description ?? '',
+          menu_name: '',
+          price: '',
+          sort_order: '',
+        })
+      } else {
+        for (const menu of booth.menus) {
+          data.push({
+            booth_no: booth.booth_no ?? '',
+            booth_name: booth.name,
+            category: booth.category ?? '',
+            description: booth.description ?? '',
+            menu_name: menu.name,
+            price: menu.price,
+            sort_order: menu.sort_order,
+          })
+        }
+      }
+    }
+    exportToExcel(data, cols, '참여매장_관리')
+  }
+
+  const handleFoodImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !festivalId) return
+    e.target.value = ''
+    try {
+      const rows = await importFromExcel(file)
+      const boothMap = new Map<string, { name: string; category: string; description: string; menus: { name: string; price: number; sort_order: number }[] }>()
+      for (const row of rows) {
+        const boothName = row['매장명']?.trim()
+        if (!boothName) continue
+        if (!boothMap.has(boothName)) {
+          boothMap.set(boothName, {
+            name: boothName,
+            category: row['카테고리']?.trim() ?? '',
+            description: row['설명']?.trim() ?? '',
+            menus: [],
+          })
+        }
+        const menuName = row['메뉴명']?.trim()
+        if (menuName) {
+          boothMap.get(boothName)!.menus.push({
+            name: menuName,
+            price: Number(row['가격']) || 0,
+            sort_order: Number(row['정렬순서']) || 0,
+          })
+        }
+      }
+      let created = 0
+      for (const [, booth] of boothMap) {
+        const existing = booths.find((b) => b.name === booth.name)
+        if (existing) continue
+        const { data: newBooth } = await supabase
+          .from('food_booths')
+          .insert({ festival_id: festivalId, name: booth.name, category: booth.category || null, description: booth.description || null })
+          .select()
+          .single()
+        if (newBooth && booth.menus.length > 0) {
+          await supabase.from('food_menus').insert(
+            booth.menus.map((m) => ({ booth_id: newBooth.id, name: m.name, price: m.price, sort_order: m.sort_order })),
+          )
+        }
+        created++
+      }
+      alert(created > 0 ? `${created}개 매장 추가 완료` : '새로 추가할 매장이 없습니다')
+      refetch()
+    } catch (err) {
+      alert('파일 처리 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'))
+    }
+  }
+
   // ──────────────── render ────────────────
   if (loading) {
     return (
@@ -476,9 +567,13 @@ export default function AdminFood() {
           <h1 className={styles.title}>참여 매장 관리</h1>
           <span className={styles.count}>{booths.length}개</span>
         </div>
-        <button className={styles.addBtn} onClick={handleAddBooth}>
-          <Plus width={16} height={16} /> 매장 추가
-        </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ImportButton onFile={handleFoodImport} />
+          <ExportButton onClick={handleFoodExport} />
+          <button className={styles.addBtn} onClick={handleAddBooth}>
+            <Plus width={16} height={16} /> 매장 추가
+          </button>
+        </div>
       </div>
 
       <div className={styles.filterTabs} role="tablist" aria-label="카테고리 필터">

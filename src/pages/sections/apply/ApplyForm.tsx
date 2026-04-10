@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
+import { useFormContents } from '@/hooks/useFormContents'
 import StepIndicator from './StepIndicator'
 import Step1Agreement from './Step1Agreement'
 import Step2Info from './Step2Info'
@@ -71,6 +72,7 @@ interface Props {
 }
 
 export default function ApplyForm({ defaultProgramId }: Props) {
+  const { contents } = useFormContents('dance')
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<FormData>({ ...INITIAL_FORM, programId: defaultProgramId || '' })
   const [submitted, setSubmitted] = useState(false)
@@ -134,7 +136,7 @@ export default function ApplyForm({ defaultProgramId }: Props) {
         <p className={styles.successDesc}>
           신청 내역은 검토 후 승인됩니다.
           <br />
-          문의사항은 주최 측으로 연락해 주세요.
+          참가신청 여부는 추후 개별 문자로 통보됩니다.
         </p>
         <button
           className={styles.successBtn}
@@ -155,13 +157,13 @@ export default function ApplyForm({ defaultProgramId }: Props) {
       <StepIndicator current={step} total={TOTAL_STEPS} />
 
       {step === 1 && (
-        <Step1Agreement form={form} updateForm={updateForm} onNext={handleNext} />
+        <Step1Agreement form={form} updateForm={updateForm} onNext={handleNext} contents={contents} />
       )}
       {step === 2 && (
         <Step2Info form={form} updateForm={updateForm} onNext={handleNext} onPrev={handlePrev} />
       )}
       {step === 3 && (
-        <Step3Privacy form={form} updateForm={updateForm} onPrev={handlePrev} onSubmit={handleSubmit} />
+        <Step3Privacy form={form} updateForm={updateForm} onPrev={handlePrev} onSubmit={handleSubmit} contents={contents} />
       )}
     </div>
   )

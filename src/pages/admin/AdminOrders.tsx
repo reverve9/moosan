@@ -12,6 +12,8 @@ import {
   type PaymentsListFilters,
 } from '@/lib/adminPayments'
 import { formatPhoneDisplay } from '@/lib/phone'
+import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import styles from './AdminOrders.module.css'
 
 function todayKstString(): string {
@@ -96,6 +98,32 @@ export default function AdminOrders() {
   useEffect(() => {
     void refetch()
   }, [refetch])
+
+  const handleExport = () => {
+    const cols = [
+      { key: 'order_numbers', label: '주문번호' },
+      { key: 'booths', label: '매장명' },
+      { key: 'created_at', label: '결제시각' },
+      { key: 'phone', label: '연락처' },
+      { key: 'menu', label: '메뉴' },
+      { key: 'total_amount', label: '결제금액' },
+      { key: 'discount', label: '할인' },
+      { key: 'status', label: '상태' },
+      { key: 'toss_order_id', label: '결제번호' },
+    ]
+    const data = visibleRows.map((r) => ({
+      order_numbers: r.boothOrderNumbers.join(' / '),
+      booths: r.boothNames.join(' / '),
+      created_at: fmtDateKst(r.payment.created_at),
+      phone: formatPhoneDisplay(r.payment.phone),
+      menu: formatMenuSummary(r.menuLines),
+      total_amount: r.payment.total_amount,
+      discount: r.payment.discount_amount > 0 ? r.payment.discount_amount : '',
+      status: STATUS_LABEL[r.payment.status as keyof typeof STATUS_LABEL] ?? r.payment.status,
+      toss_order_id: r.payment.toss_order_id ?? '',
+    }))
+    exportToExcel(data, cols, '주문_결제_관리')
+  }
 
   // 매장 검색 — 실시간 client-side 필터 (서버 재호출 X)
   const visibleRows = useMemo(() => {
@@ -245,6 +273,7 @@ export default function AdminOrders() {
         totalPages={totalPages}
         totalItems={visibleRows.length}
         onChange={setPage}
+        actions={<ExportButton onClick={handleExport} disabled={visibleRows.length === 0} />}
       />
 
       <div className={styles.tableWrap}>

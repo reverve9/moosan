@@ -12,6 +12,8 @@ import {
   type LikertSubItem,
   type SurveyStats,
 } from '@/lib/survey'
+import { exportToExcel, fmtDateKst } from '@/lib/excel'
+import { ExportButton } from '@/components/admin/ExcelButtons'
 import type { Coupon, Survey } from '@/types/database'
 import { fetchSurveyCouponByPhone } from '@/lib/coupons'
 import { formatPhoneDisplay } from '@/lib/phone'
@@ -68,6 +70,63 @@ export default function StatsSurveyTab() {
   }, [refetch])
 
   const stats: SurveyStats = useMemo(() => calcSurveyStats(rows), [rows])
+
+  const handleExport = () => {
+    const cols = [
+      { key: 'created_at', label: '제출일시' },
+      { key: 'name', label: '이름' },
+      { key: 'gender', label: '성별' },
+      { key: 'age', label: '연령' },
+      { key: 'region', label: '거주지역' },
+      { key: 'phone', label: '전화' },
+      { key: 'q1', label: '종교' },
+      { key: 'q2', label: '1년전종교' },
+      { key: 'q3', label: '개인영향' },
+      { key: 'q3_1', label: '사회영향' },
+      { key: 'q4', label: '과거참여' },
+      { key: 'q5', label: '결정자' },
+      { key: 'q6', label: '정보출처' },
+      { key: 'q7', label: '기대부분' },
+      { key: 'q11', label: '종합만족도' },
+      { key: 'q11_1', label: '불만족이유' },
+      { key: 'q11_2', label: '만족이유' },
+      { key: 'q12', label: '소요시간' },
+      { key: 'q13', label: '일정적절' },
+      { key: 'q14', label: '교통접근' },
+      { key: 'q15', label: '주차편의' },
+      { key: 'q16', label: '동선안내' },
+      { key: 'q20', label: '개선의견' },
+    ]
+    const data = rows.map((r) => {
+      const a = (r.answers ?? {}) as Record<string, unknown>
+      return {
+        created_at: fmtDateKst(r.created_at),
+        name: r.name,
+        gender: SURVEY_LABELS.gender[r.gender] ?? r.gender,
+        age: r.age,
+        region: SURVEY_LABELS.region[r.region] ?? r.region,
+        phone: formatPhoneDisplay(r.phone),
+        q1: SURVEY_LABELS.religion[a.q1 as string] ?? a.q1 ?? '',
+        q2: SURVEY_LABELS.religion[a.q2 as string] ?? a.q2 ?? '',
+        q3: SURVEY_LABELS.influence[a.q3 as string] ?? a.q3 ?? '',
+        q3_1: SURVEY_LABELS.influence[a.q3_1 as string] ?? a.q3_1 ?? '',
+        q4: SURVEY_LABELS.yesNo[a.q4 as string] ?? a.q4 ?? '',
+        q5: SURVEY_LABELS.decisionMaker[a.q5 as string] ?? a.q5 ?? '',
+        q6: Array.isArray(a.q6) ? (a.q6 as string[]).map((v) => SURVEY_LABELS.infoSource[v] ?? v).join(', ') : '',
+        q7: SURVEY_LABELS.expectation[a.q7 as string] ?? a.q7 ?? '',
+        q11: a.q11 ?? '',
+        q11_1: a.q11_1 ?? '',
+        q11_2: a.q11_2 ?? '',
+        q12: a.q12 ?? '',
+        q13: a.q13 ?? '',
+        q14: a.q14 ?? '',
+        q15: a.q15 ?? '',
+        q16: a.q16 ?? '',
+        q20: a.q20 ?? '',
+      }
+    })
+    exportToExcel(data, cols, '만족도조사')
+  }
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -193,6 +252,7 @@ export default function StatsSurveyTab() {
               totalItems={rows.length}
               onChange={setPage}
               unit="명"
+              actions={<ExportButton onClick={handleExport} disabled={rows.length === 0} />}
             />
             <div className={styles.tableWrap}>
               <table className={styles.table}>

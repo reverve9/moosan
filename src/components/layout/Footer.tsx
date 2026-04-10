@@ -13,7 +13,7 @@ export default function Footer() {
             className={styles.logo}
           />
           <Text variant="caption" color="secondary">
-            강원도 속초시 청초호수공원 엑스포광장 일원
+            강원 속초시 엑스포잔디광장 일원
           </Text>
         </div>
         <div className={styles.contact}>
@@ -22,10 +22,10 @@ export default function Footer() {
           </Text>
           <div className={styles.contactList}>
             <div className={styles.contactRow}>
-              <a href="tel:01048182674" className={styles.contactItem}>
+              <a href="tel:01048182024" className={styles.contactItem}>
                 <Phone className={styles.contactIcon} aria-hidden="true" />
                 <Text variant="caption" color="secondary" className={styles.contactText}>
-                  010-4818-2674
+                  010-4818-2024
                 </Text>
               </a>
               <a href="mailto:seorakyouthfestival@gmail.com" className={styles.contactItem}>

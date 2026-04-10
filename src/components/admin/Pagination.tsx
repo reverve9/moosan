@@ -12,6 +12,8 @@ interface PaginationProps {
   onChange: (page: number) => void
   /** 단위 라벨 (기본 "건") */
   unit?: string
+  /** 좌측 meta 영역에 추가할 액션 버튼 (내보내기/가져오기 등) */
+  actions?: React.ReactNode
 }
 
 /**
@@ -24,16 +26,20 @@ export default function Pagination({
   totalItems,
   onChange,
   unit = '건',
+  actions,
 }: PaginationProps) {
   const clampedPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages))
   return (
     <div className={styles.toolbar}>
-      {typeof totalItems === 'number' && (
-        <div className={styles.meta}>
-          총 {totalItems.toLocaleString()}
-          {unit}
-        </div>
-      )}
+      <div className={styles.metaGroup}>
+        {typeof totalItems === 'number' && (
+          <div className={styles.meta}>
+            총 {totalItems.toLocaleString()}
+            {unit}
+          </div>
+        )}
+      </div>
+      {actions && <div className={styles.actions}>{actions}</div>}
       <div className={styles.pagination}>
         <button
           type="button"
