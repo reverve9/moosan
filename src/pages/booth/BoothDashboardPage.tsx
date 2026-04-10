@@ -59,8 +59,6 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
     orderId: order.id,
     orderNumber: order.order_number,
     phone: order.phone,
-    // status='paid' 이상이면 paid_at 이 채워져 있지만, 마이그 18 적용 직후
-    // backfill 누락을 대비해 created_at 으로 fallback.
     orderPaidAt: order.paid_at ?? order.created_at,
     items,
     totalAmount: order.subtotal,
