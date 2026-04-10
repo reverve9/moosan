@@ -71,32 +71,32 @@ SELECT id, '미취학', 'individual', '장예린', '210603', '설악유치원', 
 FROM programs WHERE slug = 'saesaeng';
 
 -- ============================================
--- 댄스 (dance) — 5건 (팀 3 + 개인 2)
+-- 댄스 (dance) — 5건 (모두 팀)
 -- ============================================
 
-INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, applicant_birth, school_name, school_grade, phone, email, teacher_name, teacher_phone, privacy_agreed, privacy_agreed_at, status, meta)
-SELECT id, '중등부', 'team', '드림댄서즈', '박지훈', '091205', '양양중학교', '2학년', '01030000001', 'jihun@test.com', '최선생', '01030100001', true, now(), 'pending',
-  '{"team_member_count":"총 5명 (남 2명 / 여 3명)","team_composition":"중등 5명","performance_duration":"4분 30초"}'::jsonb
+INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, school_name, phone, email, privacy_agreed, privacy_agreed_at, status, meta)
+SELECT id, '중등부', 'team', '드림댄서즈', '박지훈', '양양중학교', '01030000001', 'jihun@test.com', true, now(), 'pending',
+  '{"team_member_count":"5","team_composition":"중등5","performance_duration":"4분 30초"}'::jsonb
 FROM programs WHERE slug = 'dance';
 
-INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, applicant_birth, school_name, school_grade, phone, email, teacher_name, teacher_phone, privacy_agreed, privacy_agreed_at, status, meta)
-SELECT id, '고등부', 'team', '설악스텝', '한소희', '070830', '속초고등학교', '1학년', '01030000002', 'sohee@test.com', '김지도', '01030100002', true, now(), 'approved',
-  '{"team_member_count":"총 8명 (남 3명 / 여 5명)","team_composition":"고등 8명","performance_duration":"5분 10초"}'::jsonb
+INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, school_name, phone, email, privacy_agreed, privacy_agreed_at, status, meta)
+SELECT id, '고등부', 'team', '설악스텝', '한소희', '속초고등학교', '01030000002', 'sohee@test.com', true, now(), 'approved',
+  '{"team_member_count":"8","team_composition":"고등8","performance_duration":"5분 10초"}'::jsonb
 FROM programs WHERE slug = 'dance';
 
-INSERT INTO applications (program_id, division, participation_type, applicant_name, applicant_birth, school_name, school_grade, phone, email, teacher_name, teacher_phone, parent_name, parent_phone, privacy_agreed, privacy_agreed_at, status, meta)
-SELECT id, '초등부', 'individual', '윤서아', '150420', '속초초등학교', '5학년', '01030000003', NULL, '박선생', '01030100003', '윤보호', '01030200003', true, now(), 'pending',
-  '{"performance_duration":"3분 20초"}'::jsonb
+INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, school_name, phone, email, privacy_agreed, privacy_agreed_at, status, meta)
+SELECT id, '초등부', 'team', '리틀무브', '윤서아', '속초초등학교', '01030000003', 'seoa@test.com', true, now(), 'pending',
+  '{"team_member_count":"7","team_composition":"초등7","performance_duration":"3분 20초"}'::jsonb
 FROM programs WHERE slug = 'dance';
 
-INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, applicant_birth, school_name, school_grade, phone, email, teacher_name, teacher_phone, privacy_agreed, privacy_agreed_at, status, meta)
-SELECT id, '중등부', 'team', '비트크루', '정태현', '100115', '고성중학교', '3학년', '01030000004', 'taehyun@test.com', '이코치', '01030100004', true, now(), 'rejected',
-  '{"team_member_count":"총 6명 (남 4명 / 여 2명)","team_composition":"중등 6명","performance_duration":"4분 50초"}'::jsonb
+INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, school_name, phone, email, privacy_agreed, privacy_agreed_at, status, meta)
+SELECT id, '중등부', 'team', '비트크루', '정태현', '고성중학교', '01030000004', 'taehyun@test.com', true, now(), 'rejected',
+  '{"team_member_count":"6","team_composition":"중등4, 고등2","performance_duration":"4분 50초"}'::jsonb
 FROM programs WHERE slug = 'dance';
 
-INSERT INTO applications (program_id, division, participation_type, applicant_name, applicant_birth, school_name, school_grade, phone, email, parent_name, parent_phone, privacy_agreed, privacy_agreed_at, status, meta)
-SELECT id, '고등부', 'individual', '강다은', '080605', '양양고등학교', '2학년', '01030000005', 'daeun@test.com', '강보호', '01030200005', true, now(), 'approved',
-  '{"performance_duration":"3분 40초"}'::jsonb
+INSERT INTO applications (program_id, division, participation_type, team_name, applicant_name, school_name, phone, email, privacy_agreed, privacy_agreed_at, status, meta)
+SELECT id, '고등부', 'team', '플로우킹즈', '강다은', '양양고등학교', '01030000005', 'daeun@test.com', true, now(), 'approved',
+  '{"team_member_count":"10","team_composition":"중등3, 고등7","performance_duration":"5분 00초"}'::jsonb
 FROM programs WHERE slug = 'dance';
 
 -- ============================================
