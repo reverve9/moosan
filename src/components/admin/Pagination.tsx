@@ -38,8 +38,8 @@ export default function Pagination({
             {unit}
           </div>
         )}
-        {actions}
       </div>
+      {actions && <div className={styles.actions}>{actions}</div>}
       <div className={styles.pagination}>
         <button
           type="button"
