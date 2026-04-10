@@ -11,12 +11,6 @@ interface Props {
   onPrev: () => void
 }
 
-const PROGRAM_OPTIONS = [
-  { value: 'baekiljang', label: '백일장' },
-  { value: 'saesaeng', label: '사생대회' },
-  { value: 'dance', label: '댄스경연대회' },
-  { value: 'choir', label: '합창대회' },
-]
 
 const DIVISION_OPTIONS_YOUTH = [
   { value: '유치부', label: '유치부' },
@@ -72,20 +66,6 @@ export default function Step2Info({ form, updateForm, onNext, onPrev }: Props) {
         <h3 className={styles.cardTitle}>참가 정보</h3>
 
         <div className={styles.fields}>
-          <Select
-            label="프로그램"
-            required
-            placeholder="프로그램을 선택하세요"
-            options={PROGRAM_OPTIONS}
-            value={form.programId}
-            onChange={(e) => updateForm({
-              programId: e.target.value,
-              division: '',
-              participationType: 'individual',
-              teamName: '',
-            })}
-          />
-
           {form.programId && (
             <Select
               label="부문"
@@ -156,8 +136,8 @@ export default function Step2Info({ form, updateForm, onNext, onPrev }: Props) {
             onChange={(e) => updateForm({ applicantName: e.target.value })}
           />
           <Input
-            label="생년월일"
-            type="date"
+            label="생년월일(6자리)"
+            placeholder="YYMMDD"
             value={form.applicantBirth}
             onChange={(e) => updateForm({ applicantBirth: e.target.value })}
           />

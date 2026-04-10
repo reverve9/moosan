@@ -628,6 +628,15 @@
 }
 
 /* ──────────────── 품절 ──────────────── */
+.menuItemSoldOut .menuItemThumb img {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.menuItemSoldOut .menuItemThumbPlaceholder {
+  opacity: 0.4;
+}
+
 .menuItemSoldOut .menuItemContent {
   opacity: 0.55;
 }
