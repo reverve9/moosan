@@ -1,6 +1,7 @@
-import { X } from 'lucide-react'
-import { useState, useEffect, useMemo } from 'react'
+import { Download, Upload, X } from 'lucide-react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
+import { exportToExcel, importFromExcel, fmtDateKst } from '@/lib/excel'
 import { formatPhoneDisplay } from '@/lib/phone'
 import type { Application, Program, Json } from '@/types/database'
 import styles from './AdminApplications.module.css'
@@ -137,6 +138,69 @@ export default function AdminApplications() {
     }
   }, [applications])
 
+  const importFileRef = useRef<HTMLInputElement>(null)
+
+  const handleExport = () => {
+    const cols = [
+      { key: 'applicant_name', label: '신청자' },
+      { key: 'phone', label: '연락처' },
+      { key: 'program', label: '프로그램' },
+      { key: 'division', label: '부문' },
+      { key: 'participation_type', label: '참가유형' },
+      { key: 'team_name', label: '팀명' },
+      { key: 'applicant_birth', label: '생년월일' },
+      { key: 'school_name', label: '소속' },
+      { key: 'email', label: '이메일' },
+      { key: 'status', label: '상태' },
+      { key: 'created_at', label: '신청일' },
+    ]
+    const rows = visibleApplications.map((a) => ({
+      applicant_name: a.applicant_name,
+      phone: formatPhoneDisplay(a.phone),
+      program: a.programs?.name ?? '',
+      division: a.division ?? '',
+      participation_type: a.participation_type === 'team' ? '팀' : '개인',
+      team_name: a.team_name ?? '',
+      applicant_birth: a.applicant_birth ?? '',
+      school_name: a.school_name ?? '',
+      email: a.email ?? '',
+      status: STATUS_LABELS[a.status] ?? a.status,
+      created_at: fmtDateKst(a.created_at),
+    }))
+    exportToExcel(rows, cols, '참가신청_관리')
+  }
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    try {
+      const data = await importFromExcel(file)
+      // 상태 일괄 업데이트: "신청자" + "연락처" 매칭으로 상태 변경
+      const statusReverse: Record<string, string> = {}
+      for (const [k, v] of Object.entries(STATUS_LABELS)) statusReverse[v] = k
+      let updated = 0
+      for (const row of data) {
+        const name = row['신청자']?.trim()
+        const status = statusReverse[row['상태']?.trim()]
+        if (!name || !status) continue
+        const match = applications.find((a) => a.applicant_name === name)
+        if (match && match.status !== status) {
+          await supabase.from('applications').update({ status: status as Application['status'] }).eq('id', match.id)
+          updated++
+        }
+      }
+      if (updated > 0) {
+        alert(`${updated}건 상태 업데이트 완료`)
+        fetchApplications()
+      } else {
+        alert('업데이트할 항목이 없습니다')
+      }
+    } catch (err) {
+      alert('파일 처리 실패: ' + (err instanceof Error ? err.message : '알 수 없는 오류'))
+    }
+  }
+
   const updateStatus = async (id: string, status: Application['status']) => {
     await supabase.from('applications').update({ status }).eq('id', id)
     fetchApplications()
@@ -150,6 +214,15 @@ export default function AdminApplications() {
       <div className={styles.header}>
         <h1 className={styles.title}>참가신청 관리</h1>
         <span className={styles.count}>{visibleApplications.length}건</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <input ref={importFileRef} type="file" accept=".xlsx,.xls,.csv" hidden onChange={handleImport} />
+          <button type="button" className={styles.filterBtn} onClick={() => importFileRef.current?.click()}>
+            <Upload width={14} height={14} /> 가져오기
+          </button>
+          <button type="button" className={styles.filterBtn} onClick={handleExport}>
+            <Download width={14} height={14} /> 내보내기
+          </button>
+        </div>
       </div>
 
       <div className={styles.statsGrid}>

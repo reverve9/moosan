@@ -1,4 +1,4 @@
-import { RotateCw } from 'lucide-react'
+import { RotateCw, Download } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   calcBoothStats,
@@ -13,6 +13,7 @@ import {
   type StatsRawData,
 } from '@/lib/adminStats'
 import { fetchCouponStats, type CouponStats } from '@/lib/coupons'
+import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import styles from './StatsRevenueTab.module.css'
 
 function fmtWon(n: number): string {
@@ -55,6 +56,41 @@ export default function StatsRevenueTab() {
     void refetch()
   }, [refetch])
 
+  const handleExport = () => {
+    if (!raw) return
+    const cols = [
+      { key: 'created_at', label: '결제일시' },
+      { key: 'toss_order_id', label: '결제번호' },
+      { key: 'phone', label: '연락처' },
+      { key: 'booth_name', label: '매장명' },
+      { key: 'menu_name', label: '메뉴' },
+      { key: 'quantity', label: '수량' },
+      { key: 'unit_price', label: '단가' },
+      { key: 'subtotal', label: '소계' },
+      { key: 'payment_status', label: '결제상태' },
+      { key: 'order_status', label: '주문상태' },
+    ]
+    const paymentMap = new Map(raw.payments.map((p) => [p.id, p]))
+    const orderMap = new Map(raw.orders.map((o) => [o.id, o]))
+    const data = raw.orderItems.map((item) => {
+      const order = orderMap.get(item.order_id)
+      const payment = order ? paymentMap.get(order.payment_id) : null
+      return {
+        created_at: payment ? fmtDateKst(payment.created_at) : '',
+        toss_order_id: payment?.toss_order_id ?? '',
+        phone: payment?.phone ?? '',
+        booth_name: order?.booth_name ?? '',
+        menu_name: item.menu_name,
+        quantity: item.quantity,
+        unit_price: item.menu_price,
+        subtotal: item.subtotal,
+        payment_status: payment?.status ?? '',
+        order_status: order?.status ?? '',
+      }
+    })
+    exportToExcel(data, cols, '매출_관리')
+  }
+
   const kpi = useMemo(() => (raw ? calcKpi(raw) : null), [raw])
   const time = useMemo(() => (raw ? calcTimeStats(raw) : null), [raw])
   const booth = useMemo(() => (raw ? calcBoothStats(raw) : null), [raw])
@@ -87,6 +123,15 @@ export default function StatsRevenueTab() {
             className={styles.input}
           />
         </label>
+        <button
+          type="button"
+          className={styles.refreshBtn}
+          onClick={handleExport}
+          disabled={!raw || raw.orderItems.length === 0}
+        >
+          <Download className={styles.refreshIcon} />
+          <span>내보내기</span>
+        </button>
         <button
           type="button"
           className={styles.refreshBtn}
