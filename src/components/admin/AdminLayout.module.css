@@ -98,6 +98,11 @@
   background-color: #F59E0B;
 }
 
+/* 조리시간 초과 = 파랑 */
+.navBadgeOverdue {
+  background-color: #3B82F6;
+}
+
 /* 2분 초과 = 빨강 + pulse */
 .navBadgeAlert {
   background-color: #DC2626;

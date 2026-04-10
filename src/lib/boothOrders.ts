@@ -67,14 +67,19 @@ export async function fetchTodayBoothOrders(
 
 /**
  * 주문 "확인" — confirmed_at 채우고 status 를 'confirmed' 로 전이.
+ * estimatedMinutes 가 주어지면 estimated_minutes 도 함께 기록.
  * 이미 confirmed/ready 인 row 는 건드리지 않음.
  */
-export async function confirmBoothOrder(orderId: string): Promise<void> {
+export async function confirmBoothOrder(
+  orderId: string,
+  estimatedMinutes?: number,
+): Promise<void> {
   const { error } = await supabase
     .from('orders')
     .update({
       confirmed_at: new Date().toISOString(),
       status: 'confirmed',
+      ...(estimatedMinutes != null && { estimated_minutes: estimatedMinutes }),
     })
     .eq('id', orderId)
     .is('confirmed_at', null)

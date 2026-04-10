@@ -11,9 +11,8 @@ import { fetchAvailableCouponByPhone, validateCouponByCode } from '@/lib/coupons
 import type { Coupon } from '@/types/database'
 import { formatPhone, isValidPhone, normalizePhone, saveLastPhone } from '@/lib/phone'
 import {
-  calcWaitingInfo,
-  fetchBoothWaitingSummariesByIds,
-  type BoothWaitingSummary,
+  fetchAllBoothWaitingCounts,
+  getBoothBadge,
 } from '@/lib/waiting'
 import styles from './CheckoutPage.module.css'
 
@@ -50,7 +49,7 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [waitingSummaries, setWaitingSummaries] = useState<BoothWaitingSummary[]>([])
+  const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(new Map())
   // 쿠폰 — 수동 코드 입력 경로 (AdminCoupons 로 수동발급된 쿠폰용)
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState<string | null>(null)
@@ -69,18 +68,16 @@ export default function CheckoutPage() {
     }
   }, [items.length, navigate])
 
-  // 부스별 대기 요약 — mount 시 1회 fetch (cart 의 booth_id 들)
+  // 부스별 대기 요약 — mount 시 1회 fetch
   useEffect(() => {
-    const boothIds = Array.from(new Set(items.map((i) => i.boothId)))
-    if (boothIds.length === 0) return
+    if (items.length === 0) return
     let cancelled = false
-    fetchBoothWaitingSummariesByIds(boothIds).then((data) => {
-      if (!cancelled) setWaitingSummaries(data)
+    fetchAllBoothWaitingCounts().then((data) => {
+      if (!cancelled) setWaitingCounts(data)
     })
     return () => {
       cancelled = true
     }
-    // items 자체는 mount 후 변하지 않음 (cart 페이지에서 결정됨) — 길이만 의존
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length])
 
@@ -408,27 +405,26 @@ export default function CheckoutPage() {
       </form>
 
       {/* ─── 부스별 대기 현황 (결제 직전) ─── */}
-      {waitingSummaries.length > 0 && (
+      {groups.length > 0 && (
         <div className={styles.waitingBox}>
           <h3 className={styles.waitingTitle}>주문 매장 대기 현황</h3>
           <ul className={styles.waitingList}>
-            {waitingSummaries.map((s) => {
-              const info = calcWaitingInfo(s.count, s.avgPrepMinutes)
-              const free = s.count === 0
+            {groups.map((g) => {
+              const count = waitingCounts.get(g.boothId) ?? 0
+              const badge = getBoothBadge(count)
               return (
                 <li
-                  key={s.boothId}
-                  className={`${styles.waitingItem} ${free ? styles.waitingItemFree : ''}`}
+                  key={g.boothId}
+                  className={`${styles.waitingItem} ${count === 0 ? styles.waitingItemFree : ''}`}
                 >
-                  <span className={styles.waitingItemBooth}>{s.boothName}</span>
+                  <span className={styles.waitingItemBooth}>{g.boothName}</span>
                   <span className={styles.waitingItemValue}>
-                    {free ? '바로 준비' : `대기 ${s.count}건 · ${info.label}`}
+                    {count === 0 ? '바로 준비' : badge.label}
                   </span>
                 </li>
               )
             })}
           </ul>
-          <p className={styles.waitingNote}>* 실제 시간은 다를 수 있어요</p>
         </div>
       )}
 

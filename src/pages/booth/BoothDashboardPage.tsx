@@ -36,6 +36,8 @@ interface BoothOrderCard {
   items: BoothOrderCardData['items']
   totalAmount: number
   status: CardStatus
+  estimatedMinutes: number | null
+  confirmedAt: string | null
 }
 
 const HIGHLIGHT_MS = 5_000
@@ -63,6 +65,8 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
     items,
     totalAmount: order.subtotal,
     status: getBoothOrderCardStatus(order),
+    estimatedMinutes: order.estimated_minutes,
+    confirmedAt: order.confirmed_at,
   }))
 }
 
@@ -221,6 +225,28 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => window.clearInterval(id)
   }, [data])
 
+  // 조리시간 초과 알람 — estimated_minutes + 2분 초과 시 1회
+  const overdueAlertedIds = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const nowMs = Date.now()
+    for (const d of data) {
+      if (
+        d.order.confirmed_at &&
+        !d.order.ready_at &&
+        d.order.estimated_minutes &&
+        !overdueAlertedIds.current.has(d.order.id)
+      ) {
+        const confirmedMs = new Date(d.order.confirmed_at).getTime()
+        const deadline = confirmedMs + (d.order.estimated_minutes + 2) * 60 * 1000
+        if (nowMs > deadline) {
+          overdueAlertedIds.current.add(d.order.id)
+          void playSound(3)
+          vibrateSafe([300, 100, 300, 100, 300])
+        }
+      }
+    }
+  }, [data, now])
+
   const cards = useMemo(() => buildCards(data), [data])
 
   // 좌측: 대기 + 진행중 (= !completed). highlight 카드 먼저, 그 다음 오래된 순.
@@ -250,12 +276,12 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return { count: ready.length, total }
   }, [data])
 
-  const handleConfirm = useCallback(
-    async (card: BoothOrderCard) => {
+  const handleConfirmWithTime = useCallback(
+    async (card: BoothOrderCard, minutes: number) => {
       if (busyOrderId) return
       setBusyOrderId(card.orderId)
       try {
-        await confirmBoothOrder(card.orderId)
+        await confirmBoothOrder(card.orderId, minutes)
         await refetch()
       } catch (e) {
         setError(e instanceof Error ? e.message : '확인 처리 실패')
@@ -423,24 +449,35 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         >
                           {busy ? '...' : '거절'}
                         </button>
-                        {card.status === 'waiting' && (
-                          <button
-                            type="button"
-                            className={`${styles.actionBtn} ${styles.actionConfirm}`}
-                            onClick={() => handleConfirm(card)}
-                            disabled={busy}
-                          >
-                            {busy ? '처리 중...' : '확인'}
-                          </button>
+                        {card.status === 'waiting' ? (
+                          <div className={styles.timeButtons}>
+                            {[5, 10, 15, 20, 30].map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                                onClick={() => handleConfirmWithTime(card, m)}
+                                disabled={busy}
+                              >
+                                {busy ? '...' : `${m}분`}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <>
+                            {card.estimatedMinutes && (
+                              <span className={styles.estimatedLabel}>약 {card.estimatedMinutes}분</span>
+                            )}
+                            <button
+                              type="button"
+                              className={`${styles.actionBtn} ${styles.actionReady}`}
+                              onClick={() => handleReady(card)}
+                              disabled={busy}
+                            >
+                              {busy ? '처리 중...' : '준비완료'}
+                            </button>
+                          </>
                         )}
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.actionReady}`}
-                          onClick={() => handleReady(card)}
-                          disabled={busy}
-                        >
-                          {busy ? '처리 중...' : '조리완료'}
-                        </button>
                       </div>
                     </div>
                   </article>

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
-  calcWaitingInfo,
   fetchAllBoothWaitingCounts,
   fetchBoothWaitingCount,
   getBoothBadge,
@@ -404,7 +403,7 @@ function BoothModal({
   onClose: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
-  const waitingInfo = calcWaitingInfo(waitingCount, booth.avg_prep_minutes)
+  const badge = getBoothBadge(waitingCount)
 
   return (
     <div
@@ -476,19 +475,10 @@ function BoothModal({
                 <div className={styles.waitingStatusRow}>
                   <span className={styles.waitingStatusLabel}>대기 주문</span>
                   <span className={styles.waitingStatusValue}>
-                    {waitingInfo.count}건
-                  </span>
-                </div>
-                <div className={styles.waitingStatusRow}>
-                  <span className={styles.waitingStatusLabel}>예상 시간</span>
-                  <span className={styles.waitingStatusValue}>
-                    {waitingInfo.label}
+                    {badge.label}
                   </span>
                 </div>
               </div>
-              <p className={styles.waitingStatusDisclaimer}>
-                * 실제 시간은 다를 수 있어요
-              </p>
             </>
           )}
         </div>

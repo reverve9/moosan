@@ -16,6 +16,16 @@ export interface MonitorOrderRow {
   items: OrderItem[]         // 상세 모달 표시용 (메뉴명, 수량 나열)
 }
 
+/** 확인 완료 + 준비 미완료 주문 (조리시간 초과 모니터링용) */
+export interface MonitorConfirmedRow {
+  id: string
+  order_number: string
+  booth_id: string
+  booth_name: string
+  confirmed_at: string
+  estimated_minutes: number
+}
+
 export interface MonitorBoothSummary {
   boothId: string
   boothName: string
@@ -25,11 +35,16 @@ export interface MonitorBoothSummary {
   orders: MonitorOrderRow[]
 }
 
-export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
+export interface MonitorData {
+  summaries: MonitorBoothSummary[]
+  confirmedOrders: MonitorConfirmedRow[]
+}
+
+export async function fetchMonitorSummary(): Promise<MonitorData> {
   const start = startOfTodayKstAsUtc()
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
 
-  const [boothsRes, ordersRes] = await Promise.all([
+  const [boothsRes, ordersRes, confirmedRes] = await Promise.all([
     supabase
       .from('food_booths')
       .select('id, name, booth_no')
@@ -43,6 +58,15 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
       .gte('created_at', start.toISOString())
       .lt('created_at', end.toISOString())
       .order('paid_at', { ascending: true }),
+    // 확인 완료 + 준비 미완료 + estimated_minutes 있는 주문 (조리시간 초과 모니터링용)
+    supabase
+      .from('orders')
+      .select('id, order_number, booth_id, booth_name, confirmed_at, estimated_minutes')
+      .eq('status', 'confirmed')
+      .is('ready_at', null)
+      .not('estimated_minutes', 'is', null)
+      .gte('created_at', start.toISOString())
+      .lt('created_at', end.toISOString()),
   ])
 
   if (boothsRes.error) throw new Error(`부스 조회 실패: ${boothsRes.error.message}`)
@@ -86,7 +110,7 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
     groupedByBooth.set(order.booth_id, list)
   }
 
-  return booths.map((booth) => {
+  const summaries = booths.map((booth) => {
     const list = groupedByBooth.get(booth.id) ?? []
     return {
       boothId: booth.id,
@@ -97,6 +121,19 @@ export async function fetchMonitorSummary(): Promise<MonitorBoothSummary[]> {
       orders: list,
     }
   })
+
+  const confirmedOrders: MonitorConfirmedRow[] = (confirmedRes.data ?? [])
+    .filter((o: Record<string, unknown>) => o.booth_id && o.confirmed_at && o.estimated_minutes)
+    .map((o: Record<string, unknown>) => ({
+      id: o.id as string,
+      order_number: o.order_number as string,
+      booth_id: o.booth_id as string,
+      booth_name: o.booth_name as string,
+      confirmed_at: o.confirmed_at as string,
+      estimated_minutes: o.estimated_minutes as number,
+    }))
+
+  return { summaries, confirmedOrders }
 }
 
 /**

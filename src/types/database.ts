@@ -487,7 +487,6 @@ export interface Database {
           category: string | null
           thumbnail_url: string | null
           gallery_urls: Json
-          avg_prep_minutes: number
           sort_order: number
           is_active: boolean
           is_open: boolean
@@ -504,7 +503,6 @@ export interface Database {
           category?: string | null
           thumbnail_url?: string | null
           gallery_urls?: Json
-          avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
           is_open?: boolean
@@ -521,7 +519,6 @@ export interface Database {
           category?: string | null
           thumbnail_url?: string | null
           gallery_urls?: Json
-          avg_prep_minutes?: number
           sort_order?: number
           is_active?: boolean
           is_open?: boolean
@@ -816,6 +813,7 @@ export interface Database {
           status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at: string | null
           confirmed_at: string | null
+          estimated_minutes: number | null
           ready_at: string | null
           cancelled_at: string | null
           cancel_reason: string | null
@@ -837,6 +835,7 @@ export interface Database {
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at?: string | null
           confirmed_at?: string | null
+          estimated_minutes?: number | null
           ready_at?: string | null
           cancelled_at?: string | null
           cancel_reason?: string | null
@@ -858,6 +857,7 @@ export interface Database {
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at?: string | null
           confirmed_at?: string | null
+          estimated_minutes?: number | null
           ready_at?: string | null
           cancelled_at?: string | null
           cancel_reason?: string | null
