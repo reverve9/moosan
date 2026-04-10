@@ -36,46 +36,52 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
 }
 
 /* ──────────────── Order status helpers ──────────────── */
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'partial'
+type UIStatus = 'paid' | 'confirmed' | 'completed' | 'cancelled'
 
-function computePaymentUiStatus(data: PaymentWithOrders): UIStatus {
-  const { payment, orders } = data
-  if (payment.status === 'cancelled') return 'cancelled'
-  if (payment.status === 'pending') return 'pending'
-  if (orders.length === 0) return 'paid'
-  const liveOrders = orders.filter((o) => o.order.status !== 'cancelled')
-  const hasCancelled = orders.some((o) => o.order.status === 'cancelled')
-  if (liveOrders.length === 0) return 'cancelled'
-  if (hasCancelled) return 'partial'
-  if (orders.every((o) => o.order.ready_at)) return 'completed'
-  if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
+function computeOrderUiStatus(order: PaymentWithOrders['orders'][number]['order']): UIStatus {
+  if (order.status === 'cancelled') return 'cancelled'
+  if (order.ready_at) return 'completed'
+  if (order.confirmed_at) return 'confirmed'
   return 'paid'
 }
 
 const STATUS_LABEL: Record<UIStatus, string> = {
-  pending: '결제 대기중',
   paid: '확인 대기중',
   confirmed: '조리 중',
   completed: '조리 완료',
   cancelled: '취소됨',
-  partial: '일부 취소',
 }
 
 function StatusIcon({ status }: { status: UIStatus }) {
   if (status === 'completed') return <CircleCheck />
   if (status === 'confirmed') return <Flame />
-  if (status === 'cancelled' || status === 'partial') return <CircleX />
+  if (status === 'cancelled') return <CircleX />
   return <Clock />
 }
 
-function summarizePaymentOrders(orders: PaymentWithOrders['orders']): string {
-  if (orders.length === 0) return '주문 내역 없음'
-  const allItems = orders.flatMap((o) => o.items)
-  if (allItems.length === 0) return '주문 내역 없음'
-  const totalQty = allItems.reduce((sum, i) => sum + i.quantity, 0)
-  const first = allItems[0].menu_name
-  if (allItems.length === 1) return `${first} × ${allItems[0].quantity}`
-  return `${first} 외 ${allItems.length - 1}건 · 총 ${totalQty}개`
+interface OrderListEntry {
+  paymentId: string
+  order: PaymentWithOrders['orders'][number]['order']
+  items: PaymentWithOrders['orders'][number]['items']
+}
+
+function flattenToOrderEntries(payments: PaymentWithOrders[]): OrderListEntry[] {
+  const entries: OrderListEntry[] = []
+  for (const { payment, orders } of payments) {
+    for (const { order, items } of orders) {
+      entries.push({ paymentId: payment.id, order, items })
+    }
+  }
+  entries.sort((a, b) => b.order.created_at.localeCompare(a.order.created_at))
+  return entries
+}
+
+function summarizeItems(items: OrderListEntry['items']): string {
+  if (items.length === 0) return '주문 내역 없음'
+  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0)
+  const first = items[0].menu_name
+  if (items.length === 1) return `${first} × ${items[0].quantity}`
+  return `${first} 외 ${items.length - 1}건 · 총 ${totalQty}개`
 }
 
 export default function CartPage() {
@@ -288,26 +294,27 @@ export default function CartPage() {
 
         {!loadingOrders && !ordersError && payments !== null && payments.length > 0 && (
           <ul className={styles.orderList}>
-            {payments.map((data) => {
-              const { payment } = data
-              const uiStatus = computePaymentUiStatus(data)
-              const orderTime = new Date(payment.created_at).toLocaleTimeString('ko-KR', {
+            {flattenToOrderEntries(payments).map((entry) => {
+              const { order, items } = entry
+              const uiStatus = computeOrderUiStatus(order)
+              const orderTime = new Date(order.created_at).toLocaleTimeString('ko-KR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })
-              const orderNumbers = data.orders.map((o) => o.order.order_number).join(' · ')
               return (
-                <li key={payment.id}>
-                  <Link to={`/order/${payment.id}`} className={styles.orderCard}>
+                <li key={order.id}>
+                  <Link to={`/order/${entry.paymentId}`} className={styles.orderCard}>
                     <div className={`${styles.orderIcon} ${styles[`status_${uiStatus}`]}`}>
                       <StatusIcon status={uiStatus} />
                     </div>
                     <div className={styles.orderBody}>
                       <div className={styles.orderHead}>
-                        <span className={styles.orderNumber}>{orderNumbers || '주문 준비중'}</span>
+                        <span className={styles.orderNumber}>
+                          {order.booth_name ?? ''} · {order.order_number}
+                        </span>
                         <span className={styles.orderTime}>{orderTime}</span>
                       </div>
-                      <p className={styles.orderSummary}>{summarizePaymentOrders(data.orders)}</p>
+                      <p className={styles.orderSummary}>{summarizeItems(items)}</p>
                       <div className={styles.orderFoot}>
                         <span
                           className={`${styles.statusBadge} ${styles[`status_${uiStatus}`]}`}
@@ -315,7 +322,7 @@ export default function CartPage() {
                           {STATUS_LABEL[uiStatus]}
                         </span>
                         <span className={styles.orderAmount}>
-                          {payment.total_amount.toLocaleString()}원
+                          {order.subtotal.toLocaleString()}원
                         </span>
                       </div>
                     </div>
