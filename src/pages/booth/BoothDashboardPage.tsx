@@ -449,7 +449,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         >
                           {busy ? '...' : '거절'}
                         </button>
-                        {card.status === 'waiting' ? (
+                        {card.status === 'waiting' && (
                           <div className={styles.timeButtons}>
                             {[5, 10, 15, 20, 30].map((m) => (
                               <button
@@ -463,21 +463,18 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                               </button>
                             ))}
                           </div>
-                        ) : (
-                          <>
-                            {card.estimatedMinutes && (
-                              <span className={styles.estimatedLabel}>약 {card.estimatedMinutes}분</span>
-                            )}
-                            <button
-                              type="button"
-                              className={`${styles.actionBtn} ${styles.actionReady}`}
-                              onClick={() => handleReady(card)}
-                              disabled={busy}
-                            >
-                              {busy ? '처리 중...' : '준비완료'}
-                            </button>
-                          </>
                         )}
+                        {card.status === 'inProgress' && card.estimatedMinutes && (
+                          <span className={styles.estimatedLabel}>약 {card.estimatedMinutes}분</span>
+                        )}
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionReady}`}
+                          onClick={() => handleReady(card)}
+                          disabled={busy}
+                        >
+                          {busy ? '처리 중...' : '조리완료'}
+                        </button>
                       </div>
                     </div>
                   </article>
