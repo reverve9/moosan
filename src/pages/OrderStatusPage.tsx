@@ -1,6 +1,6 @@
 import { CircleCheck, Clock, Flame, ShoppingBag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
 import { supabase } from '@/lib/supabase'
@@ -53,11 +53,42 @@ const BOOTH_STATUS_LABEL: Record<BoothStatus, string> = {
   cancelled: '취소됨',
 }
 
+const DISMISSED_KEY = 'order_dismissed_booths'
+
+function loadDismissed(paymentId: string): Set<string> {
+  try {
+    const raw = sessionStorage.getItem(`${DISMISSED_KEY}_${paymentId}`)
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function saveDismissed(paymentId: string, set: Set<string>): void {
+  try {
+    sessionStorage.setItem(`${DISMISSED_KEY}_${paymentId}`, JSON.stringify([...set]))
+  } catch { /* ignore */ }
+}
+
 export default function OrderStatusPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [data, setData] = useState<PaymentWithOrders | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dismissedBooths, setDismissedBooths] = useState<Set<string>>(() => loadDismissed(id ?? ''))
+
+  // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지
+  useEffect(() => {
+    if (searchParams.get('from') !== 'checkout') return
+    window.history.pushState(null, '', window.location.href)
+    const handlePop = () => {
+      navigate('/program/food', { replace: true })
+    }
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
+  }, [searchParams, navigate])
 
   useEffect(() => {
     if (!id) return
@@ -124,6 +155,21 @@ export default function OrderStatusPage() {
     [data],
   )
 
+  const readyBooths = useMemo(() => {
+    if (!data) return []
+    const seen = new Set<string>()
+    const result: { boothId: string; boothName: string }[] = []
+    for (const { order } of data.orders) {
+      const bid = order.booth_id
+      if (!bid) continue
+      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
+        seen.add(bid)
+        result.push({ boothId: bid, boothName: order.booth_name ?? '' })
+      }
+    }
+    return result
+  }, [data, dismissedBooths])
+
   if (loading) {
     return (
       <section className={styles.page}>
@@ -173,6 +219,29 @@ export default function OrderStatusPage() {
       <PageTitle title="주문 상태" />
 
       <div className={styles.container}>
+        {/* ─── 준비완료 스트립 ─── */}
+        {readyBooths.map((booth) => (
+          <div key={booth.boothId} className={styles.readyStrip}>
+            <span className={styles.readyStripText}>
+              🍽 {booth.boothName} 준비완료 · 픽업해주세요
+            </span>
+            <button
+              type="button"
+              className={styles.readyStripBtn}
+              onClick={() => {
+                setDismissedBooths((prev) => {
+                  const next = new Set([...prev, booth.boothId])
+                  saveDismissed(id ?? '', next)
+                  return next
+                })
+              }}
+              aria-label="확인"
+            >
+              ✓
+            </button>
+          </div>
+        ))}
+
         {/* ─── 상태 카드 ─── */}
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>
           <div className={styles.statusIcon}>

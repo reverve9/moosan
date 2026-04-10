@@ -84,9 +84,18 @@
   font-size: 11px;
   font-weight: 700;
   color: #FFFFFF;
-  background-color: #6B7280;
   border-radius: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+/* 미확인 주문 = primary */
+.navBadgePending {
+  background-color: var(--color-primary);
+}
+
+/* 1분 초과 = 주황 */
+.navBadgeWarn {
+  background-color: #F59E0B;
 }
 
 /* 2분 초과 = 빨강 + pulse */

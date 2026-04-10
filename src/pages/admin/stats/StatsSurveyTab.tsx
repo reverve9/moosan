@@ -105,10 +105,45 @@ export default function StatsSurveyTab() {
           {/* 1. 요약 KPI */}
           <KpiSection stats={stats} />
 
-          {/* 2. 응답자 정보 (성별/연령/지역 + Q1 종교/Q1-1/Q1-2) */}
+          {/* 2. 응답자 정보 (성별/연령/지역 + Q1~Q2 종교) */}
           <DemographicsSection stats={stats} />
 
-          {/* 3. 문6 정보 출처 (복수선택) */}
+          {/* 3. 종교 영향력 (Q3, Q3-1) */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>3. 종교 영향력</h2>
+            <div className={styles.demoGrid}>
+              <BucketTable
+                title="문3. 개인 삶에 미치는 영향"
+                buckets={stats.religionInfluencePersonal}
+              />
+              <BucketTable
+                title="문3-1. 한국 사회에 미치는 영향"
+                buckets={stats.religionInfluenceSociety}
+              />
+            </div>
+          </section>
+
+          {/* 4. 참여 동기 (Q4, Q5, Q7) */}
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>4~7. 참여 동기</h2>
+            <div className={styles.demoGrid}>
+              <BucketTable
+                title="문4. 과거 참여 경험"
+                buckets={stats.pastParticipation}
+              />
+              <BucketTable
+                title="문5. 참여 결정자"
+                buckets={stats.decisionMaker}
+              />
+              <BucketTable
+                title="문7. 기대한 부분"
+                buckets={stats.expectation}
+                scrollable
+              />
+            </div>
+          </section>
+
+          {/* 5. 문6 정보 출처 (복수선택) */}
           <SingleBucketSection
             title="6. 정보 출처 (복수선택)"
             buckets={stats.infoSources}
@@ -297,6 +332,10 @@ function DemographicsSection({ stats }: { stats: SurveyStats }) {
           title="종교활동 빈도 (문1-2)"
           buckets={stats.religionFrequency}
           scrollable
+        />
+        <BucketTable
+          title="1년 전 종교 (문2)"
+          buckets={stats.pastReligion}
         />
       </div>
     </section>

@@ -2,11 +2,10 @@
  * 부스 대시보드용 소리 재생 유틸.
  *
  * 사운드 파일
- *  - /sounds/order_alarm.mp3 — 새 주문 수신 시
- *  - /sounds/order_alert.mp3 — 1분/2분 초과 경보 (더 강한 톤)
+ *  - /sounds/order_alarm.mp3 — 미확인 주문 1분 간격 알람
  *
  * 정책
- *  - `playSound(type, repeat)` 기본 3회 순차 재생 (겹침 방지 위해 await)
+ *  - `playSound(repeat)` 기본 3회 순차 재생 (겹침 방지 위해 await)
  *  - 실패 (autoplay 차단 / 파일 없음 / 로딩 에러) 는 조용히 무시
  *  - iOS Safari autoplay 정책 — 사용자 제스처 이후에만 재생 가능.
  *    `unlock()` 을 로그인 버튼 클릭 등 제스처 이벤트에서 호출해
@@ -14,23 +13,16 @@
  */
 
 const ALARM_SRC = '/sounds/order_alarm.mp3'
-const ALERT_SRC = '/sounds/order_alert.mp3'
-
-export type CueType = 'alarm' | 'alert'
-
-function srcFor(type: CueType): string {
-  return type === 'alarm' ? ALARM_SRC : ALERT_SRC
-}
 
 /**
  * 소리 재생. 기본 3회 순차 반복. Promise 는 마지막 반복 종료 시 resolve.
  * 실패는 조용히 무시 — 호출부에서 try/catch 불필요.
  */
-export async function playSound(type: CueType, repeat: number = 3): Promise<void> {
+export async function playSound(repeat: number = 3): Promise<void> {
   for (let i = 0; i < repeat; i += 1) {
     await new Promise<void>((resolve) => {
       try {
-        const audio = new Audio(srcFor(type))
+        const audio = new Audio(ALARM_SRC)
         audio.onended = () => resolve()
         audio.onerror = () => resolve()
         audio.play().catch(() => resolve())

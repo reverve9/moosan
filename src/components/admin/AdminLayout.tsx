@@ -131,20 +131,20 @@ interface AdminLayoutInnerProps {
 }
 
 function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
-  const { alertCount, totalPending } = useAdminAlert()
+  const { alertCount, warnCount, totalPending } = useAdminAlert()
 
-  // document.title 동적 변경 — 2분 초과 있으면 prefix `(N) `
+  // document.title 동적 변경 — 미확인 주문 있으면 prefix `(N) `
   useEffect(() => {
     const BASE = '설악무산문화축전 어드민'
-    if (alertCount > 0) {
-      document.title = `(${alertCount}) 실시간 모니터 · ${BASE}`
+    if (totalPending > 0) {
+      document.title = `(${totalPending}) 실시간 모니터 · ${BASE}`
     } else {
       document.title = BASE
     }
     return () => {
       document.title = BASE
     }
-  }, [alertCount])
+  }, [totalPending])
 
   return (
     <div className={styles.layout}>
@@ -161,13 +161,14 @@ function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
               {group.items.map((item) => {
                 const Icon = item.icon
                 const isMonitor = item.path === MONITOR_PATH
-                // 2분 초과 있으면 빨강(alertCount), 없지만 pending 있으면 회색
-                const badgeCount = isMonitor
+                const badgeCount = isMonitor ? totalPending : 0
+                const badgeTone = isMonitor
                   ? alertCount > 0
-                    ? alertCount
-                    : totalPending
-                  : 0
-                const badgeTone = isMonitor && alertCount > 0 ? 'alert' : 'pending'
+                    ? 'alert'
+                    : warnCount > 0
+                      ? 'warn'
+                      : 'pending'
+                  : 'pending'
                 return (
                   <NavLink
                     key={item.path}
@@ -182,7 +183,11 @@ function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
                     {isMonitor && badgeCount > 0 && (
                       <span
                         className={`${styles.navBadge} ${
-                          badgeTone === 'alert' ? styles.navBadgeAlert : ''
+                          badgeTone === 'alert'
+                            ? styles.navBadgeAlert
+                            : badgeTone === 'warn'
+                              ? styles.navBadgeWarn
+                              : styles.navBadgePending
                         }`}
                       >
                         {badgeCount}

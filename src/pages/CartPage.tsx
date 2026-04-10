@@ -1,11 +1,12 @@
 import { CircleCheck, Clock, Flame, Search, Minus, Plus, ShoppingBag, Trash2, CircleX } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
 import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
+import { supabase } from '@/lib/supabase'
 import { formatPhone, isValidPhone, loadLastPhone, normalizePhone } from '@/lib/phone'
 import styles from './CartPage.module.css'
 
@@ -36,20 +37,16 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
 }
 
 /* ──────────────── Order status helpers ──────────────── */
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+type UIStatus = 'paid' | 'confirmed' | 'completed' | 'cancelled'
 
-function computePaymentUiStatus(data: PaymentWithOrders): UIStatus {
-  const { payment, orders } = data
-  if (payment.status === 'cancelled') return 'cancelled'
-  if (payment.status === 'pending') return 'pending'
-  if (orders.length === 0) return 'paid'
-  if (orders.every((o) => o.order.ready_at)) return 'completed'
-  if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
+function computeOrderUiStatus(order: PaymentWithOrders['orders'][number]['order']): UIStatus {
+  if (order.status === 'cancelled') return 'cancelled'
+  if (order.ready_at) return 'completed'
+  if (order.confirmed_at) return 'confirmed'
   return 'paid'
 }
 
 const STATUS_LABEL: Record<UIStatus, string> = {
-  pending: '결제 대기중',
   paid: '확인 대기중',
   confirmed: '조리 중',
   completed: '조리 완료',
@@ -63,14 +60,29 @@ function StatusIcon({ status }: { status: UIStatus }) {
   return <Clock />
 }
 
-function summarizePaymentOrders(orders: PaymentWithOrders['orders']): string {
-  if (orders.length === 0) return '주문 내역 없음'
-  const allItems = orders.flatMap((o) => o.items)
-  if (allItems.length === 0) return '주문 내역 없음'
-  const totalQty = allItems.reduce((sum, i) => sum + i.quantity, 0)
-  const first = allItems[0].menu_name
-  if (allItems.length === 1) return `${first} × ${allItems[0].quantity}`
-  return `${first} 외 ${allItems.length - 1}건 · 총 ${totalQty}개`
+interface OrderListEntry {
+  paymentId: string
+  order: PaymentWithOrders['orders'][number]['order']
+  items: PaymentWithOrders['orders'][number]['items']
+}
+
+function flattenToOrderEntries(payments: PaymentWithOrders[]): OrderListEntry[] {
+  const entries: OrderListEntry[] = []
+  for (const { payment, orders } of payments) {
+    for (const { order, items } of orders) {
+      entries.push({ paymentId: payment.id, order, items })
+    }
+  }
+  entries.sort((a, b) => b.order.created_at.localeCompare(a.order.created_at))
+  return entries
+}
+
+function summarizeItems(items: OrderListEntry['items']): string {
+  if (items.length === 0) return '주문 내역 없음'
+  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0)
+  const first = items[0].menu_name
+  if (items.length === 1) return `${first} × ${items[0].quantity}`
+  return `${first} 외 ${items.length - 1}건 · 총 ${totalQty}개`
 }
 
 export default function CartPage() {
@@ -90,6 +102,18 @@ export default function CartPage() {
 
   const phoneValid = isValidPhone(phoneInput)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
+
+  const refetchOrders = useCallback(async () => {
+    if (!submittedPhone) return
+    try {
+      const data = await fetchPaymentsByPhoneToday(normalizePhone(submittedPhone))
+      setPayments(data)
+      setOrdersError(null)
+    } catch (err) {
+      setOrdersError(err instanceof Error ? err.message : '주문 조회 실패')
+      setPayments(null)
+    }
+  }, [submittedPhone])
 
   // submittedPhone 이 정해지면 (mount 시 localStorage 또는 사용자 submit) fetch
   useEffect(() => {
@@ -117,6 +141,25 @@ export default function CartPage() {
       cancelled = true
     }
   }, [submittedPhone])
+
+  // Realtime: orders 변경 시 자동 refetch
+  useEffect(() => {
+    if (!submittedPhone) return
+    const channel = supabase
+      .channel('cart-orders-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        () => { void refetchOrders() },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'payments' },
+        () => { void refetchOrders() },
+      )
+      .subscribe()
+    return () => { void supabase.removeChannel(channel) }
+  }, [submittedPhone, refetchOrders])
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhoneInput(formatPhone(e.target.value))
@@ -283,26 +326,27 @@ export default function CartPage() {
 
         {!loadingOrders && !ordersError && payments !== null && payments.length > 0 && (
           <ul className={styles.orderList}>
-            {payments.map((data) => {
-              const { payment } = data
-              const uiStatus = computePaymentUiStatus(data)
-              const orderTime = new Date(payment.created_at).toLocaleTimeString('ko-KR', {
+            {flattenToOrderEntries(payments).map((entry) => {
+              const { order, items } = entry
+              const uiStatus = computeOrderUiStatus(order)
+              const orderTime = new Date(order.created_at).toLocaleTimeString('ko-KR', {
                 hour: '2-digit',
                 minute: '2-digit',
               })
-              const orderNumbers = data.orders.map((o) => o.order.order_number).join(' · ')
               return (
-                <li key={payment.id}>
-                  <Link to={`/order/${payment.id}`} className={styles.orderCard}>
+                <li key={order.id}>
+                  <Link to={`/order/${entry.paymentId}`} className={styles.orderCard}>
                     <div className={`${styles.orderIcon} ${styles[`status_${uiStatus}`]}`}>
                       <StatusIcon status={uiStatus} />
                     </div>
                     <div className={styles.orderBody}>
                       <div className={styles.orderHead}>
-                        <span className={styles.orderNumber}>{orderNumbers || '주문 준비중'}</span>
+                        <span className={styles.orderNumber}>
+                          {order.booth_name ?? ''} · {order.order_number}
+                        </span>
                         <span className={styles.orderTime}>{orderTime}</span>
                       </div>
-                      <p className={styles.orderSummary}>{summarizePaymentOrders(data.orders)}</p>
+                      <p className={styles.orderSummary}>{summarizeItems(items)}</p>
                       <div className={styles.orderFoot}>
                         <span
                           className={`${styles.statusBadge} ${styles[`status_${uiStatus}`]}`}
@@ -310,7 +354,7 @@ export default function CartPage() {
                           {STATUS_LABEL[uiStatus]}
                         </span>
                         <span className={styles.orderAmount}>
-                          {payment.total_amount.toLocaleString()}원
+                          {order.subtotal.toLocaleString()}원
                         </span>
                       </div>
                     </div>

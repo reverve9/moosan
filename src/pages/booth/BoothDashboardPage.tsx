@@ -40,7 +40,7 @@ interface BoothOrderCard {
 
 const HIGHLIGHT_MS = 5_000
 const ALERT_SECONDS = 60
-const ALERT2_SECONDS = 120
+const ALARM_INTERVAL_MS = 60_000
 const COMPLETED_LIMIT = 20
 
 /** navigator.vibrate 안전 호출 — 미지원/비모바일 브라우저는 no-op */
@@ -59,8 +59,6 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
     orderId: order.id,
     orderNumber: order.order_number,
     phone: order.phone,
-    // status='paid' 이상이면 paid_at 이 채워져 있지만, 마이그 18 적용 직후
-    // backfill 누락을 대비해 created_at 으로 fallback.
     orderPaidAt: order.paid_at ?? order.created_at,
     items,
     totalAmount: order.subtotal,
@@ -171,11 +169,8 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
     const unsubscribe = subscribeBoothOrders(boothId, {
       onOrderPaid: (orderId) => {
-        // 새 주문 알람 — 초기 로드는 refetch 경로라 여기 안 들어옴 (onOrderPaid
-        // 는 pending→paid UPDATE 이벤트만 잡음). 중복 알람 걱정 없음.
-        void playSound('alarm', 3)
+        void playSound(3)
         vibrateSafe([300, 100, 300, 100, 300])
-
         setHighlightOrderIds((prev) => {
           const set = new Set(prev)
           set.add(orderId)
@@ -212,41 +207,19 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => window.clearInterval(id)
   }, [])
 
-  // 1분/2분 초과 전이 감지 — 각 주문당 임계 넘어서는 순간 1회 경보음.
-  // waiting 카드의 paid_at 기준 elapsed 계산. 이전 tick 의 elapsed 와 비교해
-  // 임계를 교차한 순간만 알람. 한 번 울린 주문은 Set 에 기록해 재실행 차단.
-  const alertedIdsRef = useRef<{ one: Set<string>; two: Set<string> }>({
-    one: new Set(),
-    two: new Set(),
-  })
+  // 미확인 주문 1분 간격 반복 알람
   useEffect(() => {
-    const nowSec = Math.floor(now / 1000)
-    for (const { order } of data) {
-      if (order.status !== 'paid' || order.ready_at || order.cancelled_at) continue
-      const paidMs = new Date(order.paid_at ?? order.created_at).getTime()
-      const elapsed = nowSec - Math.floor(paidMs / 1000)
-      if (elapsed >= ALERT_SECONDS && !alertedIdsRef.current.one.has(order.id)) {
-        alertedIdsRef.current.one.add(order.id)
-        void playSound('alert', 3)
-        vibrateSafe([500, 200, 500])
+    const id = window.setInterval(() => {
+      const hasUnconfirmed = data.some(
+        (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
+      )
+      if (hasUnconfirmed) {
+        void playSound(3)
+        vibrateSafe([300, 100, 300, 100, 300])
       }
-      if (elapsed >= ALERT2_SECONDS && !alertedIdsRef.current.two.has(order.id)) {
-        alertedIdsRef.current.two.add(order.id)
-        void playSound('alert', 3)
-        vibrateSafe([500, 200, 500, 200, 500])
-      }
-    }
-    // 완료/취소된 주문은 Set 에서 정리 — 메모리 누수 방지
-    const activeIds = new Set(
-      data.filter((d) => d.order.status === 'paid' && !d.order.ready_at).map((d) => d.order.id),
-    )
-    for (const id of alertedIdsRef.current.one) {
-      if (!activeIds.has(id)) alertedIdsRef.current.one.delete(id)
-    }
-    for (const id of alertedIdsRef.current.two) {
-      if (!activeIds.has(id)) alertedIdsRef.current.two.delete(id)
-    }
-  }, [now, data])
+    }, ALARM_INTERVAL_MS)
+    return () => window.clearInterval(id)
+  }, [data])
 
   const cards = useMemo(() => buildCards(data), [data])
 
