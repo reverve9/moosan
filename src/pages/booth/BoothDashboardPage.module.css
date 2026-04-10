@@ -317,6 +317,12 @@
 
 .cardFooter {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardFooterTop {
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -350,27 +356,33 @@
   cursor: not-allowed;
 }
 
-.timeButtons {
-  display: flex;
-  align-items: center;
+.timeGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 4px;
 }
 
-.actionConfirm {
+.timeGridBtn {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
   background-color: #283648;
+  border-radius: 8px;
+  transition: background-color 150ms ease;
+  font-variant-numeric: tabular-nums;
 }
 
-.actionConfirm:hover:not(:disabled) {
+.timeGridBtn:hover:not(:disabled) {
   background-color: #17202E;
 }
 
-.estimatedLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: #283648;
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
+.timeGridBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .actionReady {
