@@ -125,6 +125,21 @@ export default function OrderStatusPage() {
     [data],
   )
 
+  const readyBooths = useMemo(() => {
+    if (!data) return []
+    const seen = new Set<string>()
+    const result: { boothId: string; boothName: string }[] = []
+    for (const { order } of data.orders) {
+      const bid = order.booth_id
+      if (!bid) continue
+      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
+        seen.add(bid)
+        result.push({ boothId: bid, boothName: order.booth_name ?? '' })
+      }
+    }
+    return result
+  }, [data, dismissedBooths])
+
   if (loading) {
     return (
       <section className={styles.page}>
@@ -153,21 +168,6 @@ export default function OrderStatusPage() {
   }
 
   const { payment, orders } = data
-
-  const readyBooths = useMemo(() => {
-    const seen = new Set<string>()
-    const result: { boothId: string; boothName: string }[] = []
-    for (const { order } of orders) {
-      const bid = order.booth_id
-      if (!bid) continue
-      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
-        seen.add(bid)
-        result.push({ boothId: bid, boothName: order.booth_name ?? '' })
-      }
-    }
-    return result
-  }, [orders, dismissedBooths])
-
   const statusInfo = STATUS_LABEL[uiStatus]
   const cancelReason =
     uiStatus === 'cancelled' &&

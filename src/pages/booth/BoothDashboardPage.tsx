@@ -169,6 +169,8 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
     const unsubscribe = subscribeBoothOrders(boothId, {
       onOrderPaid: (orderId) => {
+        void playSound(3)
+        vibrateSafe([300, 100, 300, 100, 300])
         setHighlightOrderIds((prev) => {
           const set = new Set(prev)
           set.add(orderId)
