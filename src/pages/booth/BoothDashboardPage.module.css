@@ -331,6 +331,7 @@
 
 .cardActions {
   display: flex;
+  align-items: center;
   gap: 6px;
 }
 
@@ -351,24 +352,25 @@
 
 .timeButtons {
   display: flex;
+  align-items: center;
   gap: 4px;
 }
 
 .actionConfirm {
-  background-color: #F59E0B;
-  padding: 0 8px;
-  min-height: 48px;
+  background-color: #283648;
 }
 
 .actionConfirm:hover:not(:disabled) {
-  background-color: #D97706;
+  background-color: #17202E;
 }
 
 .estimatedLabel {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: #283648;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 
 .actionReady {
