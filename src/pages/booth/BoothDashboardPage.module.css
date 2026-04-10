@@ -358,16 +358,19 @@
 
 .timeGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, 32px);
+  justify-content: center;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .timeGridBtn {
-  aspect-ratio: 1;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 800;
   color: #FFFFFF;
   background-color: #283648;
