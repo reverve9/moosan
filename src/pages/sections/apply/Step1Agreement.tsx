@@ -1,4 +1,5 @@
 import Checkbox from '@/components/ui/Checkbox'
+import { isDevMode } from '@/config/flags'
 import type { FormData } from './ApplyForm'
 import styles from './StepCommon.module.css'
 
@@ -37,7 +38,7 @@ export default function Step1Agreement({ form, updateForm, onNext }: Props) {
       <div className={styles.actions}>
         <button
           className={styles.btnPrimary}
-          disabled={!canNext}
+          disabled={!canNext && !isDevMode}
           onClick={onNext}
         >
           다음

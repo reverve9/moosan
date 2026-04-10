@@ -1,4 +1,5 @@
 import Checkbox from '@/components/ui/Checkbox'
+import { isDevMode } from '@/config/flags'
 import type { FormData } from './ApplyForm'
 import styles from './StepCommon.module.css'
 
@@ -69,7 +70,7 @@ export default function Step3Privacy({ form, updateForm, onPrev, onSubmit }: Pro
 
       <div className={styles.actions}>
         <button className={styles.btnSecondary} onClick={onPrev}>이전</button>
-        <button className={styles.btnPrimary} disabled={!canSubmit} onClick={onSubmit}>제출</button>
+        <button className={styles.btnPrimary} disabled={!canSubmit && !isDevMode} onClick={onSubmit}>제출</button>
       </div>
     </div>
   )

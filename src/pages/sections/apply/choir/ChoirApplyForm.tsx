@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDevMode } from '@/config/flags'
 import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import Checkbox from '@/components/ui/Checkbox'
@@ -142,7 +143,7 @@ export default function ChoirApplyForm() {
             onChange={(e) => update({ infoConfirmed: e.target.checked })}
           />
           <div className={styles.actions}>
-            <button className={styles.btnPrimary} disabled={!form.infoConfirmed} onClick={next}>
+            <button className={styles.btnPrimary} disabled={!form.infoConfirmed && !isDevMode} onClick={next}>
               다음
             </button>
           </div>
@@ -206,7 +207,7 @@ export default function ChoirApplyForm() {
             <button className={styles.btnSecondary} onClick={prev}>이전</button>
             <button
               className={styles.btnPrimary}
-              disabled={!(form.rulesAgreed && form.privacyAgreed)}
+              disabled={!(form.rulesAgreed && form.privacyAgreed) && !isDevMode}
               onClick={handleSubmit}
             >
               제출

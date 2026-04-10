@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isDevMode } from '@/config/flags'
 import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import StepIndicator from '../StepIndicator'
@@ -177,7 +178,7 @@ export default function ArtApplyForm() {
           <div className={styles.actions}>
             <button
               className={styles.btnPrimary}
-              disabled={!canNextStep1}
+              disabled={!canNextStep1 && !isDevMode}
               onClick={() => setStep(2)}
             >
               다음
@@ -268,7 +269,7 @@ export default function ArtApplyForm() {
             <button className={styles.btnSecondary} onClick={() => setStep(1)}>이전</button>
             <button
               className={styles.btnPrimary}
-              disabled={!(form.rulesAgreed && form.privacyAgreed && form.division)}
+              disabled={!(form.rulesAgreed && form.privacyAgreed && form.division) && !isDevMode}
               onClick={handleSubmit}
             >
               제출

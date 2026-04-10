@@ -1,3 +1,4 @@
+import { isDevMode } from '@/config/flags'
 import type { ChoirFormData } from './ChoirApplyForm'
 import Input from '@/components/ui/Input'
 import RadioGroup from '@/components/ui/RadioGroup'
@@ -104,7 +105,7 @@ export default function ChoirStep2Info({ form, update, onNext, onPrev }: Props) 
       </div>
       <div className={styles.actions}>
         <button className={styles.btnSecondary} onClick={onPrev}>이전</button>
-        <button className={styles.btnPrimary} disabled={!canNext} onClick={onNext}>다음</button>
+        <button className={styles.btnPrimary} disabled={!canNext && !isDevMode} onClick={onNext}>다음</button>
       </div>
     </div>
   )
