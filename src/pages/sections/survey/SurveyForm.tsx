@@ -5,7 +5,7 @@ import SurveyStep1Basic from './SurveyStep1Basic'
 import SurveyStep2Experience from './SurveyStep2Experience'
 import SurveyStep3Evaluation from './SurveyStep3Evaluation'
 import SurveyStep4Opinion from './SurveyStep4Opinion'
-import { submitSurvey } from '@/lib/survey'
+import { submitSurvey, hasSurveyDoneLocally, markSurveyDoneLocally } from '@/lib/survey'
 import { DuplicateSurveyCouponError } from '@/lib/coupons'
 import { normalizePhone } from '@/lib/phone'
 import styles from './SurveyForm.module.css'
@@ -102,6 +102,7 @@ export default function SurveyForm() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [duplicateCoupon, setDuplicateCoupon] = useState(false)
+  const [alreadyDone] = useState(() => hasSurveyDoneLocally())
 
   const updateForm = (updates: Partial<SurveyFormData>) => {
     setForm((prev) => ({ ...prev, ...updates }))
@@ -167,6 +168,7 @@ export default function SurveyForm() {
         answers,
       })
 
+      markSurveyDoneLocally()
       setSubmitted(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
@@ -180,6 +182,25 @@ export default function SurveyForm() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (alreadyDone) {
+    return (
+      <div className={styles.success}>
+        <div className={styles.successIcon}>&#10003;</div>
+        <h3 className={styles.successTitle}>이미 설문에 참여하셨습니다</h3>
+        <p className={styles.successDesc}>
+          소중한 의견 감사합니다. 음식 주문 시 쿠폰이 자동 적용됩니다.
+        </p>
+        <button
+          type="button"
+          className={styles.successBtn}
+          onClick={() => navigate('/program/food')}
+        >
+          음식 주문하러 가기
+        </button>
+      </div>
+    )
   }
 
   if (submitted) {

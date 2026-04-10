@@ -480,6 +480,28 @@ export function calcSurveyStats(rows: Survey[]): SurveyStats {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+// localStorage 기반 디바이스 중복 방지
+// ─────────────────────────────────────────────────────────────────
+
+const SURVEY_DONE_KEY = 'survey_done'
+
+export function hasSurveyDoneLocally(): boolean {
+  try {
+    return localStorage.getItem(SURVEY_DONE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function markSurveyDoneLocally(): void {
+  try {
+    localStorage.setItem(SURVEY_DONE_KEY, 'true')
+  } catch {
+    /* 시크릿 모드 등 localStorage 불가 — 무시 */
+  }
+}
+
 /** 오늘 날짜 KST YYYY-MM-DD */
 export function todayKstString(): string {
   return new Intl.DateTimeFormat('en-CA', {

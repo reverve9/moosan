@@ -58,6 +58,7 @@ export default function OrderStatusPage() {
   const [data, setData] = useState<PaymentWithOrders | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dismissedBooths, setDismissedBooths] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!id) return
@@ -152,6 +153,21 @@ export default function OrderStatusPage() {
   }
 
   const { payment, orders } = data
+
+  const readyBooths = useMemo(() => {
+    const seen = new Set<string>()
+    const result: { boothId: string; boothName: string }[] = []
+    for (const { order } of orders) {
+      const bid = order.booth_id
+      if (!bid) continue
+      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
+        seen.add(bid)
+        result.push({ boothId: bid, boothName: order.booth_name ?? '' })
+      }
+    }
+    return result
+  }, [orders, dismissedBooths])
+
   const statusInfo = STATUS_LABEL[uiStatus]
   const cancelReason =
     uiStatus === 'cancelled' &&
@@ -173,6 +189,25 @@ export default function OrderStatusPage() {
       <PageTitle title="주문 상태" />
 
       <div className={styles.container}>
+        {/* ─── 준비완료 스트립 ─── */}
+        {readyBooths.map((booth) => (
+          <div key={booth.boothId} className={styles.readyStrip}>
+            <span className={styles.readyStripText}>
+              🍽 {booth.boothName} 준비완료 · 픽업해주세요
+            </span>
+            <button
+              type="button"
+              className={styles.readyStripBtn}
+              onClick={() =>
+                setDismissedBooths((prev) => new Set([...prev, booth.boothId]))
+              }
+              aria-label="확인"
+            >
+              ✓
+            </button>
+          </div>
+        ))}
+
         {/* ─── 상태 카드 ─── */}
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>
           <div className={styles.statusIcon}>

@@ -64,6 +64,44 @@
   margin-top: var(--space-4);
 }
 
+/* ──────────────── 준비완료 스트립 ──────────────── */
+.readyStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px var(--space-5);
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-radius: var(--radius-lg);
+  gap: var(--space-3);
+}
+
+.readyStripText {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.readyStripBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #FFFFFF;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.readyStripBtn:hover {
+  background-color: rgba(255, 255, 255, 0.35);
+}
+
 /* ──────────────── 상태 카드 ──────────────── */
 .statusCard {
   display: flex;
