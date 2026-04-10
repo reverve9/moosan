@@ -164,7 +164,7 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  padding-bottom: 12px;
+  padding-bottom: 24px;
 }
 
 .programTab {
