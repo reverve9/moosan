@@ -131,7 +131,7 @@ interface AdminLayoutInnerProps {
 }
 
 function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
-  const { alertCount, warnCount, totalPending } = useAdminAlert()
+  const { alertCount, warnCount, totalPending, overdueCount } = useAdminAlert()
 
   // document.title 동적 변경 — 미확인 주문 있으면 prefix `(N) `
   useEffect(() => {
@@ -161,13 +161,15 @@ function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
               {group.items.map((item) => {
                 const Icon = item.icon
                 const isMonitor = item.path === MONITOR_PATH
-                const badgeCount = isMonitor ? totalPending : 0
+                const badgeCount = isMonitor ? totalPending + overdueCount : 0
                 const badgeTone = isMonitor
                   ? alertCount > 0
                     ? 'alert'
                     : warnCount > 0
                       ? 'warn'
-                      : 'pending'
+                      : overdueCount > 0
+                        ? 'overdue'
+                        : 'pending'
                   : 'pending'
                 return (
                   <NavLink
@@ -187,7 +189,9 @@ function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
                             ? styles.navBadgeAlert
                             : badgeTone === 'warn'
                               ? styles.navBadgeWarn
-                              : styles.navBadgePending
+                              : badgeTone === 'overdue'
+                                ? styles.navBadgeOverdue
+                                : styles.navBadgePending
                         }`}
                       >
                         {badgeCount}

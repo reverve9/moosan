@@ -349,12 +349,26 @@
   cursor: not-allowed;
 }
 
+.timeButtons {
+  display: flex;
+  gap: 4px;
+}
+
 .actionConfirm {
   background-color: #F59E0B;
+  padding: 0 8px;
+  min-height: 48px;
 }
 
 .actionConfirm:hover:not(:disabled) {
   background-color: #D97706;
+}
+
+.estimatedLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  white-space: nowrap;
 }
 
 .actionReady {

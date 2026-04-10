@@ -10,6 +10,7 @@ import {
 import {
   fetchMonitorSummary,
   type MonitorBoothSummary,
+  type MonitorConfirmedRow,
   subscribeMonitor,
 } from '@/lib/boothMonitor'
 
@@ -38,6 +39,7 @@ export function elapsedSeconds(iso: string, nowMs: number): number {
 
 export interface AdminAlertValue {
   summaries: MonitorBoothSummary[]
+  confirmedOrders: MonitorConfirmedRow[]
   now: number
   /** 2분 초과 주문 수 (빨강 경보) */
   alertCount: number
@@ -45,6 +47,8 @@ export interface AdminAlertValue {
   warnCount: number
   /** 전체 미확인 주문 수 */
   totalPending: number
+  /** 조리시간 초과 주문 수 (confirmed_at + estimated_minutes + 1분 초과) */
+  overdueCount: number
   loading: boolean
   error: string | null
   refreshing: boolean
@@ -56,23 +60,28 @@ const AdminAlertContext = createContext<AdminAlertValue | null>(null)
 
 export function AdminAlertProvider({ children }: { children: ReactNode }) {
   const [summaries, setSummaries] = useState<MonitorBoothSummary[]>([])
+  const [confirmedOrders, setConfirmedOrders] = useState<MonitorConfirmedRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
+  const applyData = useCallback((data: { summaries: MonitorBoothSummary[]; confirmedOrders: MonitorConfirmedRow[] }) => {
+    setSummaries(data.summaries)
+    setConfirmedOrders(data.confirmedOrders)
+    setError(null)
+  }, [])
+
   const refetch = useCallback(async () => {
     setRefreshing(true)
     try {
-      const data = await fetchMonitorSummary()
-      setSummaries(data)
-      setError(null)
+      applyData(await fetchMonitorSummary())
     } catch (e) {
       setError(e instanceof Error ? e.message : '데이터 조회 실패')
     } finally {
       setRefreshing(false)
     }
-  }, [])
+  }, [applyData])
 
   // 초기 로드 + realtime 구독 (AdminLayout 인증 이후 provider 가 mount 됨)
   useEffect(() => {
@@ -82,8 +91,7 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
       try {
         const data = await fetchMonitorSummary()
         if (cancelled) return
-        setSummaries(data)
-        setError(null)
+        applyData(data)
       } catch (e) {
         if (cancelled) return
         setError(e instanceof Error ? e.message : '데이터 조회 실패')
@@ -96,10 +104,7 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
       void (async () => {
         try {
           const data = await fetchMonitorSummary()
-          if (!cancelled) {
-            setSummaries(data)
-            setError(null)
-          }
+          if (!cancelled) applyData(data)
         } catch (e) {
           if (!cancelled) setError(e instanceof Error ? e.message : '데이터 조회 실패')
         }
@@ -110,7 +115,7 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
       cancelled = true
       unsub()
     }
-  }, [])
+  }, [applyData])
 
   // 1초 tick — elapsed 재계산 트리거
   useEffect(() => {
@@ -136,19 +141,31 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
     return { totalPending: pending, warnCount: warn, alertCount: alert }
   }, [summaries, now])
 
+  const overdueCount = useMemo(() => {
+    let count = 0
+    for (const o of confirmedOrders) {
+      const confirmedMs = new Date(o.confirmed_at).getTime()
+      const deadline = confirmedMs + (o.estimated_minutes + 1) * 60 * 1000
+      if (now > deadline) count += 1
+    }
+    return count
+  }, [confirmedOrders, now])
+
   const value = useMemo<AdminAlertValue>(
     () => ({
       summaries,
+      confirmedOrders,
       now,
       alertCount,
       warnCount,
       totalPending,
+      overdueCount,
       loading,
       error,
       refreshing,
       refetch,
     }),
-    [summaries, now, alertCount, warnCount, totalPending, loading, error, refreshing, refetch],
+    [summaries, confirmedOrders, now, alertCount, warnCount, totalPending, overdueCount, loading, error, refreshing, refetch],
   )
 
   return <AdminAlertContext.Provider value={value}>{children}</AdminAlertContext.Provider>

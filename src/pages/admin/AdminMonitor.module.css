@@ -99,6 +99,18 @@
   color: #DC2626;
 }
 
+/* 조리시간 초과 스탯 박스 — 파랑 */
+.statBoxOverdue {
+  background-color: #EFF6FF;
+  border-color: #3B82F6;
+  border-width: 2px;
+}
+
+.statBoxOverdue .statValue,
+.statBoxOverdue .statLabel {
+  color: #1D4ED8;
+}
+
 .refreshBtn {
   display: inline-flex;
   align-items: center;
@@ -184,6 +196,38 @@
 .alertBannerText strong {
   font-weight: 800;
   color: #7F1D1D;
+}
+
+/* 조리시간 초과 배너 — 파랑 */
+.overdueBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background-color: #EFF6FF;
+  border: 2px solid #3B82F6;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.overdueBannerIcon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  color: #3B82F6;
+}
+
+.overdueBannerText {
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  color: #1E40AF;
+  line-height: 1.4;
+}
+
+.overdueBannerText strong {
+  font-weight: 800;
+  color: #1D4ED8;
 }
 
 .placeholder {
@@ -285,6 +329,17 @@
   50% {
     box-shadow: 0 0 0 8px rgba(220, 38, 38, 0), inset 0 0 0 2px rgba(220, 38, 38, 0.15);
   }
+}
+
+/* 조리시간 초과 배지 — 부스 카드 하단 */
+.overdueBadge {
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1D4ED8;
+  background-color: #DBEAFE;
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .boothNo {

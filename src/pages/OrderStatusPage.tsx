@@ -37,20 +37,41 @@ function computeBoothStatus(order: Order): BoothStatus {
   return 'waiting'
 }
 
-const STATUS_LABEL: Record<UIStatus, { title: string; sub: string }> = {
-  pending: { title: '결제 대기중', sub: '결제가 진행 중입니다' },
-  paid: { title: '결제 완료', sub: '매장에서 주문을 확인하는 중이에요' },
-  confirmed: { title: '조리 중', sub: '매장에서 음식을 조리하고 있어요' },
-  completed: { title: '조리 완료', sub: '매장에서 음식을 픽업해주세요' },
-  cancelled: { title: '취소됨', sub: '주문이 취소되었습니다' },
-  partial: { title: '일부 취소', sub: '일부 매장이 주문을 거절해 환불 처리됐어요' },
+function getStatusLabel(
+  status: UIStatus,
+  orders: { order: Order }[],
+): { title: string; sub: string } {
+  const base: Record<UIStatus, { title: string; sub: string }> = {
+    pending: { title: '결제 대기중', sub: '결제가 진행 중입니다' },
+    paid: { title: '결제 완료', sub: '매장에서 주문을 확인하는 중이에요' },
+    confirmed: { title: '조리 중', sub: '매장에서 음식을 조리하고 있어요' },
+    completed: { title: '조리 완료', sub: '매장에서 음식을 픽업해주세요' },
+    cancelled: { title: '취소됨', sub: '주문이 취소되었습니다' },
+    partial: { title: '일부 취소', sub: '일부 매장이 주문을 거절해 환불 처리됐어요' },
+  }
+  if (status === 'confirmed') {
+    const confirmedOrders = orders.filter(
+      (o) => o.order.confirmed_at && !o.order.ready_at && o.order.estimated_minutes,
+    )
+    if (confirmedOrders.length > 0) {
+      const maxMin = Math.max(...confirmedOrders.map((o) => o.order.estimated_minutes!))
+      return { title: '조리 중', sub: `약 ${maxMin}분 후 준비됩니다` }
+    }
+  }
+  return base[status]
 }
 
-const BOOTH_STATUS_LABEL: Record<BoothStatus, string> = {
-  waiting: '확인 대기중',
-  preparing: '조리 중',
-  ready: '조리 완료',
-  cancelled: '취소됨',
+function boothStatusLabel(status: BoothStatus, order: Order): string {
+  if (status === 'preparing' && order.estimated_minutes) {
+    return `매장 확인완료 · 약 ${order.estimated_minutes}분 후 준비됩니다`
+  }
+  const labels: Record<BoothStatus, string> = {
+    waiting: '확인 대기중',
+    preparing: '조리 중',
+    ready: '조리 완료',
+    cancelled: '취소됨',
+  }
+  return labels[status]
 }
 
 const DISMISSED_KEY = 'order_dismissed_booths'
@@ -198,7 +219,7 @@ export default function OrderStatusPage() {
   }
 
   const { payment, orders } = data
-  const statusInfo = STATUS_LABEL[uiStatus]
+  const statusInfo = getStatusLabel(uiStatus, orders)
   const cancelReason =
     uiStatus === 'cancelled' &&
     payment.meta &&
@@ -302,7 +323,7 @@ export default function OrderStatusPage() {
                       <span className={styles.orderNo}> · {order.order_number}</span>
                     </span>
                     <span className={styles.boothStatusBadge}>
-                      {BOOTH_STATUS_LABEL[boothStatus]}
+                      {boothStatusLabel(boothStatus, order)}
                     </span>
                   </div>
                   {isCancelled && order.cancel_reason && (

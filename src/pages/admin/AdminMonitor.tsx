@@ -32,10 +32,12 @@ function formatHm(iso: string): string {
 export default function AdminMonitor() {
   const {
     summaries,
+    confirmedOrders,
     now,
     alertCount,
     warnCount,
     totalPending,
+    overdueCount,
     loading,
     error: ctxError,
     refreshing,
@@ -78,6 +80,17 @@ export default function AdminMonitor() {
     [refetch],
   )
 
+  // 조리시간 초과 부스 ID Set
+  const overdueBoothIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const o of confirmedOrders) {
+      const confirmedMs = new Date(o.confirmed_at).getTime()
+      const deadline = confirmedMs + (o.estimated_minutes + 1) * 60 * 1000
+      if (now > deadline) ids.add(o.booth_id)
+    }
+    return ids
+  }, [confirmedOrders, now])
+
   const selectedBooth = useMemo(
     () => summaries.find((s) => s.boothId === selectedBoothId) ?? null,
     [summaries, selectedBoothId],
@@ -105,6 +118,10 @@ export default function AdminMonitor() {
             <div className={styles.statValue}>{totalPending}</div>
             <div className={styles.statLabel}>총 미확인</div>
           </div>
+          <div className={`${styles.statBox} ${overdueCount > 0 ? styles.statBoxOverdue : ''}`}>
+            <div className={styles.statValue}>{overdueCount}</div>
+            <div className={styles.statLabel}>조리 초과</div>
+          </div>
           <button
             type="button"
             className={styles.refreshBtn}
@@ -125,6 +142,16 @@ export default function AdminMonitor() {
           <div className={styles.alertBannerText}>
             <strong>2분 이상 지연된 주문 {alertCount}건</strong>
             <span> — 부스에서 처리되지 않았습니다. 해당 매장에 즉시 확인하세요.</span>
+          </div>
+        </div>
+      )}
+
+      {overdueCount > 0 && (
+        <div className={styles.overdueBanner}>
+          <TriangleAlert className={styles.overdueBannerIcon} />
+          <div className={styles.overdueBannerText}>
+            <strong>조리시간 초과 {overdueCount}건</strong>
+            <span> — 예상 시간이 지났습니다. 해당 매장에 확인하세요.</span>
           </div>
         </div>
       )}
@@ -167,6 +194,9 @@ export default function AdminMonitor() {
                 <div className={styles.elapsedRow}>
                   {s.oldestPaidAt ? formatElapsed(elapsed) : '—'}
                 </div>
+                {overdueBoothIds.has(s.boothId) && (
+                  <div className={styles.overdueBadge}>⏰ 조리시간 초과</div>
+                )}
               </button>
             )
           })}
