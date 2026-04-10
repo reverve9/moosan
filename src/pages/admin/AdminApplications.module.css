@@ -1,15 +1,19 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
 }
 
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 20px;
 }
 
 .statCard {
@@ -69,7 +73,6 @@
 .programTabs {
   display: flex;
   gap: 0;
-  margin-bottom: 16px;
   border-bottom: 1px solid #E5E7EB;
 }
 
@@ -98,7 +101,6 @@
 .filters {
   display: flex;
   gap: 8px;
-  margin-bottom: 20px;
 }
 
 .filterBtn {

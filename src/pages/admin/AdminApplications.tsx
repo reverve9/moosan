@@ -220,7 +220,7 @@ export default function AdminApplications() {
   }
 
   return (
-    <div>
+    <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>참가신청 관리</h1>
       </div>
