@@ -545,6 +545,10 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         </span>
                       </div>
                       <div className={styles.completedSummary}>{summary}</div>
+                      <div className={styles.completedMeta}>
+                        <span className={styles.completedAmount}>{card.totalAmount.toLocaleString()}원</span>
+                        <span>{formatPhoneDisplay(card.phone)}</span>
+                      </div>
                     </div>
                   )
                 })}
