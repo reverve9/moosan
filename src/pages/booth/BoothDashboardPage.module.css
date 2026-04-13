@@ -480,6 +480,20 @@
   -webkit-box-orient: vertical;
 }
 
+.completedMeta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9CA3AF;
+  font-variant-numeric: tabular-nums;
+}
+
+.completedAmount {
+  font-weight: 700;
+  color: #6B7280;
+}
+
 /* ── 매출 박스 ── */
 .salesPanel {
   height: 120px;
