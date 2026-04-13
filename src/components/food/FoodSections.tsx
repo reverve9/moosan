@@ -1,5 +1,6 @@
 import { Minus, Plus, X, Image as ImageIcon } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
@@ -42,6 +43,22 @@ export default function FoodSections({ festival }: Props) {
   const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(
     () => new Map(),
   )
+  const { hash } = useLocation()
+  const scrolledRef = useRef('')
+
+  useEffect(() => {
+    if (hash !== '#booths') {
+      scrolledRef.current = ''
+      return
+    }
+    if (booths.length > 0 && scrolledRef.current !== hash) {
+      scrolledRef.current = hash
+      setTimeout(() => {
+        const el = document.getElementById('booths')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [hash, booths])
 
   const categoryLabel = useMemo(() => {
     const map = new Map<string, string>()
@@ -280,7 +297,7 @@ export default function FoodSections({ festival }: Props) {
 
       {booths.length > 0 && (
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>참여 매장</h2>
+          <h2 id="booths" className={styles.sectionTitle}>참여 매장</h2>
           <div className={styles.tabs} role="tablist" aria-label="매장 카테고리">
             {[{ key: 'all' as CategoryFilter, label: '전체' }, ...categories.map((c) => ({ key: c.slug, label: c.label }))].map((t) => {
               const active = activeCategory === t.key

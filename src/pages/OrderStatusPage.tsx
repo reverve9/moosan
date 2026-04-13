@@ -365,7 +365,7 @@ export default function OrderStatusPage() {
 
         {/* ─── 하단 액션 ─── */}
         <div className={styles.actions}>
-          <Link to="/program/food" className={styles.actionPrimary}>
+          <Link to="/program/food#booths" className={styles.actionPrimary}>
             메뉴 더 담기
           </Link>
           <Link to="/cart" className={styles.actionSecondary}>

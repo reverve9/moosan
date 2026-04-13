@@ -70,14 +70,26 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
   }))
 }
 
-function formatHm(iso: string): string {
+function formatDateHm(iso: string): string {
   const d = new Date(iso)
-  return new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(d)
+  const kst = new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+  const mm = String(kst.getMonth() + 1).padStart(2, '0')
+  const dd = String(kst.getDate()).padStart(2, '0')
+  const hh = String(kst.getHours()).padStart(2, '0')
+  const mi = String(kst.getMinutes()).padStart(2, '0')
+  return `${mm}/${dd} ${hh}:${mi}`
+}
+
+function formatCountdown(remainSec: number): { text: string; overdue: boolean } {
+  if (remainSec <= 0) {
+    const over = Math.abs(remainSec)
+    const m = Math.floor(over / 60)
+    const s = over % 60
+    return { text: `+${m}:${s.toString().padStart(2, '0')}`, overdue: true }
+  }
+  const m = Math.floor(remainSec / 60)
+  const s = remainSec % 60
+  return { text: `${m}:${s.toString().padStart(2, '0')}`, overdue: false }
 }
 
 function formatElapsed(seconds: number): string {
@@ -414,9 +426,25 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         <span
                           className={`${styles.cardElapsed} ${
                             overAlert ? styles.cardElapsedAlert : ''
+                          } ${
+                            card.status === 'inProgress' && card.confirmedAt && card.estimatedMinutes
+                              ? (() => {
+                                  const confirmedMs = new Date(card.confirmedAt).getTime()
+                                  const remainSec = Math.floor((confirmedMs + card.estimatedMinutes * 60 * 1000 - now) / 1000)
+                                  return remainSec <= 0 ? styles.cardElapsedAlert : ''
+                                })()
+                              : ''
                           }`}
                         >
-                          {formatElapsed(elapsedSec)}
+                          {card.status === 'inProgress' && card.confirmedAt && card.estimatedMinutes
+                            ? (() => {
+                                const confirmedMs = new Date(card.confirmedAt).getTime()
+                                const remainSec = Math.floor((confirmedMs + card.estimatedMinutes * 60 * 1000 - now) / 1000)
+                                const cd = formatCountdown(remainSec)
+                                return cd.text
+                              })()
+                            : formatElapsed(elapsedSec)
+                          }
                         </span>
                       </div>
                       <div className={styles.cardPhone}>{formatPhoneDisplay(card.phone)}</div>
@@ -449,36 +477,40 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         >
                           {busy ? '...' : '거절'}
                         </button>
-                        {card.status === 'waiting' ? (
-                          <div className={styles.timeButtons}>
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionReady}`}
+                          onClick={() => handleReady(card)}
+                          disabled={busy}
+                        >
+                          {busy ? '처리 중...' : '조리완료'}
+                        </button>
+                      </div>
+                      {card.status === 'waiting' && (
+                        <div className={styles.timeOverlay}>
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionReject}`}
+                            onClick={() => setCancelTarget(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '...' : '거절'}
+                          </button>
+                          <div className={styles.timeGrid}>
                             {[5, 10, 15, 20, 30].map((m) => (
                               <button
                                 key={m}
                                 type="button"
-                                className={`${styles.actionBtn} ${styles.actionConfirm}`}
+                                className={styles.timeGridBtn}
                                 onClick={() => handleConfirmWithTime(card, m)}
                                 disabled={busy}
                               >
-                                {busy ? '...' : `${m}분`}
+                                {busy ? '·' : m}
                               </button>
                             ))}
                           </div>
-                        ) : (
-                          <>
-                            {card.estimatedMinutes && (
-                              <span className={styles.estimatedLabel}>약 {card.estimatedMinutes}분</span>
-                            )}
-                            <button
-                              type="button"
-                              className={`${styles.actionBtn} ${styles.actionReady}`}
-                              onClick={() => handleReady(card)}
-                              disabled={busy}
-                            >
-                              {busy ? '처리 중...' : '준비완료'}
-                            </button>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </article>
                 )
@@ -509,7 +541,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                       <div className={styles.completedRow}>
                         <span className={styles.completedNo}>{card.orderNumber}</span>
                         <span className={styles.completedTime}>
-                          {formatHm(card.orderPaidAt)}
+                          {formatDateHm(card.orderPaidAt)}
                         </span>
                       </div>
                       <div className={styles.completedSummary}>{summary}</div>
