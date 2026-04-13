@@ -407,14 +407,12 @@
 }
 
 .actionReject {
-  background-color: #FFFFFF;
-  color: #DC2626;
-  border: 1px solid #FECACA;
+  background-color: #DC2626;
+  color: #FFFFFF;
 }
 
 .actionReject:hover:not(:disabled) {
-  background-color: #FEF2F2;
-  border-color: #DC2626;
+  background-color: #B91C1C;
 }
 
 /* ── 우측 패널 ── */
