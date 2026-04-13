@@ -7,6 +7,7 @@ import {
   setBoothPaused,
   setMenuSoldOut,
 } from '@/lib/boothMenus'
+import { getAssetUrl } from '@/lib/festival'
 import type { FoodBooth, FoodMenu } from '@/types/database'
 import styles from './BoothMenuModal.module.css'
 
@@ -213,8 +214,8 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                           className={`${styles.menuCard} ${soldOut ? styles.menuCardSoldOut : ''}`}
                         >
                           <div className={styles.thumb}>
-                            {menu.image_url ? (
-                              <img src={menu.image_url} alt={menu.name} />
+                            {getAssetUrl(menu.image_url) ? (
+                              <img src={getAssetUrl(menu.image_url)!} alt={menu.name} />
                             ) : (
                               <div className={styles.thumbPlaceholder}>
                                 <ImageIcon />
