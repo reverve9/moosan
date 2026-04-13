@@ -464,31 +464,31 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                       })}
                     </ul>
                     <div className={styles.cardFooter}>
-                      <div className={styles.cardFooterTop}>
-                        <div className={styles.cardTotal}>
-                          {card.totalAmount.toLocaleString()}원
-                        </div>
-                        <div className={styles.cardActions}>
-                          <button
-                            type="button"
-                            className={`${styles.actionBtn} ${styles.actionReject}`}
-                            onClick={() => setCancelTarget(card)}
-                            disabled={busy}
-                            aria-label="주문 거절"
-                          >
-                            {busy ? '...' : '거절'}
-                          </button>
-                          <button
-                            type="button"
-                            className={`${styles.actionBtn} ${styles.actionReady}`}
-                            onClick={() => handleReady(card)}
-                            disabled={busy}
-                          >
-                            {busy ? '처리 중...' : '조리완료'}
-                          </button>
-                        </div>
+                      <div className={styles.cardTotal}>
+                        {card.totalAmount.toLocaleString()}원
                       </div>
-                      {card.status === 'waiting' && (
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionReject}`}
+                          onClick={() => setCancelTarget(card)}
+                          disabled={busy}
+                          aria-label="주문 거절"
+                        >
+                          {busy ? '...' : '거절'}
+                        </button>
+                        <button
+                          type="button"
+                          className={`${styles.actionBtn} ${styles.actionReady}`}
+                          onClick={() => handleReady(card)}
+                          disabled={busy}
+                        >
+                          {busy ? '처리 중...' : '조리완료'}
+                        </button>
+                      </div>
+                    </div>
+                    {card.status === 'waiting' && (
+                      <div className={styles.timeOverlay}>
                         <div className={styles.timeGrid}>
                           {[5, 10, 15, 20, 30].map((m) => (
                             <button
@@ -502,8 +502,8 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                             </button>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </article>
                 )
               })}
