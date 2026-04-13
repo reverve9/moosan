@@ -19,11 +19,16 @@ const SOUNDS = {
 
 type SoundKey = keyof typeof SOUNDS
 
+let playing = false
+
 /**
  * 소리 재생. 기본 3회 순차 반복. Promise 는 마지막 반복 종료 시 resolve.
+ * 다른 사운드 재생 중이면 스킵 (겹침 방지).
  * 실패는 조용히 무시 — 호출부에서 try/catch 불필요.
  */
 export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): Promise<void> {
+  if (playing) return
+  playing = true
   const src = SOUNDS[sound]
   for (let i = 0; i < repeat; i += 1) {
     await new Promise<void>((resolve) => {
@@ -37,6 +42,7 @@ export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): 
       }
     })
   }
+  playing = false
 }
 
 /**
