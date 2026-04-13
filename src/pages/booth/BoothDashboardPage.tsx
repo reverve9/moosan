@@ -252,7 +252,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         const deadline = confirmedMs + (d.order.estimated_minutes + 2) * 60 * 1000
         if (nowMs > deadline) {
           overdueAlertedIds.current.add(d.order.id)
-          void playSound(3)
+          void playSound(3, 'overdue')
           vibrateSafe([300, 100, 300, 100, 300])
         }
       }
