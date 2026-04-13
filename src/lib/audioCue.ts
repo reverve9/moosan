@@ -12,17 +12,23 @@
  *    AudioContext 를 미리 깨워두면 이후 자동 재생이 통과함.
  */
 
-const ALARM_SRC = '/sounds/order_alarm.mp3'
+const SOUNDS = {
+  order: '/sounds/order_alarm.mp3',
+  overdue: '/sounds/order_overdue.mp3',
+} as const
+
+type SoundKey = keyof typeof SOUNDS
 
 /**
  * 소리 재생. 기본 3회 순차 반복. Promise 는 마지막 반복 종료 시 resolve.
  * 실패는 조용히 무시 — 호출부에서 try/catch 불필요.
  */
-export async function playSound(repeat: number = 3): Promise<void> {
+export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): Promise<void> {
+  const src = SOUNDS[sound]
   for (let i = 0; i < repeat; i += 1) {
     await new Promise<void>((resolve) => {
       try {
-        const audio = new Audio(ALARM_SRC)
+        const audio = new Audio(src)
         audio.onended = () => resolve()
         audio.onerror = () => resolve()
         audio.play().catch(() => resolve())
@@ -41,7 +47,7 @@ export async function playSound(repeat: number = 3): Promise<void> {
  */
 export function unlockAudio(): void {
   try {
-    const audio = new Audio(ALARM_SRC)
+    const audio = new Audio(SOUNDS.order)
     audio.volume = 0
     void audio.play().then(() => {
       // 재생 성공 후 즉시 정지 — AudioContext 는 unlocked 상태로 남음
