@@ -486,24 +486,32 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                           {busy ? '처리 중...' : '조리완료'}
                         </button>
                       </div>
-                    </div>
-                    {card.status === 'waiting' && (
-                      <div className={styles.timeOverlay}>
-                        <div className={styles.timeGrid}>
-                          {[5, 10, 15, 20, 30].map((m) => (
-                            <button
-                              key={m}
-                              type="button"
-                              className={styles.timeGridBtn}
-                              onClick={() => handleConfirmWithTime(card, m)}
-                              disabled={busy}
-                            >
-                              {busy ? '·' : m}
-                            </button>
-                          ))}
+                      {card.status === 'waiting' && (
+                        <div className={styles.timeOverlay}>
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionReject}`}
+                            onClick={() => setCancelTarget(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '...' : '거절'}
+                          </button>
+                          <div className={styles.timeGrid}>
+                            {[5, 10, 15, 20, 30].map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                className={styles.timeGridBtn}
+                                onClick={() => handleConfirmWithTime(card, m)}
+                                disabled={busy}
+                              >
+                                {busy ? '·' : m}
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </article>
                 )
               })}
