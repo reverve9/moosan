@@ -294,14 +294,29 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       setBusyOrderId(card.orderId)
       try {
         await confirmBoothOrder(card.orderId, minutes)
-        await refetch()
+        // 낙관적 업데이트 — Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? {
+                  ...d,
+                  order: {
+                    ...d.order,
+                    status: 'confirmed' as const,
+                    confirmed_at: new Date().toISOString(),
+                    estimated_minutes: minutes,
+                  },
+                }
+              : d,
+          ),
+        )
       } catch (e) {
         setError(e instanceof Error ? e.message : '확인 처리 실패')
       } finally {
         setBusyOrderId(null)
       }
     },
-    [busyOrderId, refetch],
+    [busyOrderId],
   )
 
   const handleReady = useCallback(
@@ -310,28 +325,37 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       setBusyOrderId(card.orderId)
       try {
         await markBoothOrderReady(card.orderId)
-        await refetch()
+        // 낙관적 업데이트 — Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? { ...d, order: { ...d.order, ready_at: new Date().toISOString() } }
+              : d,
+          ),
+        )
       } catch (e) {
         setError(e instanceof Error ? e.message : '준비완료 처리 실패')
       } finally {
         setBusyOrderId(null)
       }
     },
-    [busyOrderId, refetch],
+    [busyOrderId],
   )
 
   const handleCancelConfirm = useCallback(
     async (reason: string) => {
       if (!cancelTarget || busyOrderId) return
-      setBusyOrderId(cancelTarget.orderId)
+      const targetId = cancelTarget.orderId
+      setBusyOrderId(targetId)
       try {
-        await cancelBoothOrder(cancelTarget.orderId, reason)
+        await cancelBoothOrder(targetId, reason)
         showToast(`[${cancelTarget.orderNumber}] 거절 + 환불 처리됐어요`, {
           type: 'success',
           duration: 4000,
         })
         setCancelTarget(null)
-        await refetch()
+        // 낙관적 업데이트 — 카드 즉시 제거. Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) => prev.filter((d) => d.order.id !== targetId))
       } catch (e) {
         const msg = e instanceof Error ? e.message : '주문 거절 실패'
         setError(msg)
@@ -340,7 +364,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         setBusyOrderId(null)
       }
     },
-    [cancelTarget, busyOrderId, refetch, showToast],
+    [cancelTarget, busyOrderId, showToast],
   )
 
   return (
