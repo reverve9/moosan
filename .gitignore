@@ -29,3 +29,11 @@ dist-ssr
 .env.*.local
 .vercel
 .env*.local
+
+# Internal development files
+_DEV/*
+!_DEV/Handoff/
+_DEV/Handoff/*.zip
+
+# Claude local config
+.claude/
