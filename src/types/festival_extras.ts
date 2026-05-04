@@ -66,6 +66,8 @@ export interface FoodMenu {
   is_sold_out: boolean
   sort_order: number
   is_active: boolean
+  /** 자유 태그 (다중). 어드민 칩 입력 → 손님 화면 뱃지 노출 */
+  tags: string[]
   created_at: string
   updated_at: string
 }

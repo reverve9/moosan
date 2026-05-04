@@ -759,6 +759,97 @@ select.input {
   gap: 8px;
 }
 
+/* ─── 태그 입력 ─── */
+.tagInputWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tagChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  min-height: 38px;
+  background-color: #FFFFFF;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+}
+
+.tagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  background-color: #F3F4F6;
+  border-radius: 999px;
+}
+
+.tagChipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background-color: transparent;
+  color: #6B7280;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.tagChipRemove:hover {
+  background-color: #E5E7EB;
+  color: #111827;
+}
+
+.tagInputField {
+  flex: 1;
+  min-width: 120px;
+  height: 24px;
+  padding: 0 4px;
+  font-size: 13px;
+  color: #111827;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.tagSuggestions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tagSuggestLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9CA3AF;
+}
+
+.tagSuggestChip {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  background-color: #FFFFFF;
+  border: 1px dashed #D1D5DB;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.tagSuggestChip:hover {
+  color: #111827;
+  border-color: var(--color-primary);
+  background-color: #F9FAFB;
+}
+
 .menuSaveBtn {
   display: inline-flex;
   align-items: center;

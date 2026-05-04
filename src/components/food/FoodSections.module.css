@@ -699,6 +699,25 @@
   min-height: 0;
 }
 
+.menuTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.menuTagBadge {
+  display: inline-block;
+  padding: 2px 7px;
+  font-family: var(--font-base);
+  font-size: 10px;
+  font-weight: 600;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
 /* ──────────────── 메뉴 액션 (수량 / 담기) ──────────────── */
 .menuActions {
   display: flex;

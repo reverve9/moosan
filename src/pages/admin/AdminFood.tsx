@@ -31,6 +31,7 @@ type MenuForm = {
   price: string
   description: string
   sort_order: number
+  tags: string[]
 }
 
 const emptyMenuForm: MenuForm = {
@@ -38,6 +39,7 @@ const emptyMenuForm: MenuForm = {
   price: '',
   description: '',
   sort_order: 0,
+  tags: [],
 }
 
 function boothToForm(b: FoodBoothWithMenus): BoothForm {
@@ -55,7 +57,99 @@ function menuToForm(m: FoodMenu): MenuForm {
     price: m.price != null ? String(m.price) : '',
     description: m.description ?? '',
     sort_order: m.sort_order,
+    tags: m.tags ?? [],
   }
+}
+
+/**
+ * 메뉴 태그 입력 — 칩(현재 태그) + 인풋(추가) + 추천(기존 태그 풀).
+ * 자유 입력이지만 표기 통일을 위해 전체 매장에서 이미 쓰인 태그를 자동완성으로 노출.
+ */
+function TagChipInput({
+  value,
+  onChange,
+  pool,
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+  pool: string[]
+}) {
+  const [draft, setDraft] = useState('')
+
+  const suggestions = useMemo(() => {
+    const lower = draft.trim().toLowerCase()
+    return pool
+      .filter((t) => !value.includes(t))
+      .filter((t) => lower.length === 0 || t.toLowerCase().includes(lower))
+      .slice(0, 8)
+  }, [draft, pool, value])
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim()
+    if (!trimmed) {
+      setDraft('')
+      return
+    }
+    if (!value.includes(trimmed)) onChange([...value, trimmed])
+    setDraft('')
+  }
+
+  const removeTag = (t: string) => {
+    onChange(value.filter((x) => x !== t))
+  }
+
+  return (
+    <div className={styles.tagInputWrap}>
+      <div className={styles.tagChips}>
+        {value.map((t) => (
+          <span key={t} className={styles.tagChip}>
+            {t}
+            <button
+              type="button"
+              className={styles.tagChipRemove}
+              onClick={() => removeTag(t)}
+              aria-label={`${t} 제거`}
+            >
+              <X width={11} height={11} />
+            </button>
+          </span>
+        ))}
+        <input
+          className={styles.tagInputField}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              addTag(draft)
+            } else if (
+              e.key === 'Backspace' &&
+              draft.length === 0 &&
+              value.length > 0
+            ) {
+              removeTag(value[value.length - 1])
+            }
+          }}
+          placeholder={value.length === 0 ? '태그 추가 (예: 디저트, 인기)' : ''}
+        />
+      </div>
+      {suggestions.length > 0 && (
+        <div className={styles.tagSuggestions}>
+          <span className={styles.tagSuggestLabel}>추천</span>
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={styles.tagSuggestChip}
+              onClick={() => addTag(s)}
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function sortBoothsForAdmin(list: FoodBoothWithMenus[]): FoodBoothWithMenus[] {
@@ -94,6 +188,17 @@ export default function AdminFood() {
     if (activeCategory === 'all') return booths
     return booths.filter((b) => b.category === activeCategory)
   }, [booths, activeCategory])
+
+  // 모든 매장에서 이미 사용 중인 태그 풀 — 자동완성 추천용 (전체 매장 통합)
+  const allMenuTags = useMemo(() => {
+    const set = new Set<string>()
+    for (const b of booths) {
+      for (const m of b.menus) {
+        for (const t of m.tags ?? []) set.add(t)
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [booths])
 
   // 부스 폼 상태 (lazy: 펼친 카드만 채워짐)
   const [boothForms, setBoothForms] = useState<Record<string, BoothForm>>({})
@@ -391,6 +496,7 @@ export default function AdminFood() {
         price: Number.isFinite(priceNum) ? priceNum : null,
         description: form.description || null,
         sort_order: form.sort_order,
+        tags: form.tags,
       })
       .eq('id', menuId)
     setSavingMenuId(null)
@@ -937,6 +1043,13 @@ export default function AdminFood() {
                                 )
                               }
                               placeholder="메뉴 설명 (옵션)"
+                            />
+                            <TagChipInput
+                              value={mForm.tags}
+                              onChange={(next) =>
+                                updateMenuField(m.id, 'tags', next)
+                              }
+                              pool={allMenuTags}
                             />
                             <div className={styles.menuActions}>
                               <button

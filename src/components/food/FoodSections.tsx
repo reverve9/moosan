@@ -599,6 +599,15 @@ function MenuItemRow({
             {soldOut && <span className={styles.soldOutBadge}>품절</span>}
             {menu.name}
           </span>
+          {menu.tags && menu.tags.length > 0 && (
+            <div className={styles.menuTags}>
+              {menu.tags.map((t) => (
+                <span key={t} className={styles.menuTagBadge}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
         </div>
         <div className={styles.menuRight}>

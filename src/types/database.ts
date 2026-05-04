@@ -575,6 +575,7 @@ export interface Database {
           is_sold_out: boolean
           sort_order: number
           is_active: boolean
+          tags: string[]
           created_at: string
           updated_at: string
         }
@@ -589,6 +590,7 @@ export interface Database {
           is_sold_out?: boolean
           sort_order?: number
           is_active?: boolean
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -603,6 +605,7 @@ export interface Database {
           is_sold_out?: boolean
           sort_order?: number
           is_active?: boolean
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }
