@@ -2,13 +2,13 @@ import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import {
-  cancelPayment,
+  boothOrderRefundAmount,
   fetchPaymentDetail,
   fetchPaymentsList,
-  isRefundable,
-  remainingRefundable,
+  isBoothOrderRefundable,
+  refundBoothOrder,
+  type BoothOrderRow,
   type PaymentDetail,
-  type PaymentRowWithSummary,
   type PaymentsListFilters,
 } from '@/lib/adminPayments'
 import { formatPhoneDisplay } from '@/lib/phone'
@@ -47,6 +47,25 @@ const STATUS_LABEL: Record<'pending' | 'paid' | 'cancelled', string> = {
   cancelled: '취소됨',
 }
 
+/**
+ * 부스 단위 행의 상태 표시.
+ *  - 결제가 취소되었으면 → '취소됨'
+ *  - 해당 부스 주문만 취소(매장 거절)되었으면 → '매장거절' (badge 색은 cancelled)
+ *  - 그 외 결제 완료 → '결제완료'
+ */
+function rowStatusKey(r: BoothOrderRow): 'paid' | 'cancelled' | 'pending' {
+  if (r.payment.status === 'cancelled') return 'cancelled'
+  if (r.order.status === 'cancelled') return 'cancelled'
+  if (r.payment.status === 'paid') return 'paid'
+  return 'pending'
+}
+
+function rowStatusLabel(r: BoothOrderRow): string {
+  if (r.payment.status === 'cancelled') return '취소됨'
+  if (r.order.status === 'cancelled') return '매장거절'
+  return STATUS_LABEL[r.payment.status as keyof typeof STATUS_LABEL] ?? r.payment.status
+}
+
 // 상세 모달의 부스별 진행상태 뱃지 (여긴 운영 상태 확인에 쓸모 있어서 유지)
 const ORDER_STATUS_LABEL: Record<
   'paid' | 'confirmed' | 'completed' | 'cancelled' | 'pending',
@@ -67,7 +86,7 @@ export default function AdminOrders() {
     phone: '',
   }))
   const [boothQuery, setBoothQuery] = useState('')
-  const [rows, setRows] = useState<PaymentRowWithSummary[]>([])
+  const [rows, setRows] = useState<BoothOrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -93,25 +112,25 @@ export default function AdminOrders() {
 
   const handleExport = async () => {
     const cols = [
-      { key: 'order_numbers', label: '주문번호' },
-      { key: 'booths', label: '매장명' },
+      { key: 'order_number', label: '주문번호' },
+      { key: 'booth', label: '매장명' },
       { key: 'created_at', label: '결제시각' },
       { key: 'phone', label: '연락처' },
       { key: 'menu', label: '메뉴' },
-      { key: 'total_amount', label: '결제금액' },
-      { key: 'discount', label: '할인' },
+      { key: 'subtotal', label: '매장 금액' },
+      { key: 'sibling', label: '동시결제 매장수' },
       { key: 'status', label: '상태' },
       { key: 'toss_order_id', label: '결제번호' },
     ]
     const data = visibleRows.map((r) => ({
-      order_numbers: r.boothOrderNumbers.join(' / '),
-      booths: r.boothNames.join(' / '),
+      order_number: r.order.order_number,
+      booth: `${r.order.booth_no}번 · ${r.order.booth_name}`,
       created_at: fmtDateKst(r.payment.created_at),
       phone: formatPhoneDisplay(r.payment.phone),
       menu: formatMenuSummary(r.menuLines),
-      total_amount: r.payment.total_amount,
-      discount: r.payment.discount_amount > 0 ? r.payment.discount_amount : '',
-      status: STATUS_LABEL[r.payment.status as keyof typeof STATUS_LABEL] ?? r.payment.status,
+      subtotal: r.order.subtotal,
+      sibling: r.siblingCount,
+      status: rowStatusLabel(r),
       toss_order_id: r.payment.toss_order_id ?? '',
     }))
     await exportToExcel(data, cols, '주문_결제_관리')
@@ -121,7 +140,7 @@ export default function AdminOrders() {
   const visibleRows = useMemo(() => {
     const q = boothQuery.trim().toLowerCase()
     if (q.length === 0) return rows
-    return rows.filter((r) => r.boothNames.some((n) => n.toLowerCase().includes(q)))
+    return rows.filter((r) => r.order.booth_name.toLowerCase().includes(q))
   }, [rows, boothQuery])
 
   // 필터/검색 변경 시 첫 페이지로
@@ -134,24 +153,32 @@ export default function AdminOrders() {
   const pageStart = (currentPage - 1) * PAGE_SIZE
   const pageRows = visibleRows.slice(pageStart, pageStart + PAGE_SIZE)
 
-  // 정산 기준 매출 = 손님 실지불(total_amount) + 쿠폰 할인(discount_amount) - 환불금액
-  // 쿠폰 할인은 운영자 부담, 매장 정산 시엔 원래 금액 기준으로 지급해야 함.
-  // 부분환불(부스 거절)이 있으면 refunded_amount 만큼 매출에서 차감.
+  // 정산 기준:
+  //  - 매출(grossAmount): 살아있는 부스 주문(order.subtotal) 합계. 부스 거절/결제 취소된 주문은 제외.
+  //    쿠폰 할인은 운영자 부담이라 매장 정산은 원래 금액(subtotal) 기준이 맞음.
+  //  - 쿠폰 할인 / 환불 금액: payment 단위 값이라 결제 ID 기준으로 중복 합산 방지.
+  //  - 결제/취소 카운트: 부스 단위 행으로 셈 (한 결제에 여러 부스면 각각 카운트).
   const totals = useMemo(() => {
+    const seenPayments = new Set<string>()
     let grossAmount = 0
     let discountAmount = 0
     let refundedAmount = 0
     let paidCount = 0
     let cancelledCount = 0
     for (const r of visibleRows) {
-      if (r.payment.status === 'paid') {
-        grossAmount +=
-          r.payment.total_amount + r.payment.discount_amount - (r.payment.refunded_amount ?? 0)
-        discountAmount += r.payment.discount_amount
-        refundedAmount += r.payment.refunded_amount ?? 0
+      const isLive = r.payment.status === 'paid' && r.order.status !== 'cancelled'
+      if (isLive) {
+        grossAmount += r.order.subtotal
         paidCount += 1
-      } else if (r.payment.status === 'cancelled') {
+      } else {
         cancelledCount += 1
+      }
+      if (!seenPayments.has(r.payment.id)) {
+        seenPayments.add(r.payment.id)
+        if (r.payment.status === 'paid') {
+          discountAmount += r.payment.discount_amount
+          refundedAmount += r.payment.refunded_amount ?? 0
+        }
       }
     }
     return { grossAmount, discountAmount, refundedAmount, paidCount, cancelledCount }
@@ -300,59 +327,64 @@ export default function AdminOrders() {
               </tr>
             ) : (
               pageRows.map((r, idx) => {
-                const isCancelled = r.payment.status === 'cancelled'
-                const isPartial =
-                  r.payment.status === 'paid' && (r.payment.refunded_amount ?? 0) > 0
-                const firstBoothName = r.boothNames[0] ?? '—'
-                const firstOrderNo = r.boothOrderNumbers[0] ?? '—'
-                const extraCount = Math.max(0, r.boothCount - 1)
+                const isPaymentCancelled = r.payment.status === 'cancelled'
+                const isOrderCancelled = r.order.status === 'cancelled'
+                const isCancelled = isPaymentCancelled || isOrderCancelled
+                const hasCoupon = r.payment.discount_amount > 0
+                const groupedHint = r.siblingCount > 1
                 // 최근 = 큰 번호. visibleRows 전체 길이 기준 역순 index.
                 const displayNo = visibleRows.length - (pageStart + idx)
                 return (
                   <tr
-                    key={r.payment.id}
+                    key={r.order.id}
                     className={`${styles.row} ${isCancelled ? styles.rowCancelled : ''}`}
                     onClick={() => setSelectedId(r.payment.id)}
                   >
                     <td className={`${styles.alignCenter} ${styles.mono}`}>{displayNo}</td>
                     <td>
                       <div className={styles.boothCell}>
-                        <span className={styles.boothCellMain}>{firstBoothName}</span>
-                        {extraCount > 0 && (
-                          <span className={styles.boothCellExtra}>외 {extraCount}건</span>
+                        <span className={styles.boothCellMain}>
+                          {r.order.booth_no}번 · {r.order.booth_name}
+                        </span>
+                        {groupedHint && (
+                          <span
+                            className={styles.boothCellExtra}
+                            title={`동일 결제로 ${r.siblingCount}개 매장 동시 주문`}
+                          >
+                            동시결제 {r.siblingCount}건
+                          </span>
                         )}
                       </div>
                     </td>
                     <td className={styles.mono}>{formatDateTime(r.payment.created_at)}</td>
-                    <td className={styles.mono}>{firstOrderNo}</td>
+                    <td className={styles.mono}>{r.order.order_number}</td>
                     <td>{formatPhoneDisplay(r.payment.phone)}</td>
                     <td>
                       <span className={styles.menuCell}>{formatMenuSummary(r.menuLines)}</span>
                     </td>
                     <td className={`${styles.alignRight} ${styles.mono}`}>
-                      {r.payment.discount_amount > 0 && (
+                      {hasCoupon && (
                         <span
                           className={styles.couponBadge}
-                          title={`쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원 · 실지불 ${r.payment.total_amount.toLocaleString()}원`}
+                          title={`결제 단위 쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원 (해당 결제에 한해 적용)`}
                         >
                           쿠폰
                         </span>
                       )}
-                      {(
-                        r.payment.total_amount + r.payment.discount_amount
-                      ).toLocaleString()}
-                      원
+                      {r.order.subtotal.toLocaleString()}원
                     </td>
                     <td>
-                      <span className={`${styles.badge} ${styles[`badge_${r.payment.status}`]}`}>
-                        {STATUS_LABEL[r.payment.status]}
+                      <span
+                        className={`${styles.badge} ${styles[`badge_${rowStatusKey(r)}`]}`}
+                      >
+                        {rowStatusLabel(r)}
                       </span>
-                      {isPartial && (
+                      {!isPaymentCancelled && isOrderCancelled && (
                         <span
                           className={styles.partialBadge}
-                          title={`-${r.payment.refunded_amount.toLocaleString()}원 부분 환불됨`}
+                          title="해당 매장이 주문을 거절하여 부분 환불됨"
                         >
-                          부분취소
+                          매장거절
                         </span>
                       )}
                     </td>
@@ -390,7 +422,13 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reason, setReason] = useState('')
-  const [cancelling, setCancelling] = useState(false)
+  const [refunding, setRefunding] = useState(false)
+
+  const reload = useCallback(async () => {
+    const data = await fetchPaymentDetail(paymentId)
+    setDetail(data)
+    return data
+  }, [paymentId])
 
   useEffect(() => {
     let cancelled = false
@@ -418,28 +456,82 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  const refundable = detail ? isRefundable(detail) : false
-  const remaining = detail ? remainingRefundable(detail) : 0
+  const remaining = detail
+    ? Math.max(0, detail.payment.total_amount - (detail.payment.refunded_amount ?? 0))
+    : 0
 
-  const handleCancel = async () => {
-    if (!detail || !refundable) return
+  // 부스 단위 환불 가능한 주문 목록 (모달 안에서 일괄 / 개별 모두 사용)
+  const refundableOrders = useMemo(() => {
+    if (!detail) return []
+    return detail.orders
+      .filter(({ order }) => isBoothOrderRefundable(detail, order.id))
+      .map(({ order }) => ({
+        id: order.id,
+        booth_no: order.booth_no,
+        booth_name: order.booth_name,
+        amount: boothOrderRefundAmount(detail, order.id),
+      }))
+  }, [detail])
+
+  const handleRefundBooth = async (orderId: string, boothLabel: string, amount: number) => {
+    if (!detail) return
     if (reason.trim().length === 0) {
       setError('환불 사유를 입력해주세요')
       return
     }
     const ok = window.confirm(
-      `남은 잔액 ${remaining.toLocaleString()}원을 환불하시겠습니까?`,
+      `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`,
     )
     if (!ok) return
-    setCancelling(true)
+    setRefunding(true)
     setError(null)
     try {
-      await cancelPayment(paymentId, reason.trim())
-      onCancelled()
+      const result = await refundBoothOrder(orderId, reason.trim())
+      // 결제가 완전히 취소된 경우(=마지막 환불 가능한 부스였음) 모달 닫기.
+      // 그 외엔 모달 유지하고 detail 재조회 → 다음 부스를 이어서 처리 가능.
+      if (result.paymentFullyCancelled) {
+        onCancelled()
+      } else {
+        await reload()
+        onCancelled()
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : '환불 실패')
     } finally {
-      setCancelling(false)
+      setRefunding(false)
+    }
+  }
+
+  const handleBulkRefund = async () => {
+    if (!detail || refundableOrders.length < 2) return
+    if (reason.trim().length === 0) {
+      setError('환불 사유를 입력해주세요')
+      return
+    }
+    const totalAmount = refundableOrders.reduce((acc, r) => acc + r.amount, 0)
+    const ok = window.confirm(
+      `환불 가능한 ${refundableOrders.length}개 매장에 총 ${totalAmount.toLocaleString()}원을 환불하시겠습니까?`,
+    )
+    if (!ok) return
+    setRefunding(true)
+    setError(null)
+    try {
+      // 직렬 처리 — Toss는 같은 paymentKey 에 대한 동시 cancel 을 보장하지 않음 + DB
+      // refunded_amount 누적이 race 가 될 수 있음. 안전하게 한 건씩.
+      for (const r of refundableOrders) {
+        await refundBoothOrder(r.id, reason.trim())
+      }
+      onCancelled()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '환불 실패')
+      // 일부 성공 가능 — 최신 상태로 갱신
+      try {
+        await reload()
+      } catch {
+        // ignore
+      }
+    } finally {
+      setRefunding(false)
     }
   }
 
@@ -561,81 +653,119 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                 )}
             </section>
 
+            {detail.payment.status === 'paid' && refundableOrders.length > 0 && (
+              <section className={styles.refundSection}>
+                <h3 className={styles.sectionTitle}>매장별 환불</h3>
+                <p className={styles.refundHint}>
+                  환불 사유는 각 매장 거절 사유와 함께 손님에게 전달됩니다. 조리 완료된 주문은
+                  환불할 수 없습니다.
+                </p>
+                <textarea
+                  className={styles.reasonInput}
+                  placeholder="환불 사유를 입력해주세요 (손님에게도 전달됨)"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={2}
+                />
+                {error && <div className={styles.inlineError}>{error}</div>}
+                {refundableOrders.length >= 2 && (
+                  <button
+                    type="button"
+                    className={styles.bulkRefundBtn}
+                    onClick={handleBulkRefund}
+                    disabled={refunding || reason.trim().length === 0}
+                    title="아래 환불 가능한 모든 매장을 한 번에 환불합니다"
+                  >
+                    {refunding
+                      ? '처리 중...'
+                      : `남은 ${refundableOrders.length}개 매장 일괄 환불 (${refundableOrders
+                          .reduce((acc, r) => acc + r.amount, 0)
+                          .toLocaleString()}원)`}
+                  </button>
+                )}
+              </section>
+            )}
+
             <section className={styles.boothSection}>
               <h3 className={styles.sectionTitle}>부스별 주문 ({detail.orders.length}건)</h3>
               <ul className={styles.boothList}>
-                {detail.orders.map(({ order, items }) => (
-                  <li key={order.id} className={styles.boothBox}>
-                    <div className={styles.boothHead}>
-                      <div className={styles.boothHeadLeft}>
-                        <span className={styles.boothName}>
-                          {order.booth_no}번 · {order.booth_name}
-                        </span>
-                        <span className={styles.boothOrderNo}>{order.order_number}</span>
-                      </div>
-                      <span
-                        className={`${styles.badge} ${styles[`badge_order_${order.status}`]}`}
-                      >
-                        {ORDER_STATUS_LABEL[order.status]}
-                      </span>
-                    </div>
-                    {order.status === 'cancelled' && order.cancel_reason && (
-                      <div className={styles.boothCancelLine}>
-                        <span className={styles.boothCancelLabel}>
-                          {order.cancelled_by === 'booth' ? '부스 거절' : '어드민 환불'}
-                        </span>
-                        <span className={styles.boothCancelText}>{order.cancel_reason}</span>
-                      </div>
-                    )}
-                    <ul className={styles.itemList}>
-                      {items.map((it) => (
-                        <li key={it.id} className={styles.itemRow}>
-                          <span>
-                            {it.menu_name} × {it.quantity}
+                {detail.orders.map(({ order, items }) => {
+                  const eligible = isBoothOrderRefundable(detail, order.id)
+                  const refundAmt = eligible ? boothOrderRefundAmount(detail, order.id) : 0
+                  return (
+                    <li key={order.id} className={styles.boothBox}>
+                      <div className={styles.boothHead}>
+                        <div className={styles.boothHeadLeft}>
+                          <span className={styles.boothName}>
+                            {order.booth_no}번 · {order.booth_name}
                           </span>
-                          <span className={styles.mono}>
-                            {it.subtotal.toLocaleString()}원
+                          <span className={styles.boothOrderNo}>{order.order_number}</span>
+                        </div>
+                        <span
+                          className={`${styles.badge} ${styles[`badge_order_${order.status}`]}`}
+                        >
+                          {ORDER_STATUS_LABEL[order.status]}
+                        </span>
+                      </div>
+                      {order.status === 'cancelled' && order.cancel_reason && (
+                        <div className={styles.boothCancelLine}>
+                          <span className={styles.boothCancelLabel}>
+                            {order.cancelled_by === 'booth' ? '부스 거절' : '어드민 환불'}
                           </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
+                          <span className={styles.boothCancelText}>{order.cancel_reason}</span>
+                        </div>
+                      )}
+                      <ul className={styles.itemList}>
+                        {items.map((it) => (
+                          <li key={it.id} className={styles.itemRow}>
+                            <span>
+                              {it.menu_name} × {it.quantity}
+                            </span>
+                            <span className={styles.mono}>
+                              {it.subtotal.toLocaleString()}원
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      {detail.payment.status === 'paid' && (
+                        <div className={styles.boothRefundRow}>
+                          {eligible ? (
+                            <button
+                              type="button"
+                              className={styles.boothRefundBtn}
+                              onClick={() =>
+                                void handleRefundBooth(
+                                  order.id,
+                                  `${order.booth_no}번 · ${order.booth_name}`,
+                                  refundAmt,
+                                )
+                              }
+                              disabled={refunding || reason.trim().length === 0}
+                            >
+                              {refundAmt.toLocaleString()}원 환불
+                            </button>
+                          ) : (
+                            <span className={styles.boothRefundBlocked}>
+                              {order.status === 'cancelled'
+                                ? '이미 환불됨'
+                                : order.ready_at !== null
+                                  ? '조리완료 - 환불 불가'
+                                  : '확인됨 - 환불 불가'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             </section>
 
-            {detail.payment.status === 'paid' && (
+            {detail.payment.status === 'paid' && refundableOrders.length === 0 && remaining > 0 && (
               <section className={styles.refundSection}>
-                <h3 className={styles.sectionTitle}>환불 처리</h3>
-                {refundable ? (
-                  <>
-                    <p className={styles.refundHint}>
-                      남은 잔액 <strong>{remaining.toLocaleString()}원</strong> 이 환불됩니다.
-                      매장에서 확인/조리 시작된 주문이 포함되어 있으면 거부됩니다.
-                    </p>
-                    <textarea
-                      className={styles.reasonInput}
-                      placeholder="환불 사유를 입력해주세요 (손님에게도 전달됨)"
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      rows={3}
-                    />
-                    {error && <div className={styles.inlineError}>{error}</div>}
-                    <button
-                      type="button"
-                      className={styles.cancelBtn}
-                      onClick={handleCancel}
-                      disabled={cancelling || reason.trim().length === 0}
-                    >
-                      {cancelling ? '처리 중...' : `잔액 ${remaining.toLocaleString()}원 환불`}
-                    </button>
-                  </>
-                ) : (
-                  <p className={styles.refundBlocked}>
-                    남은 잔액이 없거나, 매장에서 확인/조리 시작된 주문이 포함되어 있어 환불할 수
-                    없습니다.
-                  </p>
-                )}
+                <p className={styles.refundBlocked}>
+                  환불 가능한 매장이 없습니다. 모든 매장이 확인/조리 완료/이미 환불된 상태입니다.
+                </p>
               </section>
             )}
           </div>

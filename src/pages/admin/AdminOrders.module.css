@@ -612,3 +612,61 @@
   background-color: #FCA5A5;
   cursor: not-allowed;
 }
+
+.bulkRefundBtn {
+  margin-top: 12px;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #B45309;
+  border-radius: 10px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.bulkRefundBtn:hover:not(:disabled) {
+  background-color: #92400E;
+}
+
+.bulkRefundBtn:disabled {
+  background-color: #FCD34D;
+  color: #FFFFFF;
+  cursor: not-allowed;
+}
+
+.boothRefundRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #E5E7EB;
+}
+
+.boothRefundBtn {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #DC2626;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.boothRefundBtn:hover:not(:disabled) {
+  background-color: #B91C1C;
+}
+
+.boothRefundBtn:disabled {
+  background-color: #FCA5A5;
+  cursor: not-allowed;
+}
+
+.boothRefundBlocked {
+  font-size: 12px;
+  color: #9CA3AF;
+  font-weight: 500;
+}

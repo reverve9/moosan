@@ -8,7 +8,9 @@ import { createClient } from '@supabase/supabase-js'
  *
  * 호출:
  *   POST /api/orders/cancel
- *   { orderId: string, reason: string }
+ *   { orderId: string, reason: string, cancelledBy?: 'booth' | 'admin' }
+ *     cancelledBy 미지정 시 'booth' (부스 클라이언트 기존 호환).
+ *     'admin' 은 어드민 화면에서 부스 단위로 환불할 때 사용.
  *
  * 흐름:
  *   1) order + parent payment 조회
@@ -21,7 +23,7 @@ import { createClient } from '@supabase/supabase-js'
  *      단 큰 쿠폰으로 결제 잔액이 subtotal 보다 작을 수 있어 cap 적용.
  *   4) Toss /v1/payments/{paymentKey}/cancel 부분 환불 (cancelAmount)
  *   5) DB 업데이트
- *      - orders 해당 row: status='cancelled', cancelled_at, cancel_reason, cancelled_by='booth'
+ *      - orders 해당 row: status='cancelled', cancelled_at, cancel_reason, cancelled_by
  *      - payments: refunded_amount += refund_amount
  *      - 누적 refunded_amount >= total_amount → payments.status='cancelled', cancelled_at
  *   6) 200 응답
@@ -32,14 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' })
   }
 
-  const { orderId, reason } = (req.body ?? {}) as {
+  const { orderId, reason, cancelledBy } = (req.body ?? {}) as {
     orderId?: string
     reason?: string
+    cancelledBy?: 'booth' | 'admin'
   }
 
   if (!orderId || !reason || reason.trim().length === 0) {
     return res.status(400).json({ error: 'orderId, reason are required' })
   }
+  const cancelledByValue: 'booth' | 'admin' =
+    cancelledBy === 'admin' ? 'admin' : 'booth'
 
   const secretKey = process.env.TOSS_SECRET_KEY
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -140,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: 'cancelled',
       cancelled_at: now,
       cancel_reason: reason.trim(),
-      cancelled_by: 'booth',
+      cancelled_by: cancelledByValue,
     })
     .eq('id', orderId)
   if (updOErr) {

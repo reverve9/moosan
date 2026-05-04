@@ -18,22 +18,29 @@ export interface PaymentsListFilters {
   phone?: string
 }
 
-export interface PaymentRowWithSummary {
+/**
+ * 어드민 주문/결제 목록의 한 행. 결제 단위가 아닌 **부스 단위(=order)** 행.
+ * 한 결제(payment)에 여러 부스 주문이 묶여 있어도 부스별로 분리해서 노출 →
+ * 정산 시 매장별로 한 줄씩 보이도록.
+ */
+export interface BoothOrderRow {
+  /** 상위 결제 (환불/쿠폰 할인 등 결제 전체 정보) */
   payment: Payment
-  boothCount: number
-  /** 부스명 리스트 (매장 검색 필터용 + 테이블 표시용) */
-  boothNames: string[]
-  /** 부스별 order_number 리스트 (booth_no 오름차순) */
-  boothOrderNumbers: string[]
-  /** 전체 order_items (부스 순 + 생성 순) — 메뉴 컬럼 표시용 */
-  menuLines: { name: string; quantity: number }[]
-  /** orders 의 status 요약 — 전부 cancelled 이면 cancelled 로 렌더 */
-  orderStatusSummary: {
-    paid: number
-    confirmed: number
-    completed: number
-    cancelled: number
+  /** 이 행이 가리키는 단일 부스 주문 */
+  order: {
+    id: string
+    payment_id: string
+    status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+    booth_name: string
+    booth_no: string
+    order_number: string
+    /** 이 부스의 메뉴 합계 (쿠폰 할인 적용 전, 정산 기준 금액) */
+    subtotal: number
   }
+  /** 해당 부스 주문의 메뉴 라인 */
+  menuLines: { name: string; quantity: number }[]
+  /** 같은 결제에 묶인 부스가 몇 개인지 (UI 힌트용) */
+  siblingCount: number
 }
 
 function kstDateToUtc(dateStr: string, endOfDay: boolean): string {
@@ -44,7 +51,7 @@ function kstDateToUtc(dateStr: string, endOfDay: boolean): string {
 
 export async function fetchPaymentsList(
   filters: PaymentsListFilters,
-): Promise<PaymentRowWithSummary[]> {
+): Promise<BoothOrderRow[]> {
   let q = supabase
     .from('payments')
     .select()
@@ -77,7 +84,7 @@ export async function fetchPaymentsList(
   const paymentIds = payments.map((p) => p.id)
   const { data: orders, error: oErr } = await supabase
     .from('orders')
-    .select('id, payment_id, status, booth_name, booth_no, order_number')
+    .select('id, payment_id, status, booth_name, booth_no, order_number, subtotal')
     .in('payment_id', paymentIds)
     .order('booth_no', { ascending: true })
   if (oErr) throw oErr
@@ -102,52 +109,36 @@ export async function fetchPaymentsList(
     itemsByOrder.set(it.order_id, list)
   }
 
-  interface Bucket {
-    count: number
-    status: PaymentRowWithSummary['orderStatusSummary']
-    boothNames: string[]
-    boothOrderNumbers: string[]
-    menuLines: { name: string; quantity: number }[]
-  }
-
-  const summaryByPayment = new Map<string, Bucket>()
+  // 결제별로 그룹핑해서, 결제 최신순 + 결제 내 booth_no 오름차순으로 펼침
+  const ordersByPayment = new Map<string, NonNullable<typeof orders>>()
   for (const o of orders ?? []) {
-    const bucket =
-      summaryByPayment.get(o.payment_id) ??
-      ({
-        count: 0,
-        status: { paid: 0, confirmed: 0, completed: 0, cancelled: 0 },
-        boothNames: [],
-        boothOrderNumbers: [],
-        menuLines: [],
-      } satisfies Bucket)
-    bucket.count += 1
-    if (o.status in bucket.status) {
-      bucket.status[o.status as keyof typeof bucket.status] += 1
-    }
-    bucket.boothNames.push(o.booth_name)
-    bucket.boothOrderNumbers.push(o.order_number)
-    const orderItems = itemsByOrder.get(o.id) ?? []
-    bucket.menuLines.push(...orderItems)
-    summaryByPayment.set(o.payment_id, bucket)
+    const list = ordersByPayment.get(o.payment_id) ?? []
+    list.push(o)
+    ordersByPayment.set(o.payment_id, list)
   }
 
-  return payments.map((payment) => {
-    const s = summaryByPayment.get(payment.id)
-    return {
-      payment,
-      boothCount: s?.count ?? 0,
-      boothNames: s?.boothNames ?? [],
-      boothOrderNumbers: s?.boothOrderNumbers ?? [],
-      menuLines: s?.menuLines ?? [],
-      orderStatusSummary: s?.status ?? {
-        paid: 0,
-        confirmed: 0,
-        completed: 0,
-        cancelled: 0,
-      },
+  const rows: BoothOrderRow[] = []
+  for (const payment of payments) {
+    const list = ordersByPayment.get(payment.id) ?? []
+    if (list.length === 0) continue // 결제는 있는데 부스 주문이 없는 경우(데이터 불일치) — 행 생성 안 함
+    for (const o of list) {
+      rows.push({
+        payment,
+        order: {
+          id: o.id,
+          payment_id: o.payment_id,
+          status: o.status,
+          booth_name: o.booth_name,
+          booth_no: o.booth_no,
+          order_number: o.order_number,
+          subtotal: o.subtotal,
+        },
+        menuLines: itemsByOrder.get(o.id) ?? [],
+        siblingCount: list.length,
+      })
     }
-  })
+  }
+  return rows
 }
 
 export interface PaymentDetail {
@@ -195,45 +186,59 @@ export async function fetchPaymentDetail(paymentId: string): Promise<PaymentDeta
 }
 
 /**
- * 어드민 풀환불 가능 여부 (client 측 pre-check, 서버도 동일하게 검증함).
- * 부분 환불 모델 도입 후:
- *  - 이미 cancelled 된 부스 order 는 무시 (부스가 자체 거절한 이력)
- *  - 남은 잔액 (total_amount - refunded_amount) > 0
- *  - 남은 paid orders 가 전부 confirmed_at IS NULL AND ready_at IS NULL
- *  - 환불액 = 남은 잔액
+ * 어드민이 특정 부스 주문 1건을 환불 가능한지 (client 측 pre-check, 서버도 동일 검증).
+ * 부스 거절 동일 조건:
+ *  - 결제는 paid 이고 잔액(total_amount - refunded_amount) > 0
+ *  - 부스 주문이 'paid' 또는 'confirmed' (cancelled / completed 제외)
+ *  - ready_at IS NULL  ← 조리완료 후엔 환불 불가
  */
-export function isRefundable(detail: PaymentDetail): boolean {
+export function isBoothOrderRefundable(detail: PaymentDetail, orderId: string): boolean {
   if (detail.payment.status !== 'paid') return false
   const remaining = detail.payment.total_amount - (detail.payment.refunded_amount ?? 0)
   if (remaining <= 0) return false
-  const liveOrders = detail.orders.filter(({ order }) => order.status !== 'cancelled')
-  if (liveOrders.length === 0) return false
-  return liveOrders.every(
-    ({ order }) =>
-      order.status === 'paid' && order.confirmed_at === null && order.ready_at === null,
+  const target = detail.orders.find(({ order }) => order.id === orderId)
+  if (!target) return false
+  const { order } = target
+  if (order.ready_at !== null) return false
+  return order.status === 'paid' || order.status === 'confirmed'
+}
+
+/** 부스 환불 시 실제 환불될 금액 (잔액 cap 적용). */
+export function boothOrderRefundAmount(detail: PaymentDetail, orderId: string): number {
+  const remaining = Math.max(
+    0,
+    detail.payment.total_amount - (detail.payment.refunded_amount ?? 0),
   )
+  const target = detail.orders.find(({ order }) => order.id === orderId)
+  if (!target) return 0
+  return Math.min(target.order.subtotal, remaining)
 }
 
-/** 남은 환불 가능 잔액 */
-export function remainingRefundable(detail: PaymentDetail): number {
-  return Math.max(0, detail.payment.total_amount - (detail.payment.refunded_amount ?? 0))
-}
-
-export interface CancelPaymentResponse {
+export interface RefundBoothOrderResponse {
   ok: boolean
+  orderId: string
   paymentId: string
+  refundAmount: number
+  paymentFullyCancelled: boolean
 }
 
-export async function cancelPayment(paymentId: string, reason: string): Promise<CancelPaymentResponse> {
-  const response = await fetch('/api/payments/cancel', {
+/**
+ * 어드민이 특정 부스 주문만 환불.
+ * 서버는 부스 거절과 동일한 endpoint(/api/orders/cancel)에 cancelledBy='admin' 으로 호출.
+ */
+export async function refundBoothOrder(
+  orderId: string,
+  reason: string,
+): Promise<RefundBoothOrderResponse> {
+  const response = await fetch('/api/orders/cancel', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ paymentId, reason }),
+    body: JSON.stringify({ orderId, reason, cancelledBy: 'admin' }),
   })
   const json = await response.json().catch(() => ({}))
   if (!response.ok) {
-    const msg = typeof json?.error === 'string' ? json.error : '취소 실패'
+    const msg = typeof json?.error === 'string' ? json.error : '환불 실패'
     throw new Error(msg)
   }
-  return json as CancelPaymentResponse
+  return json as RefundBoothOrderResponse
 }
