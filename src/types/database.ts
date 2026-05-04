@@ -673,10 +673,22 @@ export interface Database {
         Row: {
           id: string
           code: string
+          type: 'discount' | 'meal_voucher'
+          source:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount: number
-          min_order_amount: number
+          min_order_amount: number | null
           status: 'active' | 'used'
           issued_source: 'manual' | 'survey'
+          issued_by: string | null
+          batch_id: string | null
+          memo: string | null
           issued_phone: string | null
           phone: string | null
           note: string | null
@@ -691,10 +703,22 @@ export interface Database {
         Insert: {
           id?: string
           code: string
+          type?: 'discount' | 'meal_voucher'
+          source?:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount: number
-          min_order_amount?: number
+          min_order_amount?: number | null
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
+          issued_by?: string | null
+          batch_id?: string | null
+          memo?: string | null
           issued_phone?: string | null
           phone?: string | null
           note?: string | null
@@ -709,10 +733,22 @@ export interface Database {
         Update: {
           id?: string
           code?: string
+          type?: 'discount' | 'meal_voucher'
+          source?:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount?: number
-          min_order_amount?: number
+          min_order_amount?: number | null
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
+          issued_by?: string | null
+          batch_id?: string | null
+          memo?: string | null
           issued_phone?: string | null
           phone?: string | null
           note?: string | null
@@ -812,6 +848,8 @@ export interface Database {
           booth_no: string
           booth_name: string
           subtotal: number
+          voucher_consumed: number
+          voucher_burned: number
           phone: string
           status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at: string | null
@@ -834,6 +872,8 @@ export interface Database {
           booth_no: string
           booth_name: string
           subtotal: number
+          voucher_consumed?: number
+          voucher_burned?: number
           phone: string
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at?: string | null
@@ -856,6 +896,8 @@ export interface Database {
           booth_no?: string
           booth_name?: string
           subtotal?: number
+          voucher_consumed?: number
+          voucher_burned?: number
           phone?: string
           status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
           paid_at?: string | null
