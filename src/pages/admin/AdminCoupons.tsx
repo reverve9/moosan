@@ -9,7 +9,7 @@ import {
   type DiscountSource,
   type VoucherSource,
 } from '@/lib/coupons'
-import { exportToExcel, fmtDateKst, importFromExcel } from '@/lib/excel'
+import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { formatPhone, normalizePhone } from '@/lib/phone'
 import { ExportButton } from '@/components/admin/ExcelButtons'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
@@ -342,6 +342,29 @@ interface CsvParseResult {
   errors: { line: number; raw: Record<string, string>; reason: string }[]
 }
 
+/**
+ * CSV 파일 → object 배열. 헤더 1행 + 데이터.
+ * BOM 제거, CRLF/LF 양쪽 지원, 단순 comma split (quoted field 미지원 — 쉼표가
+ * memo 안에 들어가는 케이스는 사용자에게 권장하지 않음).
+ * 빈 줄은 skip. xlsx 의 sheet_to_json 이 빈 셀 포함 행을 skip 해버리는
+ * 동작이 있어서 자체 구현으로 교체.
+ */
+async function readCsvFile(file: File): Promise<Record<string, string>[]> {
+  let text = await file.text()
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1) // BOM 제거
+  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0)
+  if (lines.length === 0) return []
+  const headers = lines[0].split(',').map((h) => h.trim())
+  return lines.slice(1).map((line) => {
+    const cols = line.split(',')
+    const obj: Record<string, string> = {}
+    headers.forEach((h, i) => {
+      obj[h] = (cols[i] ?? '').trim()
+    })
+    return obj
+  })
+}
+
 function parseCsvRows(raw: Record<string, string>[]): CsvParseResult {
   const rows: CsvRow[] = []
   const errors: CsvParseResult['errors'] = []
@@ -353,13 +376,15 @@ function parseCsvRows(raw: Record<string, string>[]): CsvParseResult {
       errors.push({ line, raw: r, reason: '전화번호 형식 오류' })
       return
     }
-    const quantity = Number(r.quantity ?? 1)
+    const quantityRaw = String(r.quantity ?? '').trim()
+    const quantity = quantityRaw === '' ? 1 : Number(quantityRaw)
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
       errors.push({ line, raw: r, reason: 'quantity 1~50 범위 오류' })
       return
     }
-    const amount = Number(r.amount ?? 0)
-    if (!Number.isInteger(amount) || amount <= 0) {
+    const amountRaw = String(r.amount ?? '').trim()
+    const amount = Number(amountRaw)
+    if (amountRaw === '' || !Number.isInteger(amount) || amount <= 0) {
       errors.push({ line, raw: r, reason: 'amount 값 없음/오류' })
       return
     }
@@ -444,7 +469,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
   const handleCsvFile = async (file: File) => {
     setError(null)
     try {
-      const raw = await importFromExcel(file)
+      const raw = await readCsvFile(file)
       const parsed = parseCsvRows(raw)
       setCsvFileName(file.name)
       setCsvRows(parsed.rows)
