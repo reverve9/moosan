@@ -324,11 +324,11 @@ export default function CheckoutPage() {
                 {autoCoupon.discount_amount.toLocaleString()}원 할인 쿠폰
               </div>
               <div className={styles.autoCouponMeta}>
-                {autoCoupon.min_order_amount.toLocaleString()}원 이상 주문 시 사용 가능
+                {(autoCoupon.min_order_amount ?? 0).toLocaleString()}원 이상 주문 시 사용 가능
               </div>
-              {totalAmount < autoCoupon.min_order_amount && (
+              {totalAmount < (autoCoupon.min_order_amount ?? 0) && (
                 <div className={styles.autoCouponWarn}>
-                  최소 주문액 미달 — {(autoCoupon.min_order_amount - totalAmount).toLocaleString()}원 부족
+                  최소 주문액 미달 — {((autoCoupon.min_order_amount ?? 0) - totalAmount).toLocaleString()}원 부족
                 </div>
               )}
             </div>
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
                 className={styles.autoCouponApply}
                 onClick={handleApplyAutoCoupon}
                 disabled={
-                  couponApplying || totalAmount < autoCoupon.min_order_amount
+                  couponApplying || totalAmount < (autoCoupon.min_order_amount ?? 0)
                 }
               >
                 {couponApplying ? '…' : '적용'}

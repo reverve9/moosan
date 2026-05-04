@@ -42,6 +42,39 @@ async function generateUniqueCouponCode(): Promise<string> {
   throw new Error('쿠폰 코드 생성 실패 — 잠시 후 다시 시도해주세요')
 }
 
+/**
+ * N개 unique 코드 한 번에 생성. 충돌 시 재추첨.
+ * 50건 일괄 발급 시 사용. sequential check 라 N=50 기준 ≤ 50 회 select.
+ */
+async function generateUniqueCouponCodes(count: number): Promise<string[]> {
+  const out: string[] = []
+  const seen = new Set<string>()
+  while (out.length < count) {
+    const code = await generateUniqueCouponCode()
+    if (seen.has(code)) continue
+    seen.add(code)
+    out.push(code)
+  }
+  return out
+}
+
+// ─── source enum (v1 스키마) ─────────────────────────────────
+
+/** 어드민 수동 발급용 할인쿠폰 source */
+export type DiscountSource = 'manual_compensation' | 'manual_external'
+
+/** 어드민 수동 발급용 식권 source */
+export type VoucherSource =
+  | 'voucher_participant'
+  | 'voucher_staff'
+  | 'voucher_vip'
+  | 'voucher_other'
+
+export type CouponSource =
+  | 'auto_survey'
+  | DiscountSource
+  | VoucherSource
+
 // ─── 설문 자동 발급 만료일 ──────────────────────────────────
 // 축제 종료 시점 — 2026-05-17 23:59:59 KST 로 하드코딩. 활성 festival
 // 조회 lib 가 들어오면 이 상수를 동적으로 교체.
@@ -78,6 +111,7 @@ export async function fetchAvailableCouponByPhone(
     .from('coupons')
     .select()
     .eq('phone', normalizePhone(phone))
+    .eq('type', 'discount')
     .eq('status', 'active')
     .gt('expires_at', new Date().toISOString())
     .order('created_at', { ascending: false })
@@ -140,6 +174,8 @@ export async function issueSurveyCoupon(phone: string): Promise<Coupon> {
     .from('coupons')
     .insert({
       code,
+      type: 'discount',
+      source: 'auto_survey',
       discount_amount: SURVEY_COUPON_DISCOUNT,
       min_order_amount: SURVEY_COUPON_MIN_ORDER,
       status: 'active',
@@ -160,13 +196,15 @@ export async function issueSurveyCoupon(phone: string): Promise<Coupon> {
   return data
 }
 
-// ─── 수동 발급 (어드민) ─────────────────────────────────────
+// ─── 수동 발급 — 할인쿠폰 (어드민) ─────────────────────────
 
 export interface CreateCouponManualInput {
   discountAmount: number
   minOrderAmount?: number
   expiresAt: string // ISO
+  source: DiscountSource
   note?: string
+  memo?: string
   issuedPhone?: string
   festivalId?: string | null
 }
@@ -179,12 +217,15 @@ export async function createCouponManually(
     .from('coupons')
     .insert({
       code,
+      type: 'discount',
+      source: input.source,
       discount_amount: input.discountAmount,
       min_order_amount: input.minOrderAmount ?? 10000,
       status: 'active',
       issued_source: 'manual',
       expires_at: input.expiresAt,
       note: input.note ?? null,
+      memo: input.memo ?? null,
       issued_phone: input.issuedPhone ? normalizePhone(input.issuedPhone) : null,
       festival_id: input.festivalId ?? null,
     })
@@ -192,6 +233,80 @@ export async function createCouponManually(
     .single()
   if (error || !data) throw new Error(`쿠폰 생성 실패: ${error?.message ?? 'unknown'}`)
   return data
+}
+
+// ─── 수동 발급 — 식권 (어드민) ─────────────────────────────
+
+/** 식권 만료 default — 5/17 23:59:59 KST. UI 에서 변경 가능. */
+export const MEAL_VOUCHER_DEFAULT_EXPIRES_AT = new Date(
+  '2026-05-17T23:59:59+09:00',
+).toISOString()
+
+export interface CreateMealVoucherBulkInput {
+  /** E.164 normalize 전후 모두 허용. 내부에서 normalize. */
+  phone: string
+  /** 액면가 (원) */
+  amount: number
+  /** 발급 매수 (1~50) */
+  quantity: number
+  /** 식권 source (대상 분류) */
+  source: VoucherSource
+  /** 만료 시각 ISO. 미지정 시 5/17 23:59:59 KST */
+  expiresAt?: string
+  /** CSV 일괄 업로드 시 묶음 식별자. 직접 입력은 미지정. */
+  batchId?: string
+  /** 메모 */
+  memo?: string
+  festivalId?: string | null
+}
+
+export interface MealVoucherIssueResult {
+  /** 발급된 row 수 */
+  count: number
+  /** 발급된 unique 코드 목록 (UI 표시용) */
+  codes: string[]
+}
+
+/**
+ * 식권 N장 일괄 발급 (한 번호에 N row).
+ * 단일 phone — 모든 row 가 같은 phone, amount, source, expires_at, batch_id 를 공유.
+ * code 는 row 별 unique.
+ */
+export async function createMealVouchersBulk(
+  input: CreateMealVoucherBulkInput,
+): Promise<MealVoucherIssueResult> {
+  if (input.quantity < 1 || input.quantity > 50) {
+    throw new Error('식권 발급 매수는 1~50장 사이여야 합니다')
+  }
+  if (input.amount <= 0) {
+    throw new Error('식권 액면가는 1원 이상이어야 합니다')
+  }
+  const phone = normalizePhone(input.phone)
+  if (phone.length !== 11) {
+    throw new Error('전화번호 형식이 올바르지 않습니다')
+  }
+  const codes = await generateUniqueCouponCodes(input.quantity)
+  const expiresAt = input.expiresAt ?? MEAL_VOUCHER_DEFAULT_EXPIRES_AT
+  const rows = codes.map((code) => ({
+    code,
+    type: 'meal_voucher' as const,
+    source: input.source,
+    discount_amount: input.amount,
+    min_order_amount: null,
+    status: 'active' as const,
+    issued_source: 'manual' as const,
+    expires_at: expiresAt,
+    phone,
+    issued_phone: phone,
+    batch_id: input.batchId ?? null,
+    memo: input.memo ?? null,
+    festival_id: input.festivalId ?? null,
+  }))
+  const { data, error } = await supabase.from('coupons').insert(rows).select('code')
+  if (error || !data) {
+    throw new Error(`식권 발급 실패: ${error?.message ?? 'unknown'}`)
+  }
+  return { count: data.length, codes: data.map((r) => r.code) }
 }
 
 // ─── 목록 조회 (어드민) ─────────────────────────────────────
