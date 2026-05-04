@@ -78,7 +78,7 @@ export default function AdminFood() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all')
 
-  // 카테고리 관리 입력 state
+  // 구역 관리 입력 state
   const [newCatSlug, setNewCatSlug] = useState('')
   const [newCatLabel, setNewCatLabel] = useState('')
   const [catBusy, setCatBusy] = useState(false)
@@ -121,7 +121,7 @@ export default function AdminFood() {
       const rows = await fetchFoodCategories()
       setCategories(rows)
     } catch (e) {
-      setCatError(e instanceof Error ? e.message : '카테고리 불러오기 실패')
+      setCatError(e instanceof Error ? e.message : '구역 불러오기 실패')
     }
   }
 
@@ -282,21 +282,21 @@ export default function AdminFood() {
       setNewCatLabel('')
       await refetchCategories()
     } catch (e) {
-      setCatError(e instanceof Error ? e.message : '카테고리 추가 실패')
+      setCatError(e instanceof Error ? e.message : '구역 추가 실패')
     } finally {
       setCatBusy(false)
     }
   }
 
   const handleDeleteCategory = async (cat: FoodCategoryRow) => {
-    if (!confirm(`'${cat.label}' 카테고리를 삭제하시겠습니까?`)) return
+    if (!confirm(`'${cat.label}' 구역을 삭제하시겠습니까?`)) return
     setCatBusy(true)
     setCatError(null)
     try {
       await deleteFoodCategory(cat.id, cat.slug)
       await refetchCategories()
     } catch (e) {
-      const msg = e instanceof Error ? e.message : '카테고리 삭제 실패'
+      const msg = e instanceof Error ? e.message : '구역 삭제 실패'
       setCatError(msg)
       alert(msg)
     } finally {
@@ -446,7 +446,7 @@ export default function AdminFood() {
     const cols = [
       { key: 'booth_no', label: '부스번호' },
       { key: 'booth_name', label: '매장명' },
-      { key: 'category', label: '카테고리' },
+      { key: 'category', label: '구역' },
       { key: 'description', label: '설명' },
       { key: 'menu_name', label: '메뉴명' },
       { key: 'price', label: '가격' },
@@ -494,7 +494,7 @@ export default function AdminFood() {
         if (!boothMap.has(boothName)) {
           boothMap.set(boothName, {
             name: boothName,
-            category: row['카테고리']?.trim() ?? '',
+            category: row['구역']?.trim() ?? '',
             description: row['설명']?.trim() ?? '',
             menus: [],
           })
@@ -572,7 +572,7 @@ export default function AdminFood() {
         </div>
       </div>
 
-      <div className={styles.filterTabs} role="tablist" aria-label="카테고리 필터">
+      <div className={styles.filterTabs} role="tablist" aria-label="구역 필터">
         {[{ key: 'all' as CategoryFilter, label: '전체' }, ...categories.map((c) => ({ key: c.slug, label: c.label }))].map((t) => {
           const active = activeCategory === t.key
           const count =
@@ -595,12 +595,12 @@ export default function AdminFood() {
         })}
       </div>
 
-      {/* ───── 카테고리 관리 ───── */}
+      {/* ───── 구역 관리 ───── */}
       <div className={styles.categoryManager}>
         <div className={styles.categoryManagerHeader}>
-          <h2 className={styles.categoryManagerTitle}>카테고리 관리</h2>
+          <h2 className={styles.categoryManagerTitle}>구역 관리</h2>
           <span className={styles.categoryManagerHint}>
-            slug 는 영문 소문자/숫자/-/_ · 라벨은 자유 (예: korean / 한식)
+            slug 는 영문 소문자/숫자/-/_ · 라벨은 자유 (예: a / A구역)
           </span>
         </div>
         <div className={styles.categoryList}>
@@ -620,13 +620,13 @@ export default function AdminFood() {
             </div>
           ))}
           {categories.length === 0 && (
-            <span className={styles.categoryEmpty}>카테고리가 없습니다</span>
+            <span className={styles.categoryEmpty}>구역이 없습니다</span>
           )}
         </div>
         <div className={styles.categoryAddRow}>
           <input
             className={styles.input}
-            placeholder="slug (예: korean)"
+            placeholder="slug (예: a)"
             value={newCatSlug}
             onChange={(e) => {
               setNewCatSlug(e.target.value)
@@ -636,7 +636,7 @@ export default function AdminFood() {
           />
           <input
             className={styles.input}
-            placeholder="라벨 (예: 한식)"
+            placeholder="라벨 (예: A구역)"
             value={newCatLabel}
             onChange={(e) => {
               setNewCatLabel(e.target.value)
@@ -660,7 +660,7 @@ export default function AdminFood() {
       {booths.length === 0 ? (
         <div className={styles.empty}>등록된 매장이 없습니다. 우측 상단 ‘매장 추가’로 시작하세요.</div>
       ) : filteredBooths.length === 0 ? (
-        <div className={styles.empty}>해당 카테고리에 매장이 없습니다.</div>
+        <div className={styles.empty}>해당 구역에 매장이 없습니다.</div>
       ) : (
         <div className={styles.grid}>
           {filteredBooths.map((booth) => {
@@ -752,7 +752,7 @@ export default function AdminFood() {
                       />
                     </div>
                     <div className={styles.field}>
-                      <label className={styles.label}>카테고리</label>
+                      <label className={styles.label}>구역</label>
                       <select
                         className={styles.input}
                         value={form.category}
