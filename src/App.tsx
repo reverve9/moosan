@@ -28,6 +28,7 @@ import AdminMonitor from '@/pages/admin/AdminMonitor'
 import AdminOrders from '@/pages/admin/AdminOrders'
 import AdminCoupons from '@/pages/admin/AdminCoupons'
 import AdminNotices from '@/pages/admin/AdminNotices'
+import AdminQRCodes from '@/pages/admin/AdminQRCodes'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
@@ -84,6 +85,7 @@ function AdminRoutes() {
         <Route path="booth-accounts" element={<AdminBoothAccounts />} />
         <Route path="monitor" element={<AdminMonitor />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="qrcodes" element={<AdminQRCodes />} />
       </Route>
       <Route path="*" element={<Navigate to="/notices" replace />} />
     </Routes>

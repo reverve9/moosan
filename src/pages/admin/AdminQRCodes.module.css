@@ -1,0 +1,159 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.sub {
+  font-size: 13px;
+  color: #6B7280;
+}
+
+.originBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #F3F4F6;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #374151;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 16px;
+}
+
+.boothTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.boothNo {
+  display: inline-block;
+  padding: 2px 8px;
+  background-color: #EEF2FF;
+  color: #4338CA;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.qrWrap {
+  padding: 12px;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+}
+
+.linkRow {
+  width: 100%;
+  font-size: 11px;
+  color: #6B7280;
+  text-align: center;
+  word-break: break-all;
+  font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+  line-height: 1.4;
+}
+
+.cardActions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.downloadBtn,
+.copyBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  background-color: #111827;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.downloadBtn:hover,
+.copyBtn:hover {
+  background-color: #1F2937;
+}
+
+.copyBtn {
+  background-color: #F3F4F6;
+  color: #374151;
+  border: 1px solid #E5E7EB;
+}
+
+.copyBtn:hover {
+  background-color: #E5E7EB;
+}
+
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: #6B7280;
+  font-size: 14px;
+  background-color: #FFFFFF;
+  border: 1px dashed #D1D5DB;
+  border-radius: 16px;
+}
+
+.loading {
+  padding: 48px 24px;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 14px;
+}
+
+.offscreen {
+  position: absolute;
+  left: -99999px;
+  top: -99999px;
+  pointer-events: none;
+}

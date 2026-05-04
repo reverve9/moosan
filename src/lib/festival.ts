@@ -28,6 +28,27 @@ export function getAssetUrl(path: string | null | undefined): string | null {
 }
 
 /**
+ * 현재 창 origin 에서 admin/booth subdomain 을 제거한 customer origin 반환.
+ * 도메인 모드 분리(admin.musanfesta.com / booth.musanfesta.com / musanfesta.com)
+ * 환경에서 어드민이 생성한 QR 링크가 customer 도메인을 가리키도록 강제한다.
+ *
+ *  · admin.musanfesta.com   → https://musanfesta.com
+ *  · booth.localhost:5173   → http://localhost:5173
+ *  · x-admin.example.com    → https://example.com
+ */
+export function getCustomerOrigin(): string {
+  if (typeof window === 'undefined') return ''
+  const { protocol, hostname, port } = window.location
+  const customerHost = hostname
+    .replace(/^admin\./, '')
+    .replace(/^booth\./, '')
+    .replace(/-admin\./g, '.')
+    .replace(/-booth\./g, '.')
+  const portSuffix = port ? `:${port}` : ''
+  return `${protocol}//${customerHost}${portSuffix}`
+}
+
+/**
  * slug 로 festival 단건 조회 (소속 programs 함께)
  */
 export async function fetchFestivalBySlug(slug: string): Promise<{
