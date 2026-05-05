@@ -121,6 +121,101 @@ export async function fetchAvailableCouponByPhone(
   return data ?? null
 }
 
+// ─── 보유 쿠폰 복수 조회 (체크아웃 라디오 리스트) ────────────
+
+/** 결제 화면 라디오용 보유 쿠폰 옵션 */
+export type AvailableCouponOption =
+  | {
+      kind: 'discount'
+      /** 사용할 row id */
+      couponId: string
+      code: string
+      discount: number
+      minOrderAmount: number
+    }
+  | {
+      kind: 'voucher'
+      /** 같은 (amount, source) 그룹 중 FIFO 첫 row id (= 선택 시 실제 차감) */
+      couponId: string
+      code: string
+      amount: number
+      source: VoucherSource
+      /** 남은 매수 (그룹 전체) */
+      remainingCount: number
+    }
+
+/**
+ * 전화번호로 지금 사용 가능한 모든 쿠폰을 결제 라디오에 표시할 형태로 반환.
+ *  - 식권: (amount, source) 그룹핑 후 그룹당 1옵션 (가장 오래된 row 부터 사용 = FIFO)
+ *  - 할인쿠폰: 가장 최근 1장만 반환 (다중 활성 시에도 1장만)
+ *  - 만료/사용은 제외
+ */
+export async function fetchAvailableCouponsByPhone(
+  phone: string,
+): Promise<AvailableCouponOption[]> {
+  if (!phone) return []
+  const normalized = normalizePhone(phone)
+  const { data, error } = await supabase
+    .from('coupons')
+    .select()
+    .eq('phone', normalized)
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  const rows = data ?? []
+
+  const out: AvailableCouponOption[] = []
+
+  // 할인쿠폰 — 최신 1장만
+  const discounts = rows
+    .filter((c) => c.type === 'discount')
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+  if (discounts.length > 0) {
+    const c = discounts[0]
+    out.push({
+      kind: 'discount',
+      couponId: c.id,
+      code: c.code,
+      discount: c.discount_amount,
+      minOrderAmount: c.min_order_amount ?? 0,
+    })
+  }
+
+  // 식권 — (amount, source) 그룹핑, 그룹당 가장 오래된 row 1개 (FIFO 사용)
+  const vouchers = rows.filter((c) => c.type === 'meal_voucher')
+  const groups = new Map<string, Coupon[]>()
+  for (const c of vouchers) {
+    const key = `${c.discount_amount}|${c.source}`
+    const list = groups.get(key) ?? []
+    list.push(c)
+    groups.set(key, list)
+  }
+  for (const list of groups.values()) {
+    // created_at ASC 보장 (위 select order)
+    const head = list[0]
+    out.push({
+      kind: 'voucher',
+      couponId: head.id,
+      code: head.code,
+      amount: head.discount_amount,
+      source: head.source as VoucherSource,
+      remainingCount: list.length,
+    })
+  }
+
+  return out
+}
+
+// ─── 식권 source 라벨 ────────────────────────────────────────
+
+export const VOUCHER_SOURCE_LABEL: Record<VoucherSource, string> = {
+  voucher_participant: '참가자',
+  voucher_staff: '스태프',
+  voucher_vip: 'VIP',
+  voucher_other: '기타',
+}
+
 /**
  * 전화번호로 발급된 설문 자동쿠폰 1장 조회 (status/만료 무관 · 최신 1장).
  * AdminSurvey 상세 모달 배지용.
@@ -407,14 +502,26 @@ export async function fetchCouponStats(filters: {
 
 // ─── Client-side validate 호출 ─────────────────────────────
 
-export interface ValidateCouponResponse {
-  valid: boolean
-  couponId?: string
-  code?: string
-  discount?: number
-  finalAmount?: number
-  error?: string
-}
+export type ValidateCouponResponse =
+  | {
+      valid: true
+      type: 'discount'
+      couponId: string
+      code: string
+      discount: number
+      finalAmount: number
+    }
+  | {
+      valid: true
+      type: 'meal_voucher'
+      couponId: string
+      code: string
+      voucherAmount: number
+      consumed: number
+      burned: number
+      finalAmount: number
+    }
+  | { valid: false; error: string }
 
 /**
  * /api/coupons/validate 호출. 결과가 valid=true 여야 실제 결제에 반영 가능.
@@ -436,4 +543,71 @@ export async function validateCouponByCode(
     }
   }
   return json as ValidateCouponResponse
+}
+
+// ─── 식권 정산 (다부스 비례 분배) ─────────────────────────
+
+/**
+ * 식권 1장이 부스 N개에 어떻게 분배되는지 계산.
+ *
+ *  - consumed = min(voucherAmount, orderTotal)
+ *  - burned   = voucherAmount - consumed   (액면가 잔액 소멸)
+ *  - userPaid = max(0, orderTotal - voucherAmount)
+ *
+ *  부스별 voucher_consumed 는 부스 subtotal 비율로 분배 (floor),
+ *  rounding 잔여는 마지막 부스에 몰아 보장: SUM(consumed) === consumed.
+ *  burned 는 마지막 부스에 몰아 한 번만 기록 (정산 SQL 의 SUM 정합성 유지).
+ */
+export interface BoothShare {
+  /** 같은 입력 순서로 반환 */
+  boothId: string
+  subtotal: number
+}
+
+export interface BoothVoucherDistribution extends BoothShare {
+  voucherConsumed: number
+  voucherBurned: number
+}
+
+export interface VoucherSettlement {
+  consumed: number
+  burned: number
+  userPaid: number
+  distributions: BoothVoucherDistribution[]
+}
+
+export function calcVoucherSettlement(
+  booths: BoothShare[],
+  voucherAmount: number,
+): VoucherSettlement {
+  const orderTotal = booths.reduce((s, b) => s + b.subtotal, 0)
+  const consumed = Math.min(voucherAmount, orderTotal)
+  const burned = voucherAmount - consumed
+  const userPaid = Math.max(0, orderTotal - voucherAmount)
+
+  const distributions: BoothVoucherDistribution[] = []
+  let remaining = consumed
+  for (let i = 0; i < booths.length; i += 1) {
+    const b = booths[i]
+    const isLast = i === booths.length - 1
+    let boothConsumed: number
+    if (isLast) {
+      boothConsumed = remaining
+    } else {
+      // 비례 분배 + 부스 subtotal 상한
+      const proportional = orderTotal > 0
+        ? Math.floor((consumed * b.subtotal) / orderTotal)
+        : 0
+      boothConsumed = Math.min(proportional, b.subtotal, remaining)
+    }
+    distributions.push({
+      boothId: b.boothId,
+      subtotal: b.subtotal,
+      voucherConsumed: boothConsumed,
+      voucherBurned: isLast ? burned : 0,
+    })
+    remaining -= boothConsumed
+  }
+
+  return { consumed, burned, userPaid, distributions }
 }

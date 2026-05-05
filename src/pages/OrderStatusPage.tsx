@@ -220,6 +220,15 @@ export default function OrderStatusPage() {
 
   const { payment, orders } = data
   const statusInfo = getStatusLabel(uiStatus, orders)
+  const totalVoucherConsumed = orders.reduce(
+    (s, { order }) => s + (order.voucher_consumed ?? 0),
+    0,
+  )
+  const totalVoucherBurned = orders.reduce(
+    (s, { order }) => s + (order.voucher_burned ?? 0),
+    0,
+  )
+  const orderSubtotalSum = orders.reduce((s, { order }) => s + order.subtotal, 0)
   const cancelReason =
     uiStatus === 'cancelled' &&
     payment.meta &&
@@ -289,12 +298,36 @@ export default function OrderStatusPage() {
             <span className={styles.metaLabel}>주문시각</span>
             <span className={styles.metaValue}>{orderTime}</span>
           </div>
+          {totalVoucherConsumed > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>주문 합계</span>
+              <span className={styles.metaValue}>
+                {orderSubtotalSum.toLocaleString()}원
+              </span>
+            </div>
+          )}
+          {totalVoucherConsumed > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>식권 사용</span>
+              <span className={`${styles.metaValueStrong} ${styles.voucherText}`}>
+                -{totalVoucherConsumed.toLocaleString()}원
+              </span>
+            </div>
+          )}
           <div className={styles.metaRow}>
             <span className={styles.metaLabel}>결제금액</span>
             <span className={styles.metaValueStrong}>
               {payment.total_amount.toLocaleString()}원
             </span>
           </div>
+          {totalVoucherBurned > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>식권 잔액 소멸</span>
+              <span className={`${styles.metaValue} ${styles.voucherText}`}>
+                {totalVoucherBurned.toLocaleString()}원
+              </span>
+            </div>
+          )}
           {payment.refunded_amount > 0 && (
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>환불금액</span>
@@ -351,6 +384,26 @@ export default function OrderStatusPage() {
                       </li>
                     ))}
                   </ul>
+                  {(order.voucher_consumed > 0 || order.voucher_burned > 0) && !isCancelled && (
+                    <div className={styles.boothVoucherBox}>
+                      {order.voucher_consumed > 0 && (
+                        <div className={styles.boothVoucherRow}>
+                          <span className={styles.boothVoucherLabel}>식권 사용</span>
+                          <span className={styles.boothVoucherValue}>
+                            -{order.voucher_consumed.toLocaleString()}원
+                          </span>
+                        </div>
+                      )}
+                      {order.voucher_burned > 0 && (
+                        <div className={styles.boothVoucherRow}>
+                          <span className={styles.boothVoucherLabel}>식권 잔액 소멸</span>
+                          <span className={styles.boothVoucherValue}>
+                            {order.voucher_burned.toLocaleString()}원
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </li>
               )
             })}

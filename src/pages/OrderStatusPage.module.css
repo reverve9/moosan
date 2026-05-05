@@ -325,6 +325,39 @@
   color: #DC2626;
 }
 
+.voucherText {
+  color: #B45309;
+}
+
+.boothVoucherBox {
+  padding: 10px 16px;
+  background: #FFFBEB;
+  border-top: 1px solid #FDE68A;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.boothVoucherRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.boothVoucherLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.boothVoucherValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: #B45309;
+  font-variant-numeric: tabular-nums;
+}
+
 .boothHeader {
   display: flex;
   align-items: center;

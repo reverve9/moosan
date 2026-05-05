@@ -353,7 +353,99 @@
   margin-right: 6px;
 }
 
-/* ── 자동 쿠폰 카드 (전화번호 기반) ── */
+/* ── 보유 쿠폰 라디오 리스트 ── */
+
+.couponOptionList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.couponOption {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.couponOption:hover:not(.couponOptionDisabled) {
+  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+}
+
+.couponOptionChecked {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+}
+
+.couponOptionDisabled {
+  opacity: 0.55;
+}
+
+.couponLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.couponOptionDisabled .couponLabel {
+  cursor: not-allowed;
+}
+
+.couponLabel input[type='radio'] {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+}
+
+.couponLabelBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.couponTitle {
+  font-size: var(--text-form-helper);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.couponSourceTag {
+  margin-left: 6px;
+  font-size: var(--text-form-caption);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.couponMeta {
+  font-size: var(--text-form-caption);
+  color: var(--color-text-muted);
+}
+
+.couponWarn {
+  font-size: var(--text-form-caption);
+  color: #B45309;
+  font-weight: 600;
+}
+
+.voucherBurnNotice {
+  margin-top: 10px;
+  padding: 10px 12px;
+  font-size: var(--text-form-caption);
+  font-weight: 600;
+  color: #B45309;
+  background: #FEF3C7;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-md);
+}
+
+/* ── 자동 쿠폰 카드 (전화번호 기반) — 더 이상 사용 안 함 ── */
 
 .autoCouponCard {
   display: flex;

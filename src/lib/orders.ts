@@ -19,13 +19,17 @@ import type { Order, OrderItem, Payment } from '@/types/database'
 
 export interface CreatePaymentInput {
   phone: string
-  /** 할인 적용 후 결제 실금액 (= subtotal - discountAmount). Toss 에 넘기는 금액 */
+  /** 할인 적용 후 결제 실금액 (= subtotal - discountAmount - voucherAmount).
+   *  PG 결제 금액과 일치. 전액 식권 결제 시 0 가능. */
   totalAmount: number
   items: CartItem[]
   festivalId?: string | null
-  /** 쿠폰 검증이 성공한 경우에만 전달 */
+  /** 쿠폰 검증이 성공한 경우에만 전달 (할인쿠폰/식권 공용 — 식권도 1결제 1장) */
   couponId?: string | null
+  /** 할인쿠폰 차감액 (식권은 별도 voucherDistributions 사용) */
   discountAmount?: number
+  /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움 */
+  voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
 }
 
 export interface CreatePaymentResult {
@@ -37,6 +41,7 @@ export interface CreatePaymentResult {
  * 결제 호출 직전에 호출.
  * 1) payments INSERT (status=pending, 트리거가 toss_order_id 자동 채움)
  * 2) 카트 → 부스별 group → 각 부스마다 orders INSERT + order_items INSERT
+ *    (voucherDistributions 가 있으면 부스 매칭으로 voucher_consumed/burned 채움)
  *
  * 어느 단계에서 실패하면 던짐. payments 는 ON DELETE CASCADE 로 orders/items
  * 까지 내려가므로 호출자에서 복구 필요 시 payment.id 로 delete 가능.
@@ -70,11 +75,21 @@ export async function createPendingPayment(
     groups.set(item.boothId, list)
   }
 
+  // 식권 분배 lookup
+  const distMap = new Map<string, { voucherConsumed: number; voucherBurned: number }>()
+  for (const d of input.voucherDistributions ?? []) {
+    distMap.set(d.boothId, {
+      voucherConsumed: d.voucherConsumed,
+      voucherBurned: d.voucherBurned,
+    })
+  }
+
   // 3) 부스별 orders + items
   const createdOrders: Order[] = []
   for (const [boothId, boothItems] of groups) {
     const first = boothItems[0]
     const subtotal = boothItems.reduce((sum, it) => sum + it.price * it.quantity, 0)
+    const dist = distMap.get(boothId)
 
     const { data: order, error: oErr } = await supabase
       .from('orders')
@@ -84,6 +99,8 @@ export async function createPendingPayment(
         booth_no: first.boothNo,
         booth_name: first.boothName,
         subtotal,
+        voucher_consumed: dist?.voucherConsumed ?? 0,
+        voucher_burned: dist?.voucherBurned ?? 0,
         phone: input.phone,
         status: 'pending',
         festival_id: input.festivalId ?? null,
@@ -125,14 +142,20 @@ export async function createPendingPayment(
  */
 export async function markPaymentPaid(
   paymentId: string,
-  paymentKey: string,
+  paymentKey: string | null,
 ): Promise<void> {
   const now = new Date().toISOString()
 
-  // 1) payments → paid
+  // 1) payments → paid (전액 식권 결제 시 paymentKey=null — payment_key 그대로 NULL 유지)
+  const updatePayload: { status: 'paid'; paid_at: string; payment_key?: string } = {
+    status: 'paid',
+    paid_at: now,
+  }
+  if (paymentKey) updatePayload.payment_key = paymentKey
+
   const { data: payment, error: pErr } = await supabase
     .from('payments')
-    .update({ status: 'paid', payment_key: paymentKey, paid_at: now })
+    .update(updatePayload)
     .eq('id', paymentId)
     .select()
     .single()

@@ -6,9 +6,14 @@ import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
 import { getTossPayments } from '@/lib/toss'
-import { createPendingPayment } from '@/lib/orders'
-import { fetchAvailableCouponByPhone, validateCouponByCode } from '@/lib/coupons'
-import type { Coupon } from '@/types/database'
+import { createPendingPayment, markPaymentPaid } from '@/lib/orders'
+import {
+  fetchAvailableCouponsByPhone,
+  validateCouponByCode,
+  calcVoucherSettlement,
+  VOUCHER_SOURCE_LABEL,
+  type AvailableCouponOption,
+} from '@/lib/coupons'
 import { formatPhone, isValidPhone, normalizePhone, saveLastPhone } from '@/lib/phone'
 import {
   fetchAllBoothWaitingCounts,
@@ -42,24 +47,34 @@ function groupByBooth(items: CartItem[]): BoothGroup[] {
   return Array.from(map.values())
 }
 
+/** 라디오 키. 'none' 또는 옵션의 couponId */
+type RadioKey = 'none' | string
+
+function optionKey(opt: AvailableCouponOption): string {
+  return opt.couponId
+}
+
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { items, totalAmount, totalCount } = useCart()
+  const { items, totalAmount, totalCount, clear } = useCart()
   const { showToast } = useToast()
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(new Map())
-  // 쿠폰 — 수동 코드 입력 경로 (AdminCoupons 로 수동발급된 쿠폰용)
+
+  // ── 쿠폰 ──
+  // 보유 쿠폰 (전화번호 → 자동 조회). 식권 + 할인쿠폰 통합.
+  const [availableOptions, setAvailableOptions] = useState<AvailableCouponOption[]>([])
+  // 수동 코드 입력으로 추가된 옵션 (1개) — 선택해도 자동 조회 결과와 통합 표시
+  const [manualOption, setManualOption] = useState<AvailableCouponOption | null>(null)
+  // 라디오 선택 — 'none' default (정책: 자동 추천 X)
+  const [selectedKey, setSelectedKey] = useState<RadioKey>('none')
+
+  // 수동 코드 입력 폼
   const [couponCode, setCouponCode] = useState('')
   const [couponError, setCouponError] = useState<string | null>(null)
   const [couponApplying, setCouponApplying] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<
-    { id: string; code: string; discount: number } | null
-  >(null)
-  // 전화번호 기반 자동 쿠폰 — 설문조사 자동발급분
-  const [autoCoupon, setAutoCoupon] = useState<Coupon | null>(null)
-  const [autoCouponDismissed, setAutoCouponDismissed] = useState(false)
 
   // 빈 장바구니면 카트로 돌려보냄
   useEffect(() => {
@@ -78,42 +93,84 @@ export default function CheckoutPage() {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.length])
 
   const groups = useMemo(() => groupByBooth(items), [items])
   const phoneValid = isValidPhone(phone)
   const phoneError = touched && !phoneValid ? '올바른 휴대폰 번호를 입력해주세요' : undefined
 
-  // 전화번호 11자리 완성 시 자동 쿠폰 조회
+  // 전화번호 11자리 완성 시 보유 쿠폰 일괄 조회
   useEffect(() => {
     if (!phoneValid) {
-      setAutoCoupon(null)
-      setAutoCouponDismissed(false)
+      setAvailableOptions([])
+      setManualOption(null)
+      setSelectedKey('none')
       return
     }
     let cancelled = false
-    fetchAvailableCouponByPhone(normalizePhone(phone))
-      .then((c) => {
-        if (!cancelled) setAutoCoupon(c)
+    fetchAvailableCouponsByPhone(normalizePhone(phone))
+      .then((opts) => {
+        if (!cancelled) setAvailableOptions(opts)
       })
       .catch(() => {
-        // 자동 조회 실패는 조용히 무시 (수동 코드 입력 경로는 살아있음)
-        if (!cancelled) setAutoCoupon(null)
+        if (!cancelled) setAvailableOptions([])
       })
     return () => {
       cancelled = true
     }
   }, [phone, phoneValid])
 
-  const discount = appliedCoupon?.discount ?? 0
-  const finalAmount = Math.max(0, totalAmount - discount)
+  // 보유 + 수동 옵션 통합 (couponId 중복 제거 — 수동으로 입력한 코드가 마침 보유쿠폰일 수도 있음)
+  const allOptions = useMemo<AvailableCouponOption[]>(() => {
+    if (!manualOption) return availableOptions
+    if (availableOptions.some((o) => o.couponId === manualOption.couponId)) {
+      return availableOptions
+    }
+    return [...availableOptions, manualOption]
+  }, [availableOptions, manualOption])
+
+  const selectedOption = useMemo<AvailableCouponOption | null>(() => {
+    if (selectedKey === 'none') return null
+    return allOptions.find((o) => optionKey(o) === selectedKey) ?? null
+  }, [allOptions, selectedKey])
+
+  // 결제 금액 계산
+  const calc = useMemo(() => {
+    if (!selectedOption) {
+      return { discount: 0, voucherConsumed: 0, voucherBurned: 0, finalAmount: totalAmount }
+    }
+    if (selectedOption.kind === 'discount') {
+      // 최소 주문액 미달이면 적용 안 함 (UI 에서도 disabled 처리)
+      if (totalAmount < selectedOption.minOrderAmount) {
+        return { discount: 0, voucherConsumed: 0, voucherBurned: 0, finalAmount: totalAmount }
+      }
+      const discount = Math.min(selectedOption.discount, totalAmount)
+      return {
+        discount,
+        voucherConsumed: 0,
+        voucherBurned: 0,
+        finalAmount: Math.max(0, totalAmount - discount),
+      }
+    }
+    // voucher
+    const settle = calcVoucherSettlement(
+      groups.map((g) => ({ boothId: g.boothId, subtotal: g.subtotal })),
+      selectedOption.amount,
+    )
+    return {
+      discount: 0,
+      voucherConsumed: settle.consumed,
+      voucherBurned: settle.burned,
+      finalAmount: settle.userPaid,
+      distributions: settle.distributions,
+    }
+  }, [selectedOption, totalAmount, groups])
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhone(formatPhone(e.target.value))
   }
 
-  const handleApplyCoupon = async () => {
+  const handleApplyManual = async () => {
     if (couponApplying) return
     const code = couponCode.trim()
     if (code.length === 0) return
@@ -121,59 +178,42 @@ export default function CheckoutPage() {
     setCouponError(null)
     try {
       const result = await validateCouponByCode(code, totalAmount)
-      if (!result.valid || !result.couponId) {
-        setCouponError(result.error ?? '쿠폰 적용 실패')
-        setAppliedCoupon(null)
+      if (!result.valid) {
+        setCouponError(result.error)
         return
       }
-      setAppliedCoupon({
-        id: result.couponId,
-        code: result.code ?? code.toUpperCase(),
-        discount: result.discount ?? 0,
-      })
-      showToast('쿠폰이 적용됐어요', { type: 'success' })
-    } catch (e) {
-      setCouponError(e instanceof Error ? e.message : '쿠폰 적용 실패')
-      setAppliedCoupon(null)
-    } finally {
-      setCouponApplying(false)
-    }
-  }
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null)
-    setCouponCode('')
-    setCouponError(null)
-    // 자동 쿠폰을 해제한 경우 다시 카드로 제안하지 않도록 dismiss
-    if (autoCoupon) setAutoCouponDismissed(true)
-  }
-
-  const handleApplyAutoCoupon = async () => {
-    if (!autoCoupon || couponApplying) return
-    setCouponApplying(true)
-    setCouponError(null)
-    try {
-      // 서버 검증 재사용 (min_order_amount, status, expires_at)
-      const result = await validateCouponByCode(autoCoupon.code, totalAmount)
-      if (!result.valid || !result.couponId) {
-        setCouponError(result.error ?? '쿠폰 적용 실패')
-        return
+      // 응답을 AvailableCouponOption 형태로 변환
+      let opt: AvailableCouponOption
+      if (result.type === 'discount') {
+        opt = {
+          kind: 'discount',
+          couponId: result.couponId,
+          code: result.code,
+          discount: result.discount,
+          // validate API 응답엔 minOrderAmount 가 직접 안 옴 — 검증이 통과한 상태라
+          // 현재 totalAmount 로는 사용 가능. 하한선은 0 으로 두면 안전.
+          minOrderAmount: 0,
+        }
+      } else {
+        // 식권은 manual 입력 경로로 들어와도 single row — remainingCount=1
+        opt = {
+          kind: 'voucher',
+          couponId: result.couponId,
+          code: result.code,
+          amount: result.voucherAmount,
+          source: 'voucher_other',
+          remainingCount: 1,
+        }
       }
-      setAppliedCoupon({
-        id: result.couponId,
-        code: result.code ?? autoCoupon.code,
-        discount: result.discount ?? autoCoupon.discount_amount,
-      })
+      setManualOption(opt)
+      setSelectedKey(opt.couponId)
+      setCouponCode('')
       showToast('쿠폰이 적용됐어요', { type: 'success' })
     } catch (e) {
       setCouponError(e instanceof Error ? e.message : '쿠폰 적용 실패')
     } finally {
       setCouponApplying(false)
     }
-  }
-
-  const handleDismissAutoCoupon = () => {
-    setAutoCouponDismissed(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,9 +227,7 @@ export default function CheckoutPage() {
     setSubmitting(true)
 
     try {
-      // 0) sold-out 재검증 — Festival 페이지의 realtime 구독을 거치지 않고
-      //    카트 진입(localStorage 복원, 다른 탭 등)한 케이스 안전망. 부스가
-      //    품절 토글한 메뉴가 카트에 남아 있으면 결제 자체를 막는다.
+      // 0) sold-out 재검증
       const menuIds = items.map((i) => i.menuId)
       const { data: latestMenus, error: menuErr } = await supabase
         .from('food_menus')
@@ -211,26 +249,68 @@ export default function CheckoutPage() {
         return
       }
 
-      // DB/API 저장용 — 하이픈 제거 (01012345678)
+      // 1) 쿠폰 race 재검증 — 선택돼 있으면 결제 직전에 server-side 한 번 더
+      let validatedCouponId: string | null = null
+      let validatedDiscount = 0
+      let validatedVoucherAmount = 0 // 식권 액면가
+      if (selectedOption) {
+        const code = selectedOption.code
+        const result = await validateCouponByCode(code, totalAmount)
+        if (!result.valid) {
+          showToast(result.error, { type: 'error' })
+          setSubmitting(false)
+          return
+        }
+        validatedCouponId = result.couponId
+        if (result.type === 'discount') {
+          validatedDiscount = result.discount
+        } else {
+          validatedVoucherAmount = result.voucherAmount
+        }
+      }
+
+      // 2) 식권 정산 분배 (선택된 게 식권일 때만)
+      const isVoucher = !!selectedOption && selectedOption.kind === 'voucher'
+      const settle = isVoucher
+        ? calcVoucherSettlement(
+            groups.map((g) => ({ boothId: g.boothId, subtotal: g.subtotal })),
+            validatedVoucherAmount,
+          )
+        : null
+
+      const finalAmount = isVoucher
+        ? settle!.userPaid
+        : Math.max(0, totalAmount - validatedDiscount)
+
       const normalizedPhone = normalizePhone(phone)
 
-      // 1) payments + 부스별 orders + order_items INSERT (status: pending)
-      //    - 트리거가 payments.toss_order_id 자동 채움 (전역 sequence)
-      //    - 트리거가 orders.order_number 자동 채움 (부스별 누적)
-      //    - 쿠폰 적용 시 할인 후 금액을 total_amount 로 저장
+      // 3) payments + 부스별 orders + order_items INSERT (status: pending)
       const { payment } = await createPendingPayment({
         phone: normalizedPhone,
         totalAmount: finalAmount,
         items,
-        couponId: appliedCoupon?.id ?? null,
-        discountAmount: discount,
+        couponId: validatedCouponId,
+        discountAmount: isVoucher ? 0 : validatedDiscount,
+        voucherDistributions: isVoucher
+          ? settle!.distributions.map((d) => ({
+              boothId: d.boothId,
+              voucherConsumed: d.voucherConsumed,
+              voucherBurned: d.voucherBurned,
+            }))
+          : undefined,
       })
 
-      // 결제 시도하는 phone 을 localStorage 에 저장 → /cart 의 주문 내역 섹션 auto-prefill
-      // (UI 표시용이므로 포맷된 값 그대로)
       saveLastPhone(phone)
 
-      // 2) 토스 결제창 호출 (orderId = payments.toss_order_id)
+      // 4) 전액 식권 결제 (userPaid=0) — Toss 우회
+      if (isVoucher && finalAmount === 0) {
+        await markPaymentPaid(payment.id, null)
+        clear()
+        navigate(`/order/${payment.id}?from=checkout`, { replace: true })
+        return
+      }
+
+      // 5) Toss 결제창 호출
       const tossPayments = await getTossPayments()
       const firstItem = items[0]
       const orderName =
@@ -251,7 +331,6 @@ export default function CheckoutPage() {
     } catch (err) {
       setSubmitting(false)
       const message = err instanceof Error ? err.message : '결제 호출 중 오류가 발생했습니다'
-      // 토스 SDK 가 사용자 취소도 throw 하므로 메시지로 분기
       if (/취소/.test(message) || /USER_CANCEL/.test(message)) {
         showToast('결제를 취소했어요', { type: 'info' })
       } else {
@@ -315,92 +394,131 @@ export default function CheckoutPage() {
           />
         </div>
 
-        {/* ─── 자동 쿠폰 카드 (전화번호 기반) ─── */}
-        {phoneValid && !appliedCoupon && autoCoupon && !autoCouponDismissed && (
-          <div className={styles.autoCouponCard}>
-            <div className={styles.autoCouponIcon}>🎟</div>
-            <div className={styles.autoCouponBody}>
-              <div className={styles.autoCouponTitle}>
-                {autoCoupon.discount_amount.toLocaleString()}원 할인 쿠폰
-              </div>
-              <div className={styles.autoCouponMeta}>
-                {(autoCoupon.min_order_amount ?? 0).toLocaleString()}원 이상 주문 시 사용 가능
-              </div>
-              {totalAmount < (autoCoupon.min_order_amount ?? 0) && (
-                <div className={styles.autoCouponWarn}>
-                  최소 주문액 미달 — {((autoCoupon.min_order_amount ?? 0) - totalAmount).toLocaleString()}원 부족
-                </div>
-              )}
-            </div>
-            <div className={styles.autoCouponActions}>
-              <button
-                type="button"
-                className={styles.autoCouponApply}
-                onClick={handleApplyAutoCoupon}
-                disabled={
-                  couponApplying || totalAmount < (autoCoupon.min_order_amount ?? 0)
+        {/* ─── 보유 쿠폰 라디오 (전화번호 입력 후) ─── */}
+        {phoneValid && allOptions.length > 0 && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>보유 쿠폰</h3>
+            <ul className={styles.couponOptionList}>
+              {allOptions.map((opt) => {
+                const key = optionKey(opt)
+                const checked = selectedKey === key
+                if (opt.kind === 'discount') {
+                  const disabled = totalAmount < opt.minOrderAmount
+                  return (
+                    <li
+                      key={key}
+                      className={`${styles.couponOption} ${checked ? styles.couponOptionChecked : ''} ${disabled ? styles.couponOptionDisabled : ''}`}
+                    >
+                      <label className={styles.couponLabel}>
+                        <input
+                          type="radio"
+                          name="coupon"
+                          value={key}
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => setSelectedKey(key)}
+                        />
+                        <span className={styles.couponLabelBody}>
+                          <span className={styles.couponTitle}>
+                            할인쿠폰 -{opt.discount.toLocaleString()}원
+                          </span>
+                          {opt.minOrderAmount > 0 && (
+                            <span className={styles.couponMeta}>
+                              {opt.minOrderAmount.toLocaleString()}원 이상 주문 시
+                            </span>
+                          )}
+                          {disabled && (
+                            <span className={styles.couponWarn}>
+                              최소 주문액 미달
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    </li>
+                  )
                 }
+                return (
+                  <li
+                    key={key}
+                    className={`${styles.couponOption} ${checked ? styles.couponOptionChecked : ''}`}
+                  >
+                    <label className={styles.couponLabel}>
+                      <input
+                        type="radio"
+                        name="coupon"
+                        value={key}
+                        checked={checked}
+                        onChange={() => setSelectedKey(key)}
+                      />
+                      <span className={styles.couponLabelBody}>
+                        <span className={styles.couponTitle}>
+                          식권 {opt.amount.toLocaleString()}원
+                          <span className={styles.couponSourceTag}>
+                            [{VOUCHER_SOURCE_LABEL[opt.source]}]
+                          </span>
+                        </span>
+                        <span className={styles.couponMeta}>
+                          남은 장수: {opt.remainingCount}장
+                        </span>
+                      </span>
+                    </label>
+                  </li>
+                )
+              })}
+              <li
+                className={`${styles.couponOption} ${selectedKey === 'none' ? styles.couponOptionChecked : ''}`}
               >
-                {couponApplying ? '…' : '적용'}
-              </button>
-              <button
-                type="button"
-                className={styles.autoCouponDismiss}
-                onClick={handleDismissAutoCoupon}
-              >
-                사용 안 함
-              </button>
-            </div>
+                <label className={styles.couponLabel}>
+                  <input
+                    type="radio"
+                    name="coupon"
+                    value="none"
+                    checked={selectedKey === 'none'}
+                    onChange={() => setSelectedKey('none')}
+                  />
+                  <span className={styles.couponLabelBody}>
+                    <span className={styles.couponTitle}>사용 안 함</span>
+                  </span>
+                </label>
+              </li>
+            </ul>
+
+            {/* 식권 잔액 소멸 안내 */}
+            {selectedOption?.kind === 'voucher' && calc.voucherBurned > 0 && (
+              <div className={styles.voucherBurnNotice}>
+                ※ 식권 잔액 {calc.voucherBurned.toLocaleString()}원은 결제와 함께 소멸됩니다
+              </div>
+            )}
           </div>
         )}
 
         {/* ─── 쿠폰 (수동 코드 입력) ─── */}
         <div className={styles.section}>
-          <h3 className={styles.sectionTitle}>쿠폰</h3>
-          {appliedCoupon ? (
-            <div className={styles.couponApplied}>
-              <div className={styles.couponAppliedLeft}>
-                <span className={styles.couponAppliedCode}>{appliedCoupon.code}</span>
-                <span className={styles.couponAppliedDiscount}>
-                  -{appliedCoupon.discount.toLocaleString()}원
-                </span>
-              </div>
-              <button
-                type="button"
-                className={styles.couponRemoveBtn}
-                onClick={handleRemoveCoupon}
-              >
-                취소
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className={styles.couponInputRow}>
-                <input
-                  type="text"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="예: MS-ABC123"
-                  className={styles.couponInput}
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  className={styles.couponApplyBtn}
-                  onClick={handleApplyCoupon}
-                  disabled={couponApplying || couponCode.trim().length === 0}
-                >
-                  {couponApplying ? '확인 중…' : '적용'}
-                </button>
-              </div>
-              {couponError && <div className={styles.couponError}>{couponError}</div>}
-              <p className={styles.couponHint}>
-                10,000원 이상 주문 시 사용 가능합니다
-              </p>
-            </>
-          )}
+          <h3 className={styles.sectionTitle}>쿠폰 코드 입력</h3>
+          <div className={styles.couponInputRow}>
+            <input
+              type="text"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="예: MS-ABC123"
+              className={styles.couponInput}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+            <button
+              type="button"
+              className={styles.couponApplyBtn}
+              onClick={handleApplyManual}
+              disabled={couponApplying || couponCode.trim().length === 0}
+            >
+              {couponApplying ? '확인 중…' : '적용'}
+            </button>
+          </div>
+          {couponError && <div className={styles.couponError}>{couponError}</div>}
+          <p className={styles.couponHint}>
+            발급받은 코드를 직접 입력할 수 있어요
+          </p>
         </div>
       </form>
 
@@ -433,12 +551,12 @@ export default function CheckoutPage() {
         <div className={styles.checkoutInner}>
           <div className={styles.checkoutTotal}>
             <span className={styles.totalLabel}>총 {totalCount}개 · 결제금액</span>
-            {discount > 0 ? (
+            {(calc.discount > 0 || calc.voucherConsumed > 0) ? (
               <span className={styles.totalAmount}>
                 <span className={styles.totalStrike}>
                   {totalAmount.toLocaleString()}원
                 </span>{' '}
-                {finalAmount.toLocaleString()}원
+                {calc.finalAmount.toLocaleString()}원
               </span>
             ) : (
               <span className={styles.totalAmount}>
@@ -452,7 +570,11 @@ export default function CheckoutPage() {
             onClick={handleSubmit}
             disabled={!phoneValid || submitting}
           >
-            {submitting ? '결제창 여는 중…' : '결제하기'}
+            {submitting
+              ? '결제창 여는 중…'
+              : calc.finalAmount === 0 && selectedOption?.kind === 'voucher'
+                ? '식권 결제하기'
+                : '결제하기'}
           </button>
         </div>
       </div>
