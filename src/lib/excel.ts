@@ -41,6 +41,47 @@ export async function exportToExcel(
   XLSX.writeFile(wb, `${fileName}.xlsx`)
 }
 
+/**
+ * 여러 시트를 한 워크북으로 묶어 .xlsx 다운로드.
+ * 정산관리 같이 "전체/매장별 × 일별/종합" 4시트 묶음 export 용.
+ */
+export interface ExcelSheet {
+  name: string
+  rows: Record<string, unknown>[]
+  columns: { key: string; label: string }[]
+}
+
+export async function exportToExcelMultiSheet(
+  sheets: ExcelSheet[],
+  fileName: string,
+): Promise<void> {
+  const XLSX = await loadXLSX()
+  const wb = XLSX.utils.book_new()
+  for (const sheet of sheets) {
+    const header = sheet.columns.map((c) => c.label)
+    const data = sheet.rows.map((row) =>
+      sheet.columns.map((c) => {
+        const v = row[c.key]
+        if (v === null || v === undefined) return ''
+        if (v instanceof Date) return v.toISOString()
+        return v
+      }),
+    )
+    const ws = XLSX.utils.aoa_to_sheet([header, ...data])
+    ws['!cols'] = sheet.columns.map((c, idx) => {
+      const maxLen = Math.max(
+        c.label.length,
+        ...data.map((row) => String(row[idx] ?? '').length),
+      )
+      return { wch: Math.min(Math.max(maxLen + 2, 8), 40) }
+    })
+    // sheet name 31자 제한 + 일부 특수문자 금지
+    const safeName = sheet.name.replace(/[\\/:*?[\]]/g, '_').slice(0, 31)
+    XLSX.utils.book_append_sheet(wb, ws, safeName)
+  }
+  XLSX.writeFile(wb, `${fileName}.xlsx`)
+}
+
 /** .xlsx / .xls / .csv 파일 → 객체 배열. 첫 행을 헤더로 사용 */
 export async function importFromExcel(
   file: File,

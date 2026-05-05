@@ -19,6 +19,7 @@ import { isDevMode } from '@/config/flags'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
 import AdminRevenue from '@/pages/admin/AdminRevenue'
+import AdminSettlement from '@/pages/admin/settlement/AdminSettlement'
 import AdminSurvey from '@/pages/admin/AdminSurvey'
 import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminContentDetail from '@/pages/admin/AdminContentDetail'
@@ -77,6 +78,7 @@ function AdminRoutes() {
         <Route path="applications" element={<AdminApplications />} />
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="revenue" element={<AdminRevenue />} />
+        <Route path="settlement" element={<AdminSettlement />} />
         <Route path="survey" element={<AdminSurvey />} />
         <Route path="content/musan" element={<AdminContentDetail slug="musan" />} />
         <Route path="content/youth" element={<AdminContentDetail slug="youth" />} />

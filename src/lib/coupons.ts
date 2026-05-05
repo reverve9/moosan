@@ -500,6 +500,198 @@ export async function fetchCouponStats(filters: {
   }
 }
 
+// ─── v4: 식권 / 할인쿠폰 분리 통계 ────────────────────────
+
+export interface VoucherSourceStat {
+  source: VoucherSource
+  /** 발급 매수 */
+  issuedCount: number
+  /** 발급 액면 합계 */
+  issuedTotal: number
+  /** 사용 매수 */
+  usedCount: number
+  /** 사용된 식권 액면 합계 (= 운영자 부담 가산) */
+  usedFaceValue: number
+}
+
+export interface VoucherStats {
+  /** source별 분리 */
+  bySource: VoucherSourceStat[]
+  /** 전체 합계 */
+  totalIssuedCount: number
+  totalIssuedFaceValue: number
+  totalUsedCount: number
+  totalUsedFaceValue: number
+  /** orders 기준 — 실제 차감액 */
+  organizerCost: number
+  /** orders 기준 — 잔액 소멸 */
+  burned: number
+  /** 사용률 (used / issued) */
+  usageRate: number
+  /** 미사용 매수 (만료 또는 active) */
+  unusedCount: number
+  /** 미사용 액면 합계 */
+  unusedFaceValue: number
+}
+
+export type DiscountSourceLabel =
+  | 'auto_survey'
+  | 'manual_compensation'
+  | 'manual_external'
+
+export interface DiscountSourceStat {
+  source: DiscountSourceLabel
+  issuedCount: number
+  usedCount: number
+  /** 사용 완료된 쿠폰의 할인액 합계 */
+  totalDiscount: number
+}
+
+export interface DiscountStatsBySource {
+  bySource: DiscountSourceStat[]
+}
+
+/**
+ * 식권 운영 통계 — coupons + orders 두 테이블에서 합산.
+ * coupons.created_at 기준 기간 필터.
+ */
+export async function fetchVoucherStats(filters: {
+  dateFrom?: string
+  dateTo?: string
+}): Promise<VoucherStats> {
+  let cq = supabase.from('coupons').select().eq('type', 'meal_voucher')
+  if (filters.dateFrom) {
+    cq = cq.gte('created_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
+  }
+  if (filters.dateTo) {
+    cq = cq.lt('created_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
+  }
+  const { data: coupons, error: cErr } = await cq
+  if (cErr) throw cErr
+
+  // orders 기준 차감/소멸 합계 — paid_at 기준은 매장 정산이고
+  // 여기서는 발급 기간 필터(쿠폰 created_at)를 따라가므로 coupons 검색결과의 used_payment_id 만 추적
+  const usedPaymentIds = (coupons ?? [])
+    .map((c) => c.used_payment_id)
+    .filter((v): v is string => !!v)
+  let organizerCost = 0
+  let burned = 0
+  if (usedPaymentIds.length > 0) {
+    const { data: orderRows, error: oErr } = await supabase
+      .from('orders')
+      .select('payment_id, voucher_consumed, voucher_burned')
+      .in('payment_id', usedPaymentIds)
+      .neq('status', 'cancelled')
+    if (oErr) throw oErr
+    for (const o of orderRows ?? []) {
+      organizerCost += o.voucher_consumed
+      burned += o.voucher_burned
+    }
+  }
+
+  // source별 합산
+  const sources: VoucherSource[] = [
+    'voucher_participant',
+    'voucher_staff',
+    'voucher_vip',
+    'voucher_other',
+  ]
+  const bySource: VoucherSourceStat[] = sources.map((s) => ({
+    source: s,
+    issuedCount: 0,
+    issuedTotal: 0,
+    usedCount: 0,
+    usedFaceValue: 0,
+  }))
+  let totalIssuedCount = 0
+  let totalIssuedFaceValue = 0
+  let totalUsedCount = 0
+  let totalUsedFaceValue = 0
+  let unusedCount = 0
+  let unusedFaceValue = 0
+
+  for (const c of coupons ?? []) {
+    const bucket = bySource.find((b) => b.source === c.source)
+    totalIssuedCount += 1
+    totalIssuedFaceValue += c.discount_amount
+    if (bucket) {
+      bucket.issuedCount += 1
+      bucket.issuedTotal += c.discount_amount
+    }
+    if (c.status === 'used') {
+      totalUsedCount += 1
+      totalUsedFaceValue += c.discount_amount
+      if (bucket) {
+        bucket.usedCount += 1
+        bucket.usedFaceValue += c.discount_amount
+      }
+    } else {
+      unusedCount += 1
+      unusedFaceValue += c.discount_amount
+    }
+  }
+
+  return {
+    bySource,
+    totalIssuedCount,
+    totalIssuedFaceValue,
+    totalUsedCount,
+    totalUsedFaceValue,
+    organizerCost,
+    burned,
+    usageRate: totalIssuedCount > 0 ? totalUsedCount / totalIssuedCount : 0,
+    unusedCount,
+    unusedFaceValue,
+  }
+}
+
+/**
+ * 할인쿠폰 source별 통계 — type='discount' 한정.
+ * auto_survey / manual_compensation / manual_external 3개 카테고리.
+ */
+export async function fetchDiscountStatsBySource(filters: {
+  dateFrom?: string
+  dateTo?: string
+}): Promise<DiscountStatsBySource> {
+  let q = supabase.from('coupons').select().eq('type', 'discount')
+  if (filters.dateFrom) {
+    q = q.gte('created_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
+  }
+  if (filters.dateTo) {
+    q = q.lt('created_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
+  }
+  const { data, error } = await q
+  if (error) throw error
+
+  const sources: DiscountSourceLabel[] = [
+    'auto_survey',
+    'manual_compensation',
+    'manual_external',
+  ]
+  const bySource: DiscountSourceStat[] = sources.map((s) => ({
+    source: s,
+    issuedCount: 0,
+    usedCount: 0,
+    totalDiscount: 0,
+  }))
+  for (const c of data ?? []) {
+    const bucket = bySource.find((b) => b.source === c.source)
+    if (!bucket) continue
+    bucket.issuedCount += 1
+    if (c.status === 'used') {
+      bucket.usedCount += 1
+      bucket.totalDiscount += c.discount_amount
+    }
+  }
+  return { bySource }
+}
+
+export const DISCOUNT_SOURCE_LABEL: Record<DiscountSourceLabel, string> = {
+  auto_survey: '자동 발급 (만족도조사)',
+  manual_compensation: '수동 — 민원 보상',
+  manual_external: '수동 — 외부업체',
+}
+
 // ─── Client-side validate 호출 ─────────────────────────────
 
 export type ValidateCouponResponse =
