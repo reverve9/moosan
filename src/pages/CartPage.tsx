@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
 import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { supabase } from '@/lib/supabase'
 import { formatPhone, isValidPhone, loadLastPhone, normalizePhone } from '@/lib/phone'
 import styles from './CartPage.module.css'
@@ -333,6 +334,7 @@ export default function CartPage() {
                 hour: '2-digit',
                 minute: '2-digit',
               })
+              const { counter, full } = parseOrderNumber(order.order_number)
               return (
                 <li key={order.id}>
                   <Link to={`/order/${entry.paymentId}`} className={styles.orderCard}>
@@ -342,7 +344,9 @@ export default function CartPage() {
                     <div className={styles.orderBody}>
                       <div className={styles.orderHead}>
                         <span className={styles.orderNumber}>
-                          {order.booth_name ?? ''} · {order.order_number}
+                          <span className={styles.orderBooth}>{order.booth_name ?? ''}</span>
+                          <span className={styles.orderCounter}>{counter}</span>
+                          <span className={styles.orderFullCode}>{full}</span>
                         </span>
                         <span className={styles.orderTime}>{orderTime}</span>
                       </div>

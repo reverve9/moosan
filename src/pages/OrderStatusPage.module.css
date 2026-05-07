@@ -274,7 +274,23 @@
 }
 
 .booth_ready {
-  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.booth_ready .callNumber {
+  color: var(--color-primary);
+}
+
+.booth_preparing .callNumber {
+  color: color-mix(in srgb, #b45309 90%, var(--color-text));
+}
+
+.booth_cancelled .callNumber {
+  color: #B91C1C;
+  text-decoration: line-through;
+  text-decoration-thickness: 4px;
+  opacity: 0.7;
 }
 
 .booth_cancelled {
@@ -360,24 +376,50 @@
 
 .boothHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.boothName {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text);
+.boothHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.orderNo {
+.boothName {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.callNumberBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 0;
+}
+
+.callNumber {
+  font-size: 60px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.orderNoFull {
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .boothStatusBadge {

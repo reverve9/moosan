@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
@@ -345,19 +346,23 @@ export default function OrderStatusPage() {
             {orders.map(({ order, items }) => {
               const boothStatus = computeBoothStatus(order)
               const isCancelled = boothStatus === 'cancelled'
+              const { counter, full } = parseOrderNumber(order.order_number)
               return (
                 <li
                   key={order.id}
                   className={`${styles.boothGroup} ${styles[`booth_${boothStatus}`]}`}
                 >
                   <div className={styles.boothHeader}>
-                    <span className={styles.boothName}>
-                      {order.booth_name}
-                      <span className={styles.orderNo}> · {order.order_number}</span>
-                    </span>
-                    <span className={styles.boothStatusBadge}>
-                      {boothStatusLabel(boothStatus, order)}
-                    </span>
+                    <div className={styles.boothHeaderTop}>
+                      <span className={styles.boothName}>{order.booth_name}</span>
+                      <span className={styles.boothStatusBadge}>
+                        {boothStatusLabel(boothStatus, order)}
+                      </span>
+                    </div>
+                    <div className={styles.callNumberBlock}>
+                      <span className={styles.callNumber}>{counter}</span>
+                      <span className={styles.orderNoFull}>{full}</span>
+                    </div>
                   </div>
                   {isCancelled && order.cancel_reason && (
                     <div className={styles.boothCancelBox}>
