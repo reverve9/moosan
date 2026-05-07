@@ -573,6 +573,7 @@ function MenuItemRow({
       quantity: pendingQty,
       imageUrl: menu.image_url ?? undefined,
       acceptsTakeout: menu.accepts_takeout ?? true,
+      isTakeout: false,
     })
     showToast(`장바구니에 ${pendingQty}개 담았어요`)
     setPendingQty(1)

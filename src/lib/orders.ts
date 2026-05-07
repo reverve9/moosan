@@ -28,10 +28,9 @@ export interface CreatePaymentInput {
   couponId?: string | null
   /** 할인쿠폰 차감액 (식권은 별도 voucherDistributions 사용) */
   discountAmount?: number
-  /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움 */
+  /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움.
+   *  같은 부스가 포장/매장으로 split 되면 첫 split-order 에 몰아서 기록. */
   voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
-  /** 부스별 포장 선택. boothId → true(포장)/false(매장). 미설정 부스는 매장. */
-  isTakeoutByBooth?: Record<string, boolean>
 }
 
 export interface CreatePaymentResult {
@@ -69,18 +68,31 @@ export async function createPendingPayment(
     throw new Error(`결제 생성 실패: ${pErr?.message ?? 'unknown'}`)
   }
 
-  // 2) 부스별 group — 포장 모드면 acceptsTakeout=false 아이템은 제외
-  const takeoutMap = input.isTakeoutByBooth ?? {}
-  const groups = new Map<string, CartItem[]>()
+  // 2) (boothId, isTakeout) group — 같은 부스라도 포장/매장 섞이면 split 됨.
+  //    포장 불가 메뉴는 isTakeout 강제 false (스토어가 보장하지만 방어적으로 한 번 더).
+  interface OrderGroup {
+    boothId: string
+    isTakeout: boolean
+    items: CartItem[]
+  }
+  const groupMap = new Map<string, OrderGroup>()
+  // boothId 별로 처음 등장한 group key 를 기록 — 식권은 첫 split-order 에 몰아서 기록.
+  const firstGroupKeyByBooth = new Map<string, string>()
   for (const item of input.items) {
-    const isTakeout = takeoutMap[item.boothId] === true
-    if (isTakeout && item.acceptsTakeout === false) continue
-    const list = groups.get(item.boothId) ?? []
-    list.push(item)
-    groups.set(item.boothId, list)
+    const safeTakeout = item.acceptsTakeout === false ? false : item.isTakeout
+    const key = `${item.boothId}:${safeTakeout ? 'T' : 'D'}`
+    let group = groupMap.get(key)
+    if (!group) {
+      group = { boothId: item.boothId, isTakeout: safeTakeout, items: [] }
+      groupMap.set(key, group)
+      if (!firstGroupKeyByBooth.has(item.boothId)) {
+        firstGroupKeyByBooth.set(item.boothId, key)
+      }
+    }
+    group.items.push(item)
   }
 
-  // 식권 분배 lookup
+  // 식권 분배 lookup (boothId 단위)
   const distMap = new Map<string, { voucherConsumed: number; voucherBurned: number }>()
   for (const d of input.voucherDistributions ?? []) {
     distMap.set(d.boothId, {
@@ -89,18 +101,20 @@ export async function createPendingPayment(
     })
   }
 
-  // 3) 부스별 orders + items
+  // 3) split-그룹별 orders + items
   const createdOrders: Order[] = []
-  for (const [boothId, boothItems] of groups) {
-    const first = boothItems[0]
-    const subtotal = boothItems.reduce((sum, it) => sum + it.price * it.quantity, 0)
-    const dist = distMap.get(boothId)
+  for (const [groupKey, group] of groupMap) {
+    const first = group.items[0]
+    const subtotal = group.items.reduce((sum, it) => sum + it.price * it.quantity, 0)
+    // 식권은 부스별 첫 split-order 에만 기록 (나머지는 0)
+    const isFirstForBooth = firstGroupKeyByBooth.get(group.boothId) === groupKey
+    const dist = isFirstForBooth ? distMap.get(group.boothId) : undefined
 
     const { data: order, error: oErr } = await supabase
       .from('orders')
       .insert({
         payment_id: payment.id,
-        booth_id: boothId,
+        booth_id: group.boothId,
         booth_no: first.boothNo,
         booth_name: first.boothName,
         subtotal,
@@ -108,7 +122,7 @@ export async function createPendingPayment(
         voucher_burned: dist?.voucherBurned ?? 0,
         phone: input.phone,
         status: 'pending',
-        is_takeout: takeoutMap[boothId] === true,
+        is_takeout: group.isTakeout,
         festival_id: input.festivalId ?? null,
       })
       .select()
@@ -118,7 +132,7 @@ export async function createPendingPayment(
       throw new Error(`주문 생성 실패(${first.boothName}): ${oErr?.message ?? 'unknown'}`)
     }
 
-    const itemRows = boothItems.map((it) => ({
+    const itemRows = group.items.map((it) => ({
       order_id: order.id,
       menu_id: it.menuId,
       menu_name: it.menuName,

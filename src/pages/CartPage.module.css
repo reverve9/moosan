@@ -96,20 +96,18 @@
   color: var(--color-text-secondary);
 }
 
-/* ──────────────── 매장/포장 토글 ──────────────── */
+/* ──────────────── 매장/포장 토글 (라인 단위) ──────────────── */
 .takeoutToggleRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px var(--space-3) 10px;
-  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .takeoutBtn {
   display: inline-flex;
   align-items: center;
-  padding: 5px 14px;
-  font-size: 13px;
+  padding: 3px 10px;
+  font-size: 12px;
   font-weight: 600;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -128,20 +126,6 @@
   background-color: var(--color-primary);
   color: #FFFFFF;
   border-color: var(--color-primary);
-}
-
-.takeoutNotice {
-  font-size: 11px;
-  font-weight: 500;
-  color: #B45309;
-}
-
-.itemBlocked {
-  opacity: 0.45;
-}
-
-.itemBlocked .itemName {
-  text-decoration: line-through;
 }
 
 .itemTakeoutNoBadge {

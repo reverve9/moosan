@@ -88,7 +88,7 @@ function summarizeItems(items: OrderListEntry['items']): string {
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { items, totalAmount, totalCount, updateQuantity, removeItem, clear, boothTakeout, setBoothTakeout } = useCart()
+  const { items, totalAmount, totalCount, updateQuantity, removeItem, clear, setItemTakeout } = useCart()
 
   const groups = useMemo(() => groupByBooth(items), [items])
   const hasCart = items.length > 0
@@ -191,61 +191,20 @@ export default function CartPage() {
           </div>
 
           <ul className={styles.boothList}>
-            {groups.map((group) => {
-              const isTakeout = boothTakeout[group.boothId] ?? false
-              const allTakeoutOk = group.items.every((it) => it.acceptsTakeout !== false)
-              const anyTakeoutOk = group.items.some((it) => it.acceptsTakeout !== false)
-              const effectiveSubtotal = group.items.reduce(
-                (s, it) =>
-                  isTakeout && it.acceptsTakeout === false
-                    ? s
-                    : s + it.price * it.quantity,
-                0,
-              )
-              return (
+            {groups.map((group) => (
               <li key={group.boothId} className={styles.boothGroup}>
                 <div className={styles.boothHeader}>
                   <h4 className={styles.boothName}>{group.boothName}</h4>
                   <span className={styles.boothSubtotal}>
-                    {effectiveSubtotal.toLocaleString()}원
+                    {group.subtotal.toLocaleString()}원
                   </span>
-                </div>
-                <div className={styles.takeoutToggleRow}>
-                  <button
-                    type="button"
-                    className={`${styles.takeoutBtn} ${!isTakeout ? styles.takeoutBtnActive : ''}`}
-                    onClick={() => setBoothTakeout(group.boothId, false)}
-                    aria-pressed={!isTakeout}
-                  >
-                    매장
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.takeoutBtn} ${isTakeout ? styles.takeoutBtnActive : ''}`}
-                    onClick={() => {
-                      if (anyTakeoutOk) setBoothTakeout(group.boothId, true)
-                    }}
-                    disabled={!anyTakeoutOk}
-                    aria-pressed={isTakeout}
-                    title={!anyTakeoutOk ? '이 매장 메뉴는 모두 포장 불가' : undefined}
-                  >
-                    포장
-                  </button>
-                  {isTakeout && !allTakeoutOk && (
-                    <span className={styles.takeoutNotice}>
-                      포장 불가 메뉴는 주문에서 제외돼요
-                    </span>
-                  )}
                 </div>
                 <ul className={styles.itemList}>
                   {group.items.map((item) => {
                     const img = getAssetUrl(item.imageUrl ?? null)
-                    const itemBlocked = isTakeout && item.acceptsTakeout === false
+                    const takeoutLocked = item.acceptsTakeout === false
                     return (
-                      <li
-                        key={item.menuId}
-                        className={`${styles.item} ${itemBlocked ? styles.itemBlocked : ''}`}
-                      >
+                      <li key={item.menuId} className={styles.item}>
                         <div className={styles.itemThumb}>
                           {img ? (
                             <img src={img} alt={item.menuName} />
@@ -257,7 +216,7 @@ export default function CartPage() {
                           <div className={styles.itemHead}>
                             <span className={styles.itemName}>
                               {item.menuName}
-                              {item.acceptsTakeout === false && (
+                              {takeoutLocked && (
                                 <span className={styles.itemTakeoutNoBadge}>포장 불가</span>
                               )}
                             </span>
@@ -268,6 +227,28 @@ export default function CartPage() {
                               aria-label={`${item.menuName} 삭제`}
                             >
                               <Trash2 className={styles.removeIcon} />
+                            </button>
+                          </div>
+                          <div className={styles.takeoutToggleRow}>
+                            <button
+                              type="button"
+                              className={`${styles.takeoutBtn} ${!item.isTakeout ? styles.takeoutBtnActive : ''}`}
+                              onClick={() => setItemTakeout(item.menuId, false)}
+                              aria-pressed={!item.isTakeout}
+                            >
+                              매장
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.takeoutBtn} ${item.isTakeout ? styles.takeoutBtnActive : ''}`}
+                              onClick={() => {
+                                if (!takeoutLocked) setItemTakeout(item.menuId, true)
+                              }}
+                              disabled={takeoutLocked}
+                              aria-pressed={item.isTakeout}
+                              title={takeoutLocked ? '포장 불가 메뉴' : undefined}
+                            >
+                              포장
                             </button>
                           </div>
                           <div className={styles.itemBottom}>
@@ -304,8 +285,7 @@ export default function CartPage() {
                   })}
                 </ul>
               </li>
-              )
-            })}
+            ))}
           </ul>
         </div>
       )}
