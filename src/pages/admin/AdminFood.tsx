@@ -153,8 +153,11 @@ function TagChipInput({
 }
 
 function sortBoothsForAdmin(list: FoodBoothWithMenus[]): FoodBoothWithMenus[] {
-  // 부스번호 우선 (자연 정렬), 없으면 매장명 → created_at 폴백
+  // 물리 위치 순서 (sort_order) 우선 → 부스번호 자연정렬 → 매장명 폴백
   return [...list].sort((a, b) => {
+    const ao = a.sort_order ?? 0
+    const bo = b.sort_order ?? 0
+    if (ao !== bo) return ao - bo
     const an = a.booth_no ?? ''
     const bn = b.booth_no ?? ''
     if (an && bn) return an.localeCompare(bn, undefined, { numeric: true })
