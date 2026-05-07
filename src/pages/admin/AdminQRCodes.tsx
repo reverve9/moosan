@@ -10,6 +10,22 @@ interface BoothRow {
   id: string
   booth_no: string | null
   name: string
+  sort_order: number | null
+}
+
+function sortBoothsForAdmin(list: BoothRow[]): BoothRow[] {
+  // 물리 위치 순서 (sort_order) 우선 → 부스번호 자연정렬 → 매장명 폴백
+  return [...list].sort((a, b) => {
+    const ao = a.sort_order ?? 0
+    const bo = b.sort_order ?? 0
+    if (ao !== bo) return ao - bo
+    const an = a.booth_no ?? ''
+    const bn = b.booth_no ?? ''
+    if (an && bn) return an.localeCompare(bn, undefined, { numeric: true })
+    if (an) return -1
+    if (bn) return 1
+    return a.name.localeCompare(b.name)
+  })
 }
 
 const QR_SIZE = 180
@@ -27,15 +43,14 @@ export default function AdminQRCodes() {
     void (async () => {
       const { data, error } = await supabase
         .from('food_booths')
-        .select('id, booth_no, name')
+        .select('id, booth_no, name, sort_order')
         .eq('is_active', true)
-        .order('booth_no', { ascending: true })
       if (cancelled) return
       if (error) {
         showToast(`부스 조회 실패: ${error.message}`, { type: 'error' })
         setBooths([])
       } else {
-        setBooths(data ?? [])
+        setBooths(sortBoothsForAdmin(data ?? []))
       }
       setLoading(false)
     })()
