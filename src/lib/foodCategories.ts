@@ -35,7 +35,7 @@ export async function fetchFoodCategories(): Promise<FoodCategoryRow[]> {
     .select('*')
     .order('sort_order', { ascending: true })
     .order('label', { ascending: true })
-  if (error) throw new Error(`구역 불러오기 실패: ${error.message}`)
+  if (error) throw new Error(`카테고리 불러오기 실패: ${error.message}`)
   return data ?? []
 }
 
@@ -59,7 +59,7 @@ export async function createFoodCategory(input: {
     if (error.code === '23505') {
       throw new Error(`이미 존재하는 slug 입니다: '${slug}'`)
     }
-    throw new Error(`구역 추가 실패: ${error.message}`)
+    throw new Error(`카테고리 추가 실패: ${error.message}`)
   }
   return data
 }
@@ -73,9 +73,9 @@ export async function deleteFoodCategory(id: string, slug: string): Promise<void
   if (countErr) throw new Error(`사용 여부 확인 실패: ${countErr.message}`)
   if ((count ?? 0) > 0) {
     throw new Error(
-      `이 구역을 사용하는 매장이 ${count}개 있습니다. 먼저 해당 매장의 구역을 변경하세요.`,
+      `이 카테고리를 사용하는 매장이 ${count}개 있습니다. 먼저 해당 매장의 카테고리를 변경하세요.`,
     )
   }
   const { error } = await supabase.from('food_categories').delete().eq('id', id)
-  if (error) throw new Error(`구역 삭제 실패: ${error.message}`)
+  if (error) throw new Error(`카테고리 삭제 실패: ${error.message}`)
 }

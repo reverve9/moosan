@@ -322,7 +322,7 @@ export default function FoodSections({ festival }: Props) {
       {booths.length > 0 && (
         <section className={styles.section}>
           <h2 id="booths" className={styles.sectionTitle}>참여 매장</h2>
-          <div className={styles.tabs} role="tablist" aria-label="매장 구역">
+          <div className={styles.tabs} role="tablist" aria-label="매장 카테고리">
             {[{ key: 'all' as CategoryFilter, label: '전체' }, ...categories.map((c) => ({ key: c.slug, label: c.label }))].map((t) => {
               const active = activeCategory === t.key
               return (
@@ -341,7 +341,7 @@ export default function FoodSections({ festival }: Props) {
           </div>
 
           {filteredBooths.length === 0 ? (
-            <p className={styles.emptyBooths}>해당 구역에 매장이 없습니다</p>
+            <p className={styles.emptyBooths}>해당 카테고리에 매장이 없습니다</p>
           ) : (
             <ul className={styles.boothList}>
               {filteredBooths.map((b) => {
