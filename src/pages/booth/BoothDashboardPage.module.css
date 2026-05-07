@@ -240,7 +240,7 @@
 
 .cardHeaderMain {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -250,6 +250,34 @@
   font-weight: 700;
   color: #111827;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardOrderBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cardCounter {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.cardOrderNoFull {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -457,10 +485,25 @@
 }
 
 .completedNo {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111827;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   font-variant-numeric: tabular-nums;
+}
+
+.completedCounter {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.completedNoFull {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  letter-spacing: 0.02em;
 }
 
 .completedTime {

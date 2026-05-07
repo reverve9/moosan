@@ -20,6 +20,7 @@ import BoothMenuModal from '@/components/booth/BoothMenuModal'
 import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { playSound } from '@/lib/audioCue'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
@@ -446,7 +447,14 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                   >
                     <div className={styles.cardHeader}>
                       <div className={styles.cardHeaderMain}>
-                        <span className={styles.cardOrderNo}>{card.orderNumber}</span>
+                        <div className={styles.cardOrderBlock}>
+                          <span className={styles.cardCounter}>
+                            {parseOrderNumber(card.orderNumber).counter}
+                          </span>
+                          <span className={styles.cardOrderNoFull}>
+                            {card.orderNumber}
+                          </span>
+                        </div>
                         <span
                           className={`${styles.cardElapsed} ${
                             overAlert ? styles.cardElapsedAlert : ''
@@ -563,7 +571,14 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                   return (
                     <div key={card.orderId} className={styles.completedCard}>
                       <div className={styles.completedRow}>
-                        <span className={styles.completedNo}>{card.orderNumber}</span>
+                        <span className={styles.completedNo}>
+                          <span className={styles.completedCounter}>
+                            {parseOrderNumber(card.orderNumber).counter}
+                          </span>
+                          <span className={styles.completedNoFull}>
+                            {card.orderNumber}
+                          </span>
+                        </span>
                         <span className={styles.completedTime}>
                           {formatDateHm(card.orderPaidAt)}
                         </span>
