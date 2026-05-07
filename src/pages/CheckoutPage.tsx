@@ -56,7 +56,7 @@ function optionKey(opt: AvailableCouponOption): string {
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { items, totalAmount, totalCount, clear } = useCart()
+  const { items, totalAmount, totalCount, clear, boothTakeout } = useCart()
   const { showToast } = useToast()
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
@@ -298,6 +298,7 @@ export default function CheckoutPage() {
               voucherBurned: d.voucherBurned,
             }))
           : undefined,
+        isTakeoutByBooth: boothTakeout,
       })
 
       saveLastPhone(phone)

@@ -354,7 +354,12 @@ export default function OrderStatusPage() {
                 >
                   <div className={styles.boothHeader}>
                     <div className={styles.boothHeaderTop}>
-                      <span className={styles.boothName}>{order.booth_name}</span>
+                      <span className={styles.boothName}>
+                        {order.booth_name}
+                        {order.is_takeout && (
+                          <span className={styles.boothTakeoutBadge}>포장</span>
+                        )}
+                      </span>
                       <span className={styles.boothStatusBadge}>
                         {boothStatusLabel(boothStatus, order)}
                       </span>

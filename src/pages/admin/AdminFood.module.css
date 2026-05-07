@@ -759,6 +759,24 @@ select.input {
   gap: 8px;
 }
 
+.menuTakeoutToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  user-select: none;
+}
+
+.menuTakeoutToggle input {
+  accent-color: var(--color-primary, #2563eb);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* ─── 태그 입력 ─── */
 .tagInputWrap {
   display: flex;

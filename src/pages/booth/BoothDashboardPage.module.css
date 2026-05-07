@@ -263,6 +263,40 @@
   flex: 1 1 auto;
 }
 
+.cardOrderTopRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cardTakeoutBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.completedTakeoutBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-left: 4px;
+}
+
 .cardCounter {
   font-size: 30px;
   font-weight: 800;

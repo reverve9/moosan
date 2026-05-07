@@ -64,6 +64,8 @@ export interface FoodMenu {
   image_url: string | null
   is_signature: boolean
   is_sold_out: boolean
+  /** 메뉴 단위 포장 가능 여부. false 면 손님 카트의 부스 그룹 포장 토글 비활성. */
+  accepts_takeout: boolean
   sort_order: number
   is_active: boolean
   /** 자유 태그 (다중). 어드민 칩 입력 → 손님 화면 뱃지 노출 */

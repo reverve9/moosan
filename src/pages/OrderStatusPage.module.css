@@ -397,6 +397,19 @@
   letter-spacing: -0.01em;
 }
 
+.boothTakeoutBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
 .callNumberBlock {
   display: flex;
   flex-direction: column;

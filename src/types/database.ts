@@ -573,6 +573,7 @@ export interface Database {
           image_url: string | null
           is_signature: boolean
           is_sold_out: boolean
+          accepts_takeout: boolean
           sort_order: number
           is_active: boolean
           tags: string[]
@@ -588,6 +589,7 @@ export interface Database {
           image_url?: string | null
           is_signature?: boolean
           is_sold_out?: boolean
+          accepts_takeout?: boolean
           sort_order?: number
           is_active?: boolean
           tags?: string[]
@@ -603,6 +605,7 @@ export interface Database {
           image_url?: string | null
           is_signature?: boolean
           is_sold_out?: boolean
+          accepts_takeout?: boolean
           sort_order?: number
           is_active?: boolean
           tags?: string[]
@@ -859,6 +862,7 @@ export interface Database {
           cancelled_at: string | null
           cancel_reason: string | null
           cancelled_by: 'booth' | 'admin' | null
+          is_takeout: boolean
           festival_id: string | null
           meta: Json
           created_at: string
@@ -883,6 +887,7 @@ export interface Database {
           cancelled_at?: string | null
           cancel_reason?: string | null
           cancelled_by?: 'booth' | 'admin' | null
+          is_takeout?: boolean
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -907,6 +912,7 @@ export interface Database {
           cancelled_at?: string | null
           cancel_reason?: string | null
           cancelled_by?: 'booth' | 'admin' | null
+          is_takeout?: boolean
           festival_id?: string | null
           meta?: Json
           created_at?: string

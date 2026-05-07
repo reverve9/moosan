@@ -30,6 +30,17 @@ export async function setMenuSoldOut(
   if (error) throw new Error(`품절 상태 변경 실패: ${error.message}`)
 }
 
+export async function setMenuAcceptsTakeout(
+  menuId: string,
+  accepts: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from('food_menus')
+    .update({ accepts_takeout: accepts })
+    .eq('id', menuId)
+  if (error) throw new Error(`포장 가능 상태 변경 실패: ${error.message}`)
+}
+
 /** 본인 부스 row 조회 (is_open / is_paused 포함) */
 export async function fetchBoothStatus(boothId: string): Promise<FoodBooth | null> {
   const { data, error } = await supabase

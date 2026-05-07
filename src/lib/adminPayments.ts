@@ -36,6 +36,8 @@ export interface BoothOrderRow {
     order_number: string
     /** 이 부스의 메뉴 합계 (쿠폰 할인 적용 전, 정산 기준 금액) */
     subtotal: number
+    /** 포장 여부 */
+    is_takeout: boolean
   }
   /** 해당 부스 주문의 메뉴 라인 */
   menuLines: { name: string; quantity: number }[]
@@ -84,7 +86,7 @@ export async function fetchPaymentsList(
   const paymentIds = payments.map((p) => p.id)
   const { data: orders, error: oErr } = await supabase
     .from('orders')
-    .select('id, payment_id, status, booth_name, booth_no, order_number, subtotal')
+    .select('id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout')
     .in('payment_id', paymentIds)
     .order('booth_no', { ascending: true })
   if (oErr) throw oErr
@@ -132,6 +134,7 @@ export async function fetchPaymentsList(
           booth_no: o.booth_no,
           order_number: o.order_number,
           subtotal: o.subtotal,
+          is_takeout: o.is_takeout,
         },
         menuLines: itemsByOrder.get(o.id) ?? [],
         siblingCount: list.length,

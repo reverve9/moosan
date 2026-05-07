@@ -32,6 +32,7 @@ type MenuForm = {
   description: string
   sort_order: number
   tags: string[]
+  accepts_takeout: boolean
 }
 
 const emptyMenuForm: MenuForm = {
@@ -40,6 +41,7 @@ const emptyMenuForm: MenuForm = {
   description: '',
   sort_order: 0,
   tags: [],
+  accepts_takeout: true,
 }
 
 function boothToForm(b: FoodBoothWithMenus): BoothForm {
@@ -58,6 +60,7 @@ function menuToForm(m: FoodMenu): MenuForm {
     description: m.description ?? '',
     sort_order: m.sort_order,
     tags: m.tags ?? [],
+    accepts_takeout: m.accepts_takeout ?? true,
   }
 }
 
@@ -500,6 +503,7 @@ export default function AdminFood() {
         description: form.description || null,
         sort_order: form.sort_order,
         tags: form.tags,
+        accepts_takeout: form.accepts_takeout,
       })
       .eq('id', menuId)
     setSavingMenuId(null)
@@ -1054,6 +1058,20 @@ export default function AdminFood() {
                               }
                               pool={allMenuTags}
                             />
+                            <label className={styles.menuTakeoutToggle}>
+                              <input
+                                type="checkbox"
+                                checked={mForm.accepts_takeout}
+                                onChange={(e) =>
+                                  updateMenuField(
+                                    m.id,
+                                    'accepts_takeout',
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                              <span>포장 가능</span>
+                            </label>
                             <div className={styles.menuActions}>
                               <button
                                 className={styles.menuSaveBtn}

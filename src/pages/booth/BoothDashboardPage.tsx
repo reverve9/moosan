@@ -39,6 +39,7 @@ interface BoothOrderCard {
   status: CardStatus
   estimatedMinutes: number | null
   confirmedAt: string | null
+  isTakeout: boolean
 }
 
 const HIGHLIGHT_MS = 5_000
@@ -68,6 +69,7 @@ function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
     status: getBoothOrderCardStatus(order),
     estimatedMinutes: order.estimated_minutes,
     confirmedAt: order.confirmed_at,
+    isTakeout: order.is_takeout,
   }))
 }
 
@@ -448,9 +450,14 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     <div className={styles.cardHeader}>
                       <div className={styles.cardHeaderMain}>
                         <div className={styles.cardOrderBlock}>
-                          <span className={styles.cardCounter}>
-                            {parseOrderNumber(card.orderNumber).counter}
-                          </span>
+                          <div className={styles.cardOrderTopRow}>
+                            <span className={styles.cardCounter}>
+                              {parseOrderNumber(card.orderNumber).counter}
+                            </span>
+                            {card.isTakeout && (
+                              <span className={styles.cardTakeoutBadge}>포장</span>
+                            )}
+                          </div>
                           <span className={styles.cardOrderNoFull}>
                             {card.orderNumber}
                           </span>
@@ -578,6 +585,9 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                           <span className={styles.completedNoFull}>
                             {card.orderNumber}
                           </span>
+                          {card.isTakeout && (
+                            <span className={styles.completedTakeoutBadge}>포장</span>
+                          )}
                         </span>
                         <span className={styles.completedTime}>
                           {formatDateHm(card.orderPaidAt)}

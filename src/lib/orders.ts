@@ -30,6 +30,8 @@ export interface CreatePaymentInput {
   discountAmount?: number
   /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움 */
   voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
+  /** 부스별 포장 선택. boothId → true(포장)/false(매장). 미설정 부스는 매장. */
+  isTakeoutByBooth?: Record<string, boolean>
 }
 
 export interface CreatePaymentResult {
@@ -67,9 +69,12 @@ export async function createPendingPayment(
     throw new Error(`결제 생성 실패: ${pErr?.message ?? 'unknown'}`)
   }
 
-  // 2) 부스별 group
+  // 2) 부스별 group — 포장 모드면 acceptsTakeout=false 아이템은 제외
+  const takeoutMap = input.isTakeoutByBooth ?? {}
   const groups = new Map<string, CartItem[]>()
   for (const item of input.items) {
+    const isTakeout = takeoutMap[item.boothId] === true
+    if (isTakeout && item.acceptsTakeout === false) continue
     const list = groups.get(item.boothId) ?? []
     list.push(item)
     groups.set(item.boothId, list)
@@ -103,6 +108,7 @@ export async function createPendingPayment(
         voucher_burned: dist?.voucherBurned ?? 0,
         phone: input.phone,
         status: 'pending',
+        is_takeout: takeoutMap[boothId] === true,
         festival_id: input.festivalId ?? null,
       })
       .select()

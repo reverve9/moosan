@@ -114,6 +114,7 @@ export default function AdminOrders() {
     const cols = [
       { key: 'order_number', label: '주문번호' },
       { key: 'booth', label: '매장명' },
+      { key: 'takeout', label: '포장' },
       { key: 'created_at', label: '결제시각' },
       { key: 'phone', label: '연락처' },
       { key: 'menu', label: '메뉴' },
@@ -125,6 +126,7 @@ export default function AdminOrders() {
     const data = visibleRows.map((r) => ({
       order_number: r.order.order_number,
       booth: `${r.order.booth_no}번 · ${r.order.booth_name}`,
+      takeout: r.order.is_takeout ? '포장' : '매장',
       created_at: fmtDateKst(r.payment.created_at),
       phone: formatPhoneDisplay(r.payment.phone),
       menu: formatMenuSummary(r.menuLines),
@@ -345,6 +347,9 @@ export default function AdminOrders() {
                       <div className={styles.boothCell}>
                         <span className={styles.boothCellMain}>
                           {r.order.booth_no}번 · {r.order.booth_name}
+                          {r.order.is_takeout && (
+                            <span className={styles.takeoutTag}>포장</span>
+                          )}
                         </span>
                         {groupedHint && (
                           <span
