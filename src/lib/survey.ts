@@ -1,10 +1,11 @@
 import { supabase } from './supabase'
-import {
-  DuplicateSurveyCouponError,
-  hasSurveyCouponByPhone,
-  issueSurveyCoupon,
-} from './coupons'
-import type { Coupon, Json, Survey } from '@/types/database'
+// [비상 비활성 — 만족도조사] 원복 시 아래 import 와 Json 타입 재추가
+// import {
+//   DuplicateSurveyCouponError,
+//   hasSurveyCouponByPhone,
+//   issueSurveyCoupon,
+// } from './coupons'
+import type { Coupon, Survey } from '@/types/database'
 import {
   GENDER_OPTIONS,
   REGION_OPTIONS,
