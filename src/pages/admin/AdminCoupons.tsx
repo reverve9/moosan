@@ -102,7 +102,7 @@ export default function AdminCoupons() {
       created_at: fmtDateKst(r.created_at),
       expires_at: fmtDateKst(r.expires_at),
       used_at: fmtDateKst(r.used_at),
-      note: r.note ?? '',
+      note: r.memo ?? r.note ?? '',
     }))
     await exportToExcel(data, cols, '쿠폰_관리')
   }
@@ -278,7 +278,7 @@ export default function AdminCoupons() {
                       </span>
                     </td>
                     <td>{SOURCE_LABEL[r.issued_source]}</td>
-                    <td className={styles.noteCell}>{r.note ?? '—'}</td>
+                    <td className={styles.noteCell}>{r.memo ?? r.note ?? '—'}</td>
                   </tr>
                 )
               })
