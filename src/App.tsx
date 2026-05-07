@@ -8,7 +8,8 @@ import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
 import NoticeDetailPage from '@/pages/NoticeDetailPage'
-import SurveyPage from '@/pages/SurveyPage'
+// [비상 비활성 — 만족도조사] 원복 시 주석 해제
+// import SurveyPage from '@/pages/SurveyPage'
 import CartPage from '@/pages/CartPage'
 import CheckoutPage from '@/pages/CheckoutPage'
 import CheckoutSuccessPage from '@/pages/CheckoutSuccessPage'
@@ -106,7 +107,9 @@ function CustomerRoutes() {
         <Route path="/programs" element={<ProgramsPage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:slug" element={<ApplyPage />} />
-        <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} />
+        {/* [비상 비활성 — 만족도조사] 원복 시 주석 해제 */}
+        {/* <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} /> */}
+        <Route path="/survey" element={<ComingSoonPage />} />
         <Route path="/location" element={isDevMode ? <LocationPage /> : <ComingSoonPage />} />
         <Route path="/notice" element={<NoticePage />} />
         <Route path="/notice/:id" element={<NoticeDetailPage />} />

@@ -1,4 +1,5 @@
-import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal, ChartColumn, ClipboardList, ReceiptText, Ticket, QrCode, LogOut, Wallet } from 'lucide-react'
+// [비상 비활성 — 만족도조사] 원복 시 ClipboardList 재추가
+import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal, ChartColumn, ReceiptText, Ticket, QrCode, LogOut, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import type { ComponentType, SVGProps } from 'react'
@@ -29,7 +30,8 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '쿠폰 관리', path: '/coupons', icon: Ticket },
       { label: '매출 관리', path: '/revenue', icon: ChartColumn },
       { label: '정산 관리', path: '/settlement', icon: Wallet },
-      { label: '만족도조사 관리', path: '/survey', icon: ClipboardList },
+      // [비상 비활성 — 만족도조사] 원복 시 주석 해제
+      // { label: '만족도조사 관리', path: '/survey', icon: ClipboardList },
     ],
   },
   {
