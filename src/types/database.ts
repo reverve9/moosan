@@ -796,6 +796,9 @@ export interface Database {
           status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
           cancelled_at: string | null
+          payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          assisted_by: string | null
+          external_receipt_no: string | null
           festival_id: string | null
           meta: Json
           created_at: string
@@ -813,6 +816,9 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          assisted_by?: string | null
+          external_receipt_no?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -830,6 +836,9 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          assisted_by?: string | null
+          external_receipt_no?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -1022,6 +1031,48 @@ export interface Database {
           },
         ]
       }
+      cash_sessions: {
+        Row: {
+          id: string
+          session_date: string
+          starting_amount: number
+          ending_amount: number | null
+          expected_amount: number | null
+          difference: number | null
+          notes: string | null
+          started_by: string | null
+          started_at: string
+          ended_by: string | null
+          ended_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_date: string
+          starting_amount: number
+          ending_amount?: number | null
+          expected_amount?: number | null
+          difference?: number | null
+          notes?: string | null
+          started_by?: string | null
+          started_at?: string
+          ended_by?: string | null
+          ended_at?: string | null
+        }
+        Update: {
+          id?: string
+          session_date?: string
+          starting_amount?: number
+          ending_amount?: number | null
+          expected_amount?: number | null
+          difference?: number | null
+          notes?: string | null
+          started_by?: string | null
+          started_at?: string
+          ended_by?: string | null
+          ended_at?: string | null
+        }
+        Relationships: []
+      }
       booth_accounts: {
         Row: {
           id: string
@@ -1109,6 +1160,9 @@ export type OrderItem = Database['public']['Tables']['order_items']['Row']
 export type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
 export type BoothAccount = Database['public']['Tables']['booth_accounts']['Row']
 export type BoothAccountInsert = Database['public']['Tables']['booth_accounts']['Insert']
+export type CashSession = Database['public']['Tables']['cash_sessions']['Row']
+export type CashSessionInsert = Database['public']['Tables']['cash_sessions']['Insert']
+export type PaymentMethod = 'pg' | 'external_card' | 'cash' | 'voucher_only'
 
 // Awards JSONB structure
 export type AwardItem = { rank: string; prize: string }

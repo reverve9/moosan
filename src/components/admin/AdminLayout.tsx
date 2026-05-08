@@ -1,19 +1,29 @@
 // [비상 비활성 — 만족도조사] 원복 시 ClipboardList 재추가
-import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal, ChartColumn, ReceiptText, Ticket, QrCode, LogOut, Wallet } from 'lucide-react'
+import { Sparkles, GraduationCap, Cake, FileText, Megaphone, Store, Key, Signal, ChartColumn, ReceiptText, Ticket, QrCode, LogOut, Wallet, HandHeart } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { ComponentType, SVGProps } from 'react'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { AdminAlertProvider, useAdminAlert } from './AdminAlertContext'
+import {
+  type AdminRole,
+  clearAdminSession,
+  findAccount,
+  loadAdminSession,
+  saveAdminSession,
+} from '@/lib/adminAuth'
 import styles from './AdminLayout.module.css'
 
 const MONITOR_PATH = '/monitor'
+const HELPDESK_PATH = '/help-desk'
 
 interface NavItem {
   label: string
   path: string
   icon: ComponentType<SVGProps<SVGSVGElement>>
   end?: boolean
+  /** 접근 가능한 역할. 미지정 = 'super' 만 */
+  roles?: AdminRole[]
 }
 
 interface NavGroup {
@@ -30,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: '쿠폰 관리', path: '/coupons', icon: Ticket },
       { label: '매출 관리', path: '/revenue', icon: ChartColumn },
       { label: '정산 관리', path: '/settlement', icon: Wallet },
+      { label: '결제 도우미', path: HELPDESK_PATH, icon: HandHeart, roles: ['super', 'helper'] },
       // [비상 비활성 — 만족도조사] 원복 시 주석 해제
       // { label: '만족도조사 관리', path: '/survey', icon: ClipboardList },
     ],
@@ -58,38 +69,45 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ]
 
-const ADMIN_ID = 'musanfesta'
-const ADMIN_PW = '123456'
+/** 역할별 접근 가능 path prefix.
+ *  helper 는 /help-desk 만 (그 외 경로 직접 입력 시 자동 redirect). */
+const HELPER_ALLOWED_PREFIXES = [HELPDESK_PATH]
 
-function isAuthenticated() {
-  return sessionStorage.getItem('admin_auth') === 'true'
+function isHelperAllowed(pathname: string): boolean {
+  return HELPER_ALLOWED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 }
 
 export default function AdminLayout() {
   const navigate = useNavigate()
-  const [authed, setAuthed] = useState(isAuthenticated)
+  const [session, setSession] = useState(() => loadAdminSession())
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
 
   const handleLogin = () => {
-    if (id === ADMIN_ID && pw === ADMIN_PW) {
-      sessionStorage.setItem('admin_auth', 'true')
-      setAuthed(true)
+    const account = findAccount(id.trim(), pw)
+    if (account) {
+      const next = { id: account.id, displayName: account.displayName, role: account.role }
+      saveAdminSession(next)
+      setSession(next)
       setError(false)
+      // helper 는 헬프데스크로, super 는 기본 페이지로
+      if (account.role === 'helper') {
+        navigate(HELPDESK_PATH, { replace: true })
+      }
     } else {
       setError(true)
     }
   }
 
   const handleLogout = () => {
-    sessionStorage.removeItem('admin_auth')
-    setAuthed(false)
+    clearAdminSession()
+    setSession(null)
     setId('')
     setPw('')
   }
 
-  if (!authed) {
+  if (!session) {
     return (
       <div className={styles.loginOverlay}>
         <div className={styles.loginModal}>
@@ -124,7 +142,12 @@ export default function AdminLayout() {
 
   return (
     <AdminAlertProvider>
-      <AdminLayoutInner navigate={navigate} onLogout={handleLogout} />
+      <AdminLayoutInner
+        navigate={navigate}
+        onLogout={handleLogout}
+        role={session.role}
+        displayName={session.displayName}
+      />
     </AdminAlertProvider>
   )
 }
@@ -132,10 +155,18 @@ export default function AdminLayout() {
 interface AdminLayoutInnerProps {
   navigate: ReturnType<typeof useNavigate>
   onLogout: () => void
+  role: AdminRole
+  displayName: string
 }
 
-function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
+function AdminLayoutInner({ navigate, onLogout, role, displayName }: AdminLayoutInnerProps) {
   const { alertCount, warnCount, totalPending, overdueCount } = useAdminAlert()
+  const location = useLocation()
+
+  // helper 가 허용 경로 외로 진입한 경우 헬프데스크로 강제 redirect
+  if (role === 'helper' && !isHelperAllowed(location.pathname)) {
+    return <Navigate to={HELPDESK_PATH} replace />
+  }
 
   // document.title 동적 변경 — 미확인 주문 있으면 prefix `(N) `
   useEffect(() => {
@@ -150,16 +181,30 @@ function AdminLayoutInner({ navigate, onLogout }: AdminLayoutInnerProps) {
     }
   }, [totalPending])
 
+  // role 기반 메뉴 필터 — helper 는 roles 에 'helper' 가 포함된 항목만 노출
+  const visibleGroups = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((it) =>
+      role === 'super' ? true : (it.roles ?? []).includes(role),
+    ),
+  })).filter((g) => g.items.length > 0)
+
+  const homePath = role === 'helper' ? HELPDESK_PATH : '/notices'
+
   return (
     <div className={styles.layout}>
       <ConnectionBanner />
       <aside className={styles.sidebar}>
-        <div className={styles.logo} onClick={() => navigate('/notices')}>
+        <div className={styles.logo} onClick={() => navigate(homePath)}>
           설악무산문화축전
           <span className={styles.badge}>Admin</span>
         </div>
+        <div className={styles.userBadge}>
+          <span className={styles.userBadgeLabel}>로그인</span>
+          <span className={styles.userBadgeName}>{displayName}</span>
+        </div>
         <nav className={styles.nav}>
-          {NAV_GROUPS.filter((g) => g.items.length > 0).map((group) => (
+          {visibleGroups.map((group) => (
             <div key={group.title} className={styles.navGroup}>
               <div className={styles.navGroupTitle}>{group.title}</div>
               {group.items.map((item) => {
