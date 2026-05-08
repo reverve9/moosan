@@ -19,13 +19,6 @@ function formatHm(iso: string): string {
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
-function methodBadgeClass(method: string): string {
-  if (method === 'cash') return styles.methodCash
-  if (method === 'external_card') return styles.methodExternal
-  if (method === 'voucher_only') return styles.methodVoucher
-  return styles.methodPg
-}
-
 export default function HelpDeskHistoryTab({ adminId }: HelpDeskHistoryTabProps) {
   const [history, setHistory] = useState<HelpDeskHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
