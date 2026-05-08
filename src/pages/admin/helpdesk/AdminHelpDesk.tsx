@@ -9,7 +9,7 @@ type Tab = 'order' | 'history' | 'cash'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'order', label: '주문 입력' },
-  { key: 'history', label: '오늘 내역' },
+  { key: 'history', label: '금일 결제 내역' },
   { key: 'cash', label: '시재 관리' },
 ]
 

@@ -476,11 +476,12 @@
   font-weight: 600;
 }
 
-/* ─── 오늘 내역 탭 ─── */
-.historyHeader {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+/* ─── 금일 결제 내역 탭 ─── */
+.historyDashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  align-items: stretch;
+  gap: 12px;
   padding: 16px;
   background-color: #FFFFFF;
   border: 1px solid #E5E7EB;
@@ -490,20 +491,31 @@
 .historyStat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 14px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.historyStatTotal {
+  background-color: #ECFDF5;
+  border-color: #A7F3D0;
 }
 
 .historyStatLabel {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: #6B7280;
 }
 
 .historyStatValue {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   color: #111827;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
 .historyStatSub {
@@ -511,17 +523,102 @@
   color: #6B7280;
 }
 
-.historyList {
+.historyRefreshWrap {
+  display: flex;
+  align-items: center;
+}
+
+.refreshBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background-color: var(--color-primary);
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+
+.refreshBtn:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.refreshBtn:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.refreshIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.refreshIconSpin {
+  animation: helpdeskSpin 0.8s linear infinite;
+}
+
+@keyframes helpdeskSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.historyColumns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.historyColumn {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px;
+  background-color: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  min-height: 120px;
+}
+
+.historyColumnHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.historyColumnTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.historyColumnSummary {
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+}
+
+.historyColumnEmpty {
+  padding: 20px 8px;
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 12px;
 }
 
 .historyCard {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px 16px;
+  padding: 10px 12px;
   background-color: #FFFFFF;
   border: 1px solid #E5E7EB;
   border-radius: 10px;
