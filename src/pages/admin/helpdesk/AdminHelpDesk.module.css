@@ -73,31 +73,44 @@
 }
 
 .menuFilters {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 6px;
 }
 
 .filterChip {
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
   color: #6B7280;
   background-color: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 9999px;
+  border-radius: 8px;
   cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
 .filterChip:hover {
   color: #111827;
+  border-color: #9CA3AF;
 }
 
-.filterChipActive {
-  color: #FFFFFF;
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
+.filterChipOn {
+  font-weight: 700;
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor inset;
 }
+
+/* 카테고리별 컬러 (FoodSections / AdminFood 와 동일 팔레트) */
+.catColor0 { background-color: #ECFDF5; color: #065F46; }
+.catColor1 { background-color: #FFF7ED; color: #C2410C; }
+.catColor2 { background-color: #EFF6FF; color: #1D4ED8; }
+.catColor3 { background-color: #FDF2F8; color: #BE185D; }
+.catColor4 { background-color: #F5F3FF; color: #6D28D9; }
 
 .menuSearch {
   width: 100%;

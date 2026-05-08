@@ -10,6 +10,11 @@ import {
 } from '@/lib/coupons'
 import { createPendingPayment, markPaymentPaid } from '@/lib/orders'
 import { formatPhone, isValidPhone, normalizePhone } from '@/lib/phone'
+import {
+  fetchFoodCategories,
+  getCategoryColorIndex,
+  type FoodCategoryRow,
+} from '@/lib/foodCategories'
 import type { CartItem } from '@/store/cartStore'
 import type { FoodBoothWithMenus, FoodMenu } from '@/types/festival_extras'
 import type { PaymentMethod } from '@/types/database'
@@ -24,6 +29,7 @@ interface HelpDeskOrderTabProps {
 
 export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
+  const [categories, setCategories] = useState<FoodCategoryRow[]>([])
   const [loading, setLoading] = useState(true)
 
   // 메뉴 필터
@@ -66,9 +72,13 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
         setLoading(false)
         return
       }
-      const data = await fetchFoodBooths(festival.id)
+      const [boothsData, categoriesData] = await Promise.all([
+        fetchFoodBooths(festival.id),
+        fetchFoodCategories().catch(() => [] as FoodCategoryRow[]),
+      ])
       if (cancelled) return
-      setBooths(data.filter((b) => b.is_open && !b.is_paused))
+      setBooths(boothsData.filter((b) => b.is_open && !b.is_paused))
+      setCategories(categoriesData)
       setLoading(false)
     })()
     return () => {
@@ -335,23 +345,23 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
       {/* ── 좌측: 메뉴 ── */}
       <div className={styles.menuPane}>
         <div className={styles.menuFilters}>
-          <button
-            type="button"
-            className={`${styles.filterChip} ${filterBoothId === 'all' ? styles.filterChipActive : ''}`}
-            onClick={() => setFilterBoothId('all')}
-          >
-            전체 매장
-          </button>
-          {booths.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              className={`${styles.filterChip} ${filterBoothId === b.id ? styles.filterChipActive : ''}`}
-              onClick={() => setFilterBoothId(b.id)}
-            >
-              {b.booth_no ? `${b.booth_no} ` : ''}{b.name}
-            </button>
-          ))}
+          {booths.map((b) => {
+            const active = filterBoothId === b.id
+            const colorIdx = getCategoryColorIndex(b.category, categories)
+            const colorClass = active
+              ? (styles[`catColor${colorIdx}` as keyof typeof styles] ?? '')
+              : ''
+            return (
+              <button
+                key={b.id}
+                type="button"
+                className={`${styles.filterChip} ${active ? styles.filterChipOn : ''} ${colorClass}`}
+                onClick={() => setFilterBoothId(active ? 'all' : b.id)}
+              >
+                {b.booth_no ? `${b.booth_no} ` : ''}{b.name}
+              </button>
+            )
+          })}
         </div>
 
         <input
