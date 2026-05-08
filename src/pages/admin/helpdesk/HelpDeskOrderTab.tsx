@@ -23,7 +23,6 @@ interface HelpDeskOrderTabProps {
 }
 
 export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
-  const [festivalId, setFestivalId] = useState<string | null>(null)
   const [booths, setBooths] = useState<FoodBoothWithMenus[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -67,7 +66,6 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
         setLoading(false)
         return
       }
-      setFestivalId(festival.id)
       const data = await fetchFoodBooths(festival.id)
       if (cancelled) return
       setBooths(data.filter((b) => b.is_open && !b.is_paused))
