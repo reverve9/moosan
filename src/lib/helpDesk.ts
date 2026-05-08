@@ -69,6 +69,28 @@ export async function endCashSession(input: {
 }
 
 /**
+ * 마감된 세션 재오픈 — 잘못 마감 / 테스트 케이스 대응.
+ * ended_* 와 expected/difference 를 NULL 로 되돌려 진행 중 상태로 복귀.
+ * notes 는 보존 (이전 마감 메모를 참고하고 싶을 수 있음).
+ */
+export async function reopenCashSession(sessionId: string): Promise<CashSession> {
+  const { data, error } = await supabase
+    .from('cash_sessions')
+    .update({
+      ended_at: null,
+      ended_by: null,
+      ending_amount: null,
+      expected_amount: null,
+      difference: null,
+    })
+    .eq('id', sessionId)
+    .select()
+    .single()
+  if (error) throw new Error(`시재 세션 재오픈 실패: ${error.message}`)
+  return data
+}
+
+/**
  * 오늘 현금 결제 합 - 현금 환불 합 계산 (KST 당일).
  * cash 결제건의 paid 상태 total_amount 합산, 그 중 부분환불 refunded_amount 빼기.
  *

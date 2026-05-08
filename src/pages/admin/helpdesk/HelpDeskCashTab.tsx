@@ -3,6 +3,7 @@ import {
   calcTodayCashFlow,
   endCashSession,
   fetchTodayCashSession,
+  reopenCashSession,
   startCashSession,
 } from '@/lib/helpDesk'
 import type { CashSession } from '@/types/database'
@@ -61,6 +62,23 @@ export default function HelpDeskCashTab({ adminId }: HelpDeskCashTabProps) {
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : '세션 시작 실패')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleReopen = async () => {
+    if (submitting || !session) return
+    const ok = window.confirm(
+      '마감을 취소하고 세션을 다시 진행 중 상태로 되돌립니다.\n실제/예상 시재, 차액 값이 초기화됩니다. 계속할까요?',
+    )
+    if (!ok) return
+    setSubmitting(true)
+    try {
+      await reopenCashSession(session.id)
+      await refresh()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '세션 재오픈 실패')
     } finally {
       setSubmitting(false)
     }
@@ -192,6 +210,16 @@ export default function HelpDeskCashTab({ adminId }: HelpDeskCashTabProps) {
           <span className={styles.cashRowLabel}>마감자</span>
           <span style={{ fontSize: 13 }}>{session.ended_by ?? '—'}</span>
         </div>
+        {error && <div className={styles.cartError}>{error}</div>}
+        <button
+          type="button"
+          className={styles.cashSecondaryBtn}
+          onClick={handleReopen}
+          disabled={submitting}
+          title="잘못 마감했거나 테스트 중이면 진행 중 상태로 되돌립니다"
+        >
+          {submitting ? '처리 중…' : '마감 취소 (재오픈)'}
+        </button>
       </div>
     )
   }
