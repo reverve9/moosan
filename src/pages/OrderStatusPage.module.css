@@ -223,6 +223,17 @@
   color: var(--color-primary);
 }
 
+.status_picked_up {
+  border-color: #6EE7B7;
+  background: #ECFDF5;
+}
+.status_picked_up .statusIcon {
+  background-color: #D1FAE5;
+}
+.status_picked_up .statusIcon svg {
+  color: #059669;
+}
+
 .status_cancelled .statusIcon svg {
   color: #c0392b;
 }

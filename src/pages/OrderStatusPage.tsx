@@ -8,7 +8,14 @@ import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
 
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'partial'
+type UIStatus =
+  | 'pending'
+  | 'paid'
+  | 'confirmed'
+  | 'completed'
+  | 'picked_up'
+  | 'cancelled'
+  | 'partial'
 
 function computePaymentStatus(data: PaymentWithOrders): UIStatus {
   const { payment, orders } = data
@@ -24,15 +31,17 @@ function computePaymentStatus(data: PaymentWithOrders): UIStatus {
     if (liveOrders.every((o) => o.order.ready_at)) return 'partial'
     return 'partial'
   }
+  if (orders.every((o) => o.order.picked_up_at)) return 'picked_up'
   if (orders.every((o) => o.order.ready_at)) return 'completed'
   if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
   return 'paid'
 }
 
-type BoothStatus = 'waiting' | 'preparing' | 'ready' | 'cancelled'
+type BoothStatus = 'waiting' | 'preparing' | 'ready' | 'picked_up' | 'cancelled'
 
 function computeBoothStatus(order: Order): BoothStatus {
   if (order.status === 'cancelled') return 'cancelled'
+  if (order.picked_up_at) return 'picked_up'
   if (order.ready_at) return 'ready'
   if (order.confirmed_at) return 'preparing'
   return 'waiting'
@@ -47,6 +56,7 @@ function getStatusLabel(
     paid: { title: '결제 완료', sub: '매장에서 주문을 확인하는 중이에요' },
     confirmed: { title: '조리 중', sub: '매장에서 음식을 조리하고 있어요' },
     completed: { title: '조리 완료', sub: '매장에서 음식을 픽업해주세요' },
+    picked_up: { title: '수령 완료', sub: '맛있게 드세요 🍽' },
     cancelled: { title: '취소됨', sub: '주문이 취소되었습니다' },
     partial: { title: '일부 취소', sub: '일부 매장이 주문을 거절해 환불 처리됐어요' },
   }
@@ -70,6 +80,7 @@ function boothStatusLabel(status: BoothStatus, order: Order): string {
     waiting: '확인 대기중',
     preparing: '조리 중',
     ready: '조리 완료',
+    picked_up: '수령 완료',
     cancelled: '취소됨',
   }
   return labels[status]
@@ -184,7 +195,13 @@ export default function OrderStatusPage() {
     for (const { order } of data.orders) {
       const bid = order.booth_id
       if (!bid) continue
-      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
+      if (
+        order.ready_at &&
+        !order.picked_up_at &&
+        order.status !== 'cancelled' &&
+        !dismissedBooths.has(bid) &&
+        !seen.has(bid)
+      ) {
         seen.add(bid)
         result.push({ boothId: bid, boothName: order.booth_name ?? '' })
       }
@@ -307,7 +324,9 @@ export default function OrderStatusPage() {
         {/* ─── 상태 카드 ─── */}
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>
           <div className={styles.statusIcon}>
-            {uiStatus === 'completed' ? (
+            {uiStatus === 'picked_up' ? (
+              <ShoppingBag />
+            ) : uiStatus === 'completed' ? (
               <CircleCheck />
             ) : uiStatus === 'confirmed' ? (
               <Flame />
@@ -454,6 +473,12 @@ export default function OrderStatusPage() {
         {uiStatus === 'completed' && (
           <div className={styles.pickupNotice}>
             🎉 모든 음식이 조리 완료됐어요! 매장에서 픽업해주세요
+          </div>
+        )}
+
+        {uiStatus === 'picked_up' && (
+          <div className={styles.pickupNotice}>
+            ✓ 수령 완료되었습니다 · 맛있게 드세요 🍽
           </div>
         )}
 

@@ -515,7 +515,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
       return
     }
     const message = force
-      ? `[강제 환불] ${boothLabel} ${amount.toLocaleString()}원을 환불합니다.\n조리완료된 주문이라 매장과 별도 협의가 필요합니다. 진행할까요?`
+      ? `[강제 환불] ${boothLabel} ${amount.toLocaleString()}원을 환불합니다.\n픽업까지 끝난 주문이라 매장과 별도 협의가 필요합니다. 진행할까요?`
       : `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`
     const ok = window.confirm(message)
     if (!ok) return
@@ -824,8 +824,8 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                           ) : forceEligible ? (
                             <>
                               <span className={styles.boothRefundBlocked}>
-                                {order.ready_at !== null
-                                  ? '조리완료 - 일반 환불 불가'
+                                {order.picked_up_at !== null
+                                  ? '픽업완료 - 일반 환불 불가'
                                   : `${ORDER_STATUS_LABEL[order.status]} - 일반 환불 불가`}
                               </span>
                               <button

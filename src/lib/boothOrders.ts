@@ -6,8 +6,9 @@ import type { Order, OrderItem } from '@/types/database'
  * 부스 대시보드 카드 모델.
  *  - 1 order = 1 card
  *  - items 는 order_items 를 그대로 보유 (메뉴명 × 수량 렌더링)
- *  - status: waiting (paid, 미확인) / inProgress (confirmed) / completed (ready)
- *  - alcoholMenuIds: 이 주문 내 주류 메뉴(menu_id) 집합. 시각 강조 + 픽업 confirm 트리거.
+ *  - status: waiting (paid) / inProgress (confirmed, 조리중) /
+ *            ready (조리완료 픽업 대기) / completed (픽업까지 종결)
+ *  - alcoholMenuIds: 이 주문 내 주류 메뉴(menu_id) 집합. 픽업 confirm 트리거.
  */
 export interface BoothOrderCardData {
   order: Order
@@ -15,10 +16,12 @@ export interface BoothOrderCardData {
   alcoholMenuIds: Set<string>
 }
 
-export type BoothOrderCardStatus = 'waiting' | 'inProgress' | 'completed'
+export type BoothOrderCardStatus = 'waiting' | 'inProgress' | 'ready' | 'completed'
 
 export function getBoothOrderCardStatus(order: Order): BoothOrderCardStatus {
-  if (order.ready_at || order.status === 'completed') return 'completed'
+  // picked_up_at 이 있거나 status='completed' → 종결 (이중 안전장치)
+  if (order.picked_up_at || order.status === 'completed') return 'completed'
+  if (order.ready_at) return 'ready'
   if (order.confirmed_at || order.status === 'confirmed') return 'inProgress'
   return 'waiting'
 }
@@ -139,8 +142,11 @@ export async function cancelBoothOrder(
 }
 
 /**
- * 주문 "준비완료" — ready_at 채우고 status 를 'completed' 로 전이.
+ * 주문 "준비완료" — ready_at 만 채움. status 는 'confirmed' 유지.
  * 확인을 건너뛴 경우 confirmed_at 도 함께 채움.
+ *
+ * 종결(status='completed')은 픽업 시점으로 분리됨 — markBoothOrderPickedUp 참고.
+ * ready 후~픽업 전 윈도우에서도 부스 거절 / 어드민 환불 가능.
  */
 export async function markBoothOrderReady(orderId: string): Promise<void> {
   const now = new Date().toISOString()
@@ -148,17 +154,38 @@ export async function markBoothOrderReady(orderId: string): Promise<void> {
   // 확인이 아직이면 confirmed_at 도 채움
   const { error: cErr } = await supabase
     .from('orders')
-    .update({ confirmed_at: now })
+    .update({ confirmed_at: now, status: 'confirmed' })
     .eq('id', orderId)
     .is('confirmed_at', null)
   if (cErr) throw new Error(`준비완료 처리 실패: ${cErr.message}`)
 
   const { error } = await supabase
     .from('orders')
-    .update({ ready_at: now, status: 'completed' })
+    .update({ ready_at: now })
     .eq('id', orderId)
     .is('ready_at', null)
   if (error) throw new Error(`준비완료 처리 실패: ${error.message}`)
+}
+
+/**
+ * 주문 "픽업완료" — picked_up_at + status='completed'. 종결.
+ * ready_at IS NOT NULL AND picked_up_at IS NULL 만 통과.
+ *
+ * 주류 주문은 호출 전 신분증 confirm 모달에서 사용자 체크 필수 (booth UI 책임).
+ */
+export async function markBoothOrderPickedUp(orderId: string): Promise<void> {
+  const now = new Date().toISOString()
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ picked_up_at: now, status: 'completed' })
+    .eq('id', orderId)
+    .not('ready_at', 'is', null)
+    .is('picked_up_at', null)
+    .select('id')
+  if (error) throw new Error(`픽업완료 처리 실패: ${error.message}`)
+  if (!data || data.length === 0) {
+    throw new Error('픽업완료 대상이 아닙니다 (이미 처리됐거나 ready 상태가 아닙니다)')
+  }
 }
 
 /**

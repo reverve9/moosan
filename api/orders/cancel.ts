@@ -17,7 +17,7 @@ import { createClient } from '@supabase/supabase-js'
  *   1) order + parent payment 조회
  *   2) 적격성 검증
  *      - order.status in ('paid','confirmed')  (force 시 'completed' 추가 허용)
- *      - order.ready_at IS NULL  ← 조리완료된 주문은 거절 불가 (force 시 무시)
+ *      - order.picked_up_at IS NULL  ← 픽업완료된 주문은 거절 불가 (force 시 무시)
  *      - payment.status='paid' AND payment.payment_key NOT NULL
  *   3) 환불액 = min(order.subtotal, payment.total_amount - payment.refunded_amount)
  *      쿠폰 할인은 운영자 부담이라 영업점은 subtotal 그대로 환불 (비율 분배 아님).
@@ -71,11 +71,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (oErr) return res.status(500).json({ error: `order 조회 실패: ${oErr.message}` })
   if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' })
 
-  // 2) 적격성 — 조리 완료된 주문은 거절 불가 (force 시 무시)
-  if (!forceMode && order.ready_at !== null) {
+  // 2) 적격성 — 픽업까지 끝난 주문은 거절 불가 (force 시 무시)
+  if (!forceMode && order.picked_up_at !== null) {
     return res.status(409).json({
-      error: '이미 조리 완료된 주문은 거절할 수 없습니다',
-      code: 'ORDER_ALREADY_READY',
+      error: '이미 픽업 완료된 주문은 거절할 수 없습니다',
+      code: 'ORDER_ALREADY_PICKED_UP',
     })
   }
   // 이미 cancelled 면 force 여도 막음 (재환불 방지)

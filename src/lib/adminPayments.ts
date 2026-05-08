@@ -193,7 +193,7 @@ export async function fetchPaymentDetail(paymentId: string): Promise<PaymentDeta
  * 부스 거절 동일 조건:
  *  - 결제는 paid 이고 잔액(total_amount - refunded_amount) > 0
  *  - 부스 주문이 'paid' 또는 'confirmed' (cancelled / completed 제외)
- *  - ready_at IS NULL  ← 조리완료 후엔 환불 불가
+ *  - picked_up_at IS NULL  ← 픽업까지 끝난 주문은 환불 불가 (force 시 우회)
  */
 export function isBoothOrderRefundable(detail: PaymentDetail, orderId: string): boolean {
   if (detail.payment.status !== 'paid') return false
@@ -202,7 +202,7 @@ export function isBoothOrderRefundable(detail: PaymentDetail, orderId: string): 
   const target = detail.orders.find(({ order }) => order.id === orderId)
   if (!target) return false
   const { order } = target
-  if (order.ready_at !== null) return false
+  if (order.picked_up_at !== null) return false
   return order.status === 'paid' || order.status === 'confirmed'
 }
 

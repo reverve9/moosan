@@ -13,6 +13,7 @@ import {
   confirmBoothOrder,
   fetchTodayBoothOrders,
   getBoothOrderCardStatus,
+  markBoothOrderPickedUp,
   markBoothOrderReady,
   subscribeBoothOrders,
 } from '@/lib/boothOrders'
@@ -332,14 +333,6 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const handleReady = useCallback(
     async (card: BoothOrderCard) => {
       if (busyOrderId) return
-      // 주류 포함 주문은 픽업 시 신분증 확인 누락 방지를 위해 confirm 1단계 추가.
-      // 통과 시점이 사실상 prepared_at — 사후 분쟁 시 부스 의무 이행 증거.
-      if (card.hasAlcohol) {
-        const ok = window.confirm(
-          '이 주문에는 주류가 포함되어 있습니다.\n손님 신분증을 확인하셨습니까?',
-        )
-        if (!ok) return
-      }
       setBusyOrderId(card.orderId)
       try {
         await markBoothOrderReady(card.orderId)
@@ -353,6 +346,42 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         )
       } catch (e) {
         setError(e instanceof Error ? e.message : '준비완료 처리 실패')
+      } finally {
+        setBusyOrderId(null)
+      }
+    },
+    [busyOrderId],
+  )
+
+  const handlePickup = useCallback(
+    async (card: BoothOrderCard) => {
+      if (busyOrderId) return
+      // 주류 픽업 시 신분증 확인 — 손님이 부스에 도착한 시점이라 실제 검증 가능.
+      if (card.hasAlcohol) {
+        const ok = window.confirm(
+          '이 주문에는 주류가 포함되어 있습니다.\n손님 신분증(만 19세 이상)을 확인하셨습니까?',
+        )
+        if (!ok) return
+      }
+      setBusyOrderId(card.orderId)
+      try {
+        await markBoothOrderPickedUp(card.orderId)
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? {
+                  ...d,
+                  order: {
+                    ...d.order,
+                    picked_up_at: new Date().toISOString(),
+                    status: 'completed' as const,
+                  },
+                }
+              : d,
+          ),
+        )
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '픽업완료 처리 실패')
       } finally {
         setBusyOrderId(null)
       }
@@ -466,8 +495,11 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                   >
                     {card.hasAlcohol && (
                       <div className={styles.cardAlcoholBanner}>
-                        🍺 주류 — 신분증 확인 필수
+                        🍺 주류 — 픽업 시 신분증 확인 필수
                       </div>
+                    )}
+                    {card.status === 'ready' && (
+                      <div className={styles.cardReadyBadge}>🔔 픽업 대기 중</div>
                     )}
                     <div className={styles.cardHeader}>
                       <div className={styles.cardHeaderMain}>
@@ -548,14 +580,25 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         >
                           {busy ? '...' : '거절'}
                         </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.actionReady}`}
-                          onClick={() => handleReady(card)}
-                          disabled={busy}
-                        >
-                          {busy ? '처리 중...' : '조리완료'}
-                        </button>
+                        {card.status === 'ready' ? (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionPickup}`}
+                            onClick={() => handlePickup(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '처리 중...' : '픽업완료'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionReady}`}
+                            onClick={() => handleReady(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '처리 중...' : '조리완료'}
+                          </button>
+                        )}
                       </div>
                       {card.status === 'waiting' && (
                         <div className={styles.timeOverlay}>
