@@ -362,6 +362,22 @@
   color: #92400E;
 }
 
+/* 결제수단 뱃지 — HelpDeskHistoryTab 팔레트와 동일 톤 */
+.methodBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.methodCash { background-color: #16A34A; }
+.methodExternal { background-color: #2563EB; }
+.methodVoucher { background-color: #7C3AED; }
+.methodPg { background-color: #6B7280; }
+
 .badge_order_paid {
   background-color: #FEF3C7;
   color: #92400E;

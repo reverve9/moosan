@@ -15,7 +15,21 @@ import { formatPhoneDisplay } from '@/lib/phone'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { ExportButton } from '@/components/admin/ExcelButtons'
 import { todayKstString } from '@/lib/orders'
+import { PAYMENT_METHOD_SHORT } from '@/lib/helpDesk'
+import type { PaymentMethod } from '@/types/database'
 import styles from './AdminOrders.module.css'
+
+function methodBadgeClass(method: string): string {
+  if (method === 'cash') return styles.methodCash
+  if (method === 'external_card') return styles.methodExternal
+  if (method === 'voucher_only') return styles.methodVoucher
+  return styles.methodPg
+}
+
+function methodLabel(method: string | null | undefined): string {
+  const m = (method ?? 'pg') as PaymentMethod
+  return PAYMENT_METHOD_SHORT[m] ?? m
+}
 
 function formatDateTime(iso: string): string {
   // mm/dd hh:mm (KST)
@@ -120,6 +134,7 @@ export default function AdminOrders() {
       { key: 'menu', label: '메뉴' },
       { key: 'subtotal', label: '매장 금액' },
       { key: 'sibling', label: '동시결제 매장수' },
+      { key: 'payment_method', label: '결제수단' },
       { key: 'status', label: '상태' },
       { key: 'toss_order_id', label: '결제번호' },
     ]
@@ -132,6 +147,7 @@ export default function AdminOrders() {
       menu: formatMenuSummary(r.menuLines),
       subtotal: r.order.subtotal,
       sibling: r.siblingCount,
+      payment_method: methodLabel(r.payment.payment_method),
       status: rowStatusLabel(r),
       toss_order_id: r.payment.toss_order_id ?? '',
     }))
@@ -308,6 +324,7 @@ export default function AdminOrders() {
               <th>연락처</th>
               <th>메뉴</th>
               <th className={styles.alignRight}>금액</th>
+              <th>결제수단</th>
               <th>상태</th>
               <th>결제번호</th>
             </tr>
@@ -315,13 +332,13 @@ export default function AdminOrders() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className={styles.tablePlaceholder}>
+                <td colSpan={10} className={styles.tablePlaceholder}>
                   불러오는 중...
                 </td>
               </tr>
             ) : visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className={styles.tablePlaceholder}>
+                <td colSpan={10} className={styles.tablePlaceholder}>
                   {rows.length === 0
                     ? '조회된 결제가 없습니다.'
                     : '검색어와 일치하는 매장이 없습니다.'}
@@ -377,6 +394,13 @@ export default function AdminOrders() {
                         </span>
                       )}
                       {r.order.subtotal.toLocaleString()}원
+                    </td>
+                    <td>
+                      <span
+                        className={`${styles.methodBadge} ${methodBadgeClass(r.payment.payment_method ?? 'pg')}`}
+                      >
+                        {methodLabel(r.payment.payment_method)}
+                      </span>
                     </td>
                     <td>
                       <span
@@ -670,7 +694,7 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   if (m === 'external_card') {
                     return (
                       <div className={styles.methodNoticeExternal}>
-                        ⚠ 외부 카드 단말기 결제
+                        ⚠ 직영카드 단말기 결제
                         {detail.payment.external_receipt_no && (
                           <> (영수증 {detail.payment.external_receipt_no})</>
                         )}

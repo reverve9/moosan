@@ -246,7 +246,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
       return
     }
     if (method === 'external_card' && externalReceiptNo.trim().length === 0) {
-      setError('외부 카드 영수증 번호를 입력하세요')
+      setError('직영카드 영수증 번호를 입력하세요')
       return
     }
     if (hasAlcohol && !alcoholChecked) {
@@ -546,7 +546,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
               className={`${styles.cartMethodBtn} ${method === 'external_card' ? styles.cartMethodBtnActive : ''}`}
               onClick={() => setMethod('external_card')}
             >
-              외부 카드
+              직영카드
             </button>
           </div>
         </div>

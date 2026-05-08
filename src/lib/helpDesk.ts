@@ -72,7 +72,7 @@ export async function endCashSession(input: {
  * 오늘 현금 결제 합 - 현금 환불 합 계산 (KST 당일).
  * cash 결제건의 paid 상태 total_amount 합산, 그 중 부분환불 refunded_amount 빼기.
  *
- * 정책: payment.payment_method='cash' 결제만 시재에 영향. external_card / pg / voucher_only 는 무관.
+ * 정책: payment.payment_method='cash' 결제만 시재에 영향. 직영카드(external_card) / pg / voucher_only 는 무관.
  */
 export async function calcTodayCashFlow(): Promise<{
   cashIn: number
@@ -179,14 +179,14 @@ export async function fetchTodayHelpDeskHistory(
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   pg: 'PG (앱 결제)',
-  external_card: '외부 카드',
+  external_card: '직영카드',
   cash: '현금',
   voucher_only: '식권 100%',
 }
 
 export const PAYMENT_METHOD_SHORT: Record<PaymentMethod, string> = {
   pg: 'PG',
-  external_card: '외부카드',
+  external_card: '직영카드',
   cash: '현금',
-  voucher_only: '식권만',
+  voucher_only: '식권',
 }

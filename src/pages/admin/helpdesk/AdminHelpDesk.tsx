@@ -34,7 +34,7 @@ export default function AdminHelpDesk() {
       <header className={styles.pageHeader}>
         <div>
           <h1 className={styles.title}>결제 도우미</h1>
-          <p className={styles.sub}>현금 / 외부 카드 결제 대행 + 시재 관리</p>
+          <p className={styles.sub}>현금 / 직영카드 결제 대행 + 시재 관리</p>
         </div>
       </header>
 

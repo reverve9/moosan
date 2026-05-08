@@ -37,7 +37,7 @@ export interface CreatePaymentInput {
   paymentMethod?: PaymentMethod
   /** 헬프데스크 대행 시 처리 도우미 어드민 ID. payment_method != 'pg' 일 때만 채움. */
   assistedBy?: string | null
-  /** 외부 카드 단말기 영수증 번호. payment_method = 'external_card' 시 필수. */
+  /** 직영카드 단말기 영수증 번호. payment_method = 'external_card' 시 필수. */
   externalReceiptNo?: string | null
 }
 
