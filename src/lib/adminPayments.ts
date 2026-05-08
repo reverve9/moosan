@@ -206,6 +206,19 @@ export function isBoothOrderRefundable(detail: PaymentDetail, orderId: string): 
   return order.status === 'paid' || order.status === 'confirmed'
 }
 
+/**
+ * 강제 환불 가능 여부 — 조리완료/completed 상태도 허용. cancelled 만 차단.
+ * 어드민이 "조리완료 - 환불 불가" 상황에서 예외적으로 환불해야 할 때만 사용.
+ */
+export function isBoothOrderForceRefundable(detail: PaymentDetail, orderId: string): boolean {
+  if (detail.payment.status !== 'paid') return false
+  const remaining = detail.payment.total_amount - (detail.payment.refunded_amount ?? 0)
+  if (remaining <= 0) return false
+  const target = detail.orders.find(({ order }) => order.id === orderId)
+  if (!target) return false
+  return target.order.status !== 'cancelled'
+}
+
 /** 부스 환불 시 실제 환불될 금액 (잔액 cap 적용). */
 export function boothOrderRefundAmount(detail: PaymentDetail, orderId: string): number {
   const remaining = Math.max(
@@ -232,11 +245,17 @@ export interface RefundBoothOrderResponse {
 export async function refundBoothOrder(
   orderId: string,
   reason: string,
+  opts?: { force?: boolean },
 ): Promise<RefundBoothOrderResponse> {
   const response = await fetch('/api/orders/cancel', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderId, reason, cancelledBy: 'admin' }),
+    body: JSON.stringify({
+      orderId,
+      reason,
+      cancelledBy: 'admin',
+      force: opts?.force === true,
+    }),
   })
   const json = await response.json().catch(() => ({}))
   if (!response.ok) {

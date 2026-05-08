@@ -5,6 +5,7 @@ import {
   boothOrderRefundAmount,
   fetchPaymentDetail,
   fetchPaymentsList,
+  isBoothOrderForceRefundable,
   isBoothOrderRefundable,
   refundBoothOrder,
   type BoothOrderRow,
@@ -502,20 +503,26 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
       }))
   }, [detail])
 
-  const handleRefundBooth = async (orderId: string, boothLabel: string, amount: number) => {
+  const handleRefundBooth = async (
+    orderId: string,
+    boothLabel: string,
+    amount: number,
+    force = false,
+  ) => {
     if (!detail) return
     if (reason.trim().length === 0) {
       setError('환불 사유를 입력해주세요')
       return
     }
-    const ok = window.confirm(
-      `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`,
-    )
+    const message = force
+      ? `[강제 환불] ${boothLabel} ${amount.toLocaleString()}원을 환불합니다.\n조리완료된 주문이라 매장과 별도 협의가 필요합니다. 진행할까요?`
+      : `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`
+    const ok = window.confirm(message)
     if (!ok) return
     setRefunding(true)
     setError(null)
     try {
-      const result = await refundBoothOrder(orderId, reason.trim())
+      const result = await refundBoothOrder(orderId, reason.trim(), { force })
       // 결제가 완전히 취소된 경우(=마지막 환불 가능한 부스였음) 모달 닫기.
       // 그 외엔 모달 유지하고 detail 재조회 → 다음 부스를 이어서 처리 가능.
       if (result.paymentFullyCancelled) {
@@ -756,7 +763,12 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
               <ul className={styles.boothList}>
                 {detail.orders.map(({ order, items }) => {
                   const eligible = isBoothOrderRefundable(detail, order.id)
-                  const refundAmt = eligible ? boothOrderRefundAmount(detail, order.id) : 0
+                  const forceEligible =
+                    !eligible && isBoothOrderForceRefundable(detail, order.id)
+                  const refundAmt =
+                    eligible || forceEligible
+                      ? boothOrderRefundAmount(detail, order.id)
+                      : 0
                   return (
                     <li key={order.id} className={styles.boothBox}>
                       <div className={styles.boothHead}>
@@ -809,13 +821,33 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                             >
                               {refundAmt.toLocaleString()}원 환불
                             </button>
+                          ) : forceEligible ? (
+                            <>
+                              <span className={styles.boothRefundBlocked}>
+                                {order.ready_at !== null
+                                  ? '조리완료 - 일반 환불 불가'
+                                  : `${ORDER_STATUS_LABEL[order.status]} - 일반 환불 불가`}
+                              </span>
+                              <button
+                                type="button"
+                                className={styles.boothForceRefundBtn}
+                                onClick={() =>
+                                  void handleRefundBooth(
+                                    order.id,
+                                    `${order.booth_no}번 · ${order.booth_name}`,
+                                    refundAmt,
+                                    true,
+                                  )
+                                }
+                                disabled={refunding || reason.trim().length === 0}
+                                title="조리완료/완료 상태도 무시하고 강제 환불 (매장과 별도 협의 후 사용)"
+                              >
+                                ⚠ 강제 환불 ({refundAmt.toLocaleString()}원)
+                              </button>
+                            </>
                           ) : (
                             <span className={styles.boothRefundBlocked}>
-                              {order.status === 'cancelled'
-                                ? '이미 환불됨'
-                                : order.ready_at !== null
-                                  ? '조리완료 - 환불 불가'
-                                  : '확인됨 - 환불 불가'}
+                              {order.status === 'cancelled' ? '이미 환불됨' : '환불 불가'}
                             </span>
                           )}
                         </div>

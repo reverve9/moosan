@@ -8,15 +8,16 @@ import { createClient } from '@supabase/supabase-js'
  *
  * 호출:
  *   POST /api/orders/cancel
- *   { orderId: string, reason: string, cancelledBy?: 'booth' | 'admin' }
+ *   { orderId: string, reason: string, cancelledBy?: 'booth' | 'admin', force?: boolean }
  *     cancelledBy 미지정 시 'booth' (부스 클라이언트 기존 호환).
  *     'admin' 은 어드민 화면에서 부스 단위로 환불할 때 사용.
+ *     force=true 는 어드민 전용 — 조리완료/completed 상태에도 환불 강제 진행.
  *
  * 흐름:
  *   1) order + parent payment 조회
  *   2) 적격성 검증
- *      - order.status in ('paid','confirmed')
- *      - order.ready_at IS NULL  ← 조리완료된 주문은 거절 불가
+ *      - order.status in ('paid','confirmed')  (force 시 'completed' 추가 허용)
+ *      - order.ready_at IS NULL  ← 조리완료된 주문은 거절 불가 (force 시 무시)
  *      - payment.status='paid' AND payment.payment_key NOT NULL
  *   3) 환불액 = min(order.subtotal, payment.total_amount - payment.refunded_amount)
  *      쿠폰 할인은 운영자 부담이라 영업점은 subtotal 그대로 환불 (비율 분배 아님).
@@ -34,10 +35,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' })
   }
 
-  const { orderId, reason, cancelledBy } = (req.body ?? {}) as {
+  const { orderId, reason, cancelledBy, force } = (req.body ?? {}) as {
     orderId?: string
     reason?: string
     cancelledBy?: 'booth' | 'admin'
+    force?: boolean
   }
 
   if (!orderId || !reason || reason.trim().length === 0) {
@@ -45,6 +47,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const cancelledByValue: 'booth' | 'admin' =
     cancelledBy === 'admin' ? 'admin' : 'booth'
+  // force 는 어드민에서만 허용
+  const forceMode = force === true && cancelledByValue === 'admin'
 
   const secretKey = process.env.TOSS_SECRET_KEY
   const supabaseUrl = process.env.VITE_SUPABASE_URL
@@ -67,14 +71,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (oErr) return res.status(500).json({ error: `order 조회 실패: ${oErr.message}` })
   if (!order) return res.status(404).json({ error: '주문을 찾을 수 없습니다' })
 
-  // 2) 적격성 — 조리 완료된 주문은 거절 불가
-  if (order.ready_at !== null) {
+  // 2) 적격성 — 조리 완료된 주문은 거절 불가 (force 시 무시)
+  if (!forceMode && order.ready_at !== null) {
     return res.status(409).json({
       error: '이미 조리 완료된 주문은 거절할 수 없습니다',
       code: 'ORDER_ALREADY_READY',
     })
   }
-  if (order.status !== 'paid' && order.status !== 'confirmed') {
+  // 이미 cancelled 면 force 여도 막음 (재환불 방지)
+  if (order.status === 'cancelled') {
+    return res.status(409).json({
+      error: `거절 불가 상태 (${order.status})`,
+      code: 'ORDER_NOT_CANCELLABLE',
+    })
+  }
+  const allowedStatuses = forceMode
+    ? ['paid', 'confirmed', 'completed']
+    : ['paid', 'confirmed']
+  if (!allowedStatuses.includes(order.status)) {
     return res.status(409).json({
       error: `거절 불가 상태 (${order.status})`,
       code: 'ORDER_NOT_CANCELLABLE',
