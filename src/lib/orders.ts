@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import type { CartItem } from '@/store/cartStore'
-import type { Order, OrderItem, Payment } from '@/types/database'
+import type { Order, OrderItem, Payment, PaymentMethod } from '@/types/database'
 
 /**
  * 결제/주문 모델 (12_payments_booth_orders 이후):
@@ -33,6 +33,12 @@ export interface CreatePaymentInput {
   voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
   /** 성인 동의 timestamp (ISO). 주류 메뉴 1개 이상 포함 시에만. 모든 부스 orders row 에 동일 값 기록. */
   alcoholConsentAt?: string | null
+  /** 결제 방식. 미지정 시 'pg'. 헬프데스크 대행 결제만 cash/external_card/voucher_only 지정. */
+  paymentMethod?: PaymentMethod
+  /** 헬프데스크 대행 시 처리 도우미 어드민 ID. payment_method != 'pg' 일 때만 채움. */
+  assistedBy?: string | null
+  /** 외부 카드 단말기 영수증 번호. payment_method = 'external_card' 시 필수. */
+  externalReceiptNo?: string | null
 }
 
 export interface CreatePaymentResult {
@@ -61,6 +67,9 @@ export async function createPendingPayment(
       discount_amount: input.discountAmount ?? 0,
       coupon_id: input.couponId ?? null,
       status: 'pending',
+      payment_method: input.paymentMethod ?? 'pg',
+      assisted_by: input.assistedBy ?? null,
+      external_receipt_no: input.externalReceiptNo ?? null,
       festival_id: input.festivalId ?? null,
     })
     .select()
