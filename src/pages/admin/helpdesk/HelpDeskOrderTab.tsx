@@ -242,8 +242,8 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
       setError('카트가 비어있습니다')
       return
     }
-    if (selectedCoupon && !phoneValid) {
-      setError('쿠폰 사용 시 손님 휴대폰 번호를 입력하세요')
+    if (!phoneValid) {
+      setError('손님 휴대폰 번호를 입력하세요')
       return
     }
     if (method === 'external_card' && externalReceiptNo.trim().length === 0) {
@@ -296,7 +296,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
       const finalMethod: PaymentMethod = userPaid === 0 && isVoucher ? 'voucher_only' : method
 
       const consentAt = hasAlcohol ? new Date().toISOString() : null
-      const usedPhone = phoneValid ? normalizePhone(phone) : ''
+      const usedPhone = normalizePhone(phone)
 
       const { payment } = await createPendingPayment({
         phone: usedPhone,
@@ -463,9 +463,9 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
           <span>{subtotal.toLocaleString()}원</span>
         </div>
 
-        {/* 휴대폰 (쿠폰 사용 시 필수) */}
+        {/* 휴대폰 (필수) */}
         <div className={styles.cartFieldGroup}>
-          <span className={styles.cartFieldLabel}>휴대폰 번호 (쿠폰 사용 시 필수)</span>
+          <span className={styles.cartFieldLabel}>휴대폰 번호 *</span>
           <input
             type="tel"
             inputMode="numeric"
@@ -607,7 +607,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
           type="button"
           className={styles.cartSubmitBtn}
           onClick={handleSubmit}
-          disabled={submitting || cart.length === 0 || (hasAlcohol && !alcoholChecked)}
+          disabled={submitting || cart.length === 0 || !phoneValid || (hasAlcohol && !alcoholChecked)}
         >
           {submitting ? '처리 중…' : '결제 완료'}
         </button>
