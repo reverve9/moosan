@@ -32,8 +32,8 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
   const [categories, setCategories] = useState<FoodCategoryRow[]>([])
   const [loading, setLoading] = useState(true)
 
-  // 메뉴 필터
-  const [filterBoothId, setFilterBoothId] = useState<string>('all')
+  // 메뉴 필터 — 전체 매장 옵션을 없앴으므로 매장 선택 전까지는 메뉴 미노출.
+  const [filterBoothId, setFilterBoothId] = useState<string>('')
   const [search, setSearch] = useState('')
 
   // 카트
@@ -108,8 +108,9 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
 
   const filteredMenus = useMemo(() => {
     const list: { booth: FoodBoothWithMenus; menu: FoodMenu }[] = []
+    if (!filterBoothId) return list
     for (const b of booths) {
-      if (filterBoothId !== 'all' && b.id !== filterBoothId) continue
+      if (b.id !== filterBoothId) continue
       for (const m of b.menus) {
         if (!m.is_active || m.price == null || m.price <= 0) continue
         if (search.trim().length > 0) {
@@ -356,7 +357,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
                 key={b.id}
                 type="button"
                 className={`${styles.filterChip} ${active ? styles.filterChipOn : ''} ${colorClass}`}
-                onClick={() => setFilterBoothId(active ? 'all' : b.id)}
+                onClick={() => setFilterBoothId(active ? '' : b.id)}
               >
                 {b.booth_no ? `${b.booth_no} ` : ''}{b.name}
               </button>
@@ -372,7 +373,9 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {filteredMenus.length === 0 ? (
+        {!filterBoothId ? (
+          <div className={styles.menuEmpty}>상단에서 매장을 선택하세요</div>
+        ) : filteredMenus.length === 0 ? (
           <div className={styles.menuEmpty}>표시할 메뉴가 없습니다</div>
         ) : (
           <div className={styles.menuGrid}>
