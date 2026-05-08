@@ -380,3 +380,145 @@ export function fmtMoney(n: number): string {
     maximumFractionDigits: 2,
   })}원`
 }
+
+// ─── 단일 매장 정산서 (주문 단위 명세) ─────────────────────────
+
+export interface BoothSettlementDetailRow {
+  orderId: string
+  orderNumber: string
+  paidAt: string
+  paymentMethod: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+  externalReceiptNo: string | null
+  isTakeout: boolean
+  /** "{대표 메뉴} × {수량} 외 N" 형태 요약 */
+  menuSummary: string
+  /** 매장 금액 (메뉴 정가 합) */
+  subtotal: number
+  voucherConsumed: number
+  voucherBurned: number
+  /** 부스 비율 분배 쿠폰 차감 (aggregateByBooth 와 동일 룰) */
+  couponShare: number
+  /** 부스 비율 분배 PG 거래액 */
+  pgShare: number
+  /** 매장 송금액 = subtotal × PAYOUT_RATE */
+  payout: number
+}
+
+/**
+ * 단일 매장의 정산 명세 (주문 단위) 조회.
+ * aggregateByBooth 와 동일한 부스 비율 분배 룰을 사용해서
+ * 주문 단위 합이 매장별 정산표 행과 일치하도록 보장.
+ */
+export async function fetchBoothSettlementDetail(
+  boothId: string,
+  filters: SettlementFilters = {},
+): Promise<BoothSettlementDetailRow[]> {
+  let pq = supabase
+    .from('payments')
+    .select('id, paid_at, total_amount, discount_amount, payment_method, external_receipt_no, status')
+    .eq('status', 'paid')
+  if (filters.dateFrom) {
+    pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
+  }
+  if (filters.dateTo) {
+    pq = pq.lt('paid_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
+  }
+  const { data: payments, error: pErr } = await pq
+  if (pErr) throw pErr
+  if (!payments || payments.length === 0) return []
+
+  type PaymentLite = {
+    id: string
+    paid_at: string | null
+    total_amount: number
+    discount_amount: number
+    payment_method: BoothSettlementDetailRow['paymentMethod'] | null
+    external_receipt_no: string | null
+  }
+  const paymentMap = new Map<string, PaymentLite>(
+    (payments as PaymentLite[]).map((p) => [p.id, p]),
+  )
+  const paymentIds = [...paymentMap.keys()]
+
+  // 같은 결제 안에 다른 부스가 있을 수 있어서 비율 계산을 위해 모든 부스 주문 fetch
+  const { data: orders, error: oErr } = await supabase
+    .from('orders')
+    .select(
+      'id, payment_id, booth_id, order_number, subtotal, voucher_consumed, voucher_burned, is_takeout, status',
+    )
+    .in('payment_id', paymentIds)
+    .neq('status', 'cancelled')
+  if (oErr) throw oErr
+  if (!orders || orders.length === 0) return []
+
+  type OrderLite = {
+    id: string
+    payment_id: string
+    booth_id: string | null
+    order_number: string
+    subtotal: number
+    voucher_consumed: number
+    voucher_burned: number
+    is_takeout: boolean | null
+    status: string
+  }
+  const orderRows = orders as OrderLite[]
+
+  const paymentSubtotalSum = new Map<string, number>()
+  for (const o of orderRows) {
+    paymentSubtotalSum.set(
+      o.payment_id,
+      (paymentSubtotalSum.get(o.payment_id) ?? 0) + o.subtotal,
+    )
+  }
+
+  const myOrders = orderRows.filter((o) => o.booth_id === boothId)
+  if (myOrders.length === 0) return []
+
+  // 메뉴 요약을 위해 order_items
+  const myOrderIds = myOrders.map((o) => o.id)
+  const { data: items } = await supabase
+    .from('order_items')
+    .select('order_id, menu_name, quantity')
+    .in('order_id', myOrderIds)
+  const itemsByOrder = new Map<string, { menu_name: string; quantity: number }[]>()
+  for (const it of (items ?? []) as { order_id: string; menu_name: string; quantity: number }[]) {
+    const list = itemsByOrder.get(it.order_id) ?? []
+    list.push({ menu_name: it.menu_name, quantity: it.quantity })
+    itemsByOrder.set(it.order_id, list)
+  }
+
+  const rows: BoothSettlementDetailRow[] = []
+  for (const o of myOrders) {
+    const p = paymentMap.get(o.payment_id)
+    if (!p || !p.paid_at) continue
+    const pSubtotal = paymentSubtotalSum.get(o.payment_id) ?? 0
+    const ratio = pSubtotal > 0 ? o.subtotal / pSubtotal : 0
+    const its = itemsByOrder.get(o.id) ?? []
+    const menuSummary =
+      its.length === 0
+        ? '—'
+        : its.length === 1
+          ? `${its[0].menu_name} × ${its[0].quantity}`
+          : `${its[0].menu_name} × ${its[0].quantity} 외 ${its.length - 1}`
+
+    rows.push({
+      orderId: o.id,
+      orderNumber: o.order_number,
+      paidAt: p.paid_at,
+      paymentMethod: (p.payment_method ?? 'pg') as BoothSettlementDetailRow['paymentMethod'],
+      externalReceiptNo: p.external_receipt_no,
+      isTakeout: o.is_takeout ?? false,
+      menuSummary,
+      subtotal: o.subtotal,
+      voucherConsumed: o.voucher_consumed,
+      voucherBurned: o.voucher_burned,
+      couponShare: (p.discount_amount ?? 0) * ratio,
+      pgShare: (p.total_amount ?? 0) * ratio,
+      payout: o.subtotal * PAYOUT_RATE,
+    })
+  }
+
+  rows.sort((a, b) => b.paidAt.localeCompare(a.paidAt))
+  return rows
+}

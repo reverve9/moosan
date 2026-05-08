@@ -331,3 +331,223 @@
 .table tbody tr:hover td {
   background: #F9FAFB;
 }
+
+/* ─── 매장별 정산서 모달 ─── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal {
+  width: 100%;
+  max-width: 960px;
+  max-height: calc(100vh - 48px);
+  background: #FFFFFF;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalSub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.modalClose {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  background: #F3F4F6;
+  color: #111827;
+}
+
+.modalBody {
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1px solid #E5E7EB;
+  background: #F9FAFB;
+}
+
+/* 매장 선택 그리드 */
+.boothPickerGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.boothPickerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.boothPickerCard:hover {
+  border-color: var(--color-primary);
+  background: #F9FAFB;
+}
+
+.boothPickerName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.boothPickerSub {
+  font-size: 12px;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.boothPickerPayout {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 미리보기 — 요약 카드 */
+.previewSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.previewKpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+}
+
+.previewKpiEmphasis {
+  background: #ECFDF5;
+  border-color: #A7F3D0;
+}
+
+.previewKpiLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.previewKpiValue {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+.previewSectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 8px;
+}
+
+.previewLoader {
+  padding: 40px;
+  text-align: center;
+  color: #6B7280;
+  font-size: 13px;
+}
+
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.downloadBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark);
+}
+
+.downloadBtn:disabled {
+  background: #9CA3AF;
+  cursor: not-allowed;
+}
+
+.boothSettlementBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.boothSettlementBtn:hover:not(:disabled) {
+  background: #DBEAFE;
+}
+
+.boothSettlementBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

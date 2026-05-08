@@ -1,18 +1,21 @@
-import { RotateCw } from 'lucide-react'
+import { FileSpreadsheet, RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ExportButton } from '@/components/admin/ExcelButtons'
-import { exportToExcelMultiSheet } from '@/lib/excel'
+import { exportToExcelMultiSheet, fmtDateKst } from '@/lib/excel'
 import {
   aggregateByBooth,
   aggregateByDay,
   calcTotals,
   checkIntegrity,
+  fetchBoothSettlementDetail,
   fetchSettlementRawData,
   fmtMoney,
   TOSS_FEE_RATE,
+  type BoothSettlementDetailRow,
   type SettlementRawData,
   type SettlementRow,
 } from '@/lib/settlement'
+import { PAYMENT_METHOD_SHORT } from '@/lib/helpDesk'
 import dashStyles from '../AdminDashboard.module.css'
 import styles from './AdminSettlement.module.css'
 
@@ -45,6 +48,13 @@ export default function AdminSettlement() {
   const [raw, setRaw] = useState<SettlementRawData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  // 매장별 정산서 모달 상태 — 'picker' 단계와 'preview' 단계.
+  const [boothModal, setBoothModal] = useState<
+    | { stage: 'picker' }
+    | { stage: 'preview'; booth: SettlementRow }
+    | null
+  >(null)
 
   const refetch = useCallback(async () => {
     setLoading(true)
@@ -219,6 +229,16 @@ export default function AdminSettlement() {
           )}
 
           <div className={styles.btnGroup}>
+            <button
+              type="button"
+              className={styles.boothSettlementBtn}
+              onClick={() => setBoothModal({ stage: 'picker' })}
+              disabled={!raw || boothRows.length === 0}
+              title="매장 선택 후 정산서 미리보기 + 엑셀 다운로드"
+            >
+              <FileSpreadsheet size={16} />
+              매장별 정산서
+            </button>
             <ExportButton
               onClick={() => void handleExport()}
               disabled={!raw || currentRows.length === 0}
@@ -256,7 +276,304 @@ export default function AdminSettlement() {
           </>
         )}
       </div>
+
+      {boothModal?.stage === 'picker' && (
+        <BoothPickerModal
+          booths={boothRows}
+          onClose={() => setBoothModal(null)}
+          onPick={(booth) => setBoothModal({ stage: 'preview', booth })}
+        />
+      )}
+      {boothModal?.stage === 'preview' && (
+        <BoothPreviewModal
+          booth={boothModal.booth}
+          dateRange={
+            mode === 'daily'
+              ? { from: singleDate, to: singleDate }
+              : { from: dateFrom, to: dateTo }
+          }
+          onBack={() => setBoothModal({ stage: 'picker' })}
+          onClose={() => setBoothModal(null)}
+        />
+      )}
     </div>
+  )
+}
+
+// ─── 매장 선택 모달 ──────────────────────────────────
+
+function BoothPickerModal({
+  booths,
+  onClose,
+  onPick,
+}: {
+  booths: SettlementRow[]
+  onClose: () => void
+  onPick: (booth: SettlementRow) => void
+}) {
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <header className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>매장 선택</h2>
+            <p className={styles.modalSub}>{booths.length}개 매장 — 정산서를 보낼 매장을 클릭하세요</p>
+          </div>
+          <button
+            type="button"
+            className={styles.modalClose}
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X size={18} />
+          </button>
+        </header>
+        <div className={styles.modalBody}>
+          <div className={styles.boothPickerGrid}>
+            {booths.map((b) => (
+              <button
+                key={b.groupKey}
+                type="button"
+                className={styles.boothPickerCard}
+                onClick={() => onPick(b)}
+              >
+                <span className={styles.boothPickerName}>{b.label}</span>
+                <span className={styles.boothPickerSub}>
+                  {b.orderCount.toLocaleString()}건 · 매출 {fmtMoney(b.menuSales)}
+                </span>
+                <span className={styles.boothPickerPayout}>
+                  송금 {fmtMoney(b.boothPayout)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── 정산서 미리보기 모달 ──────────────────────────────────
+
+function BoothPreviewModal({
+  booth,
+  dateRange,
+  onBack,
+  onClose,
+}: {
+  booth: SettlementRow
+  dateRange: { from: string; to: string }
+  onBack: () => void
+  onClose: () => void
+}) {
+  const [details, setDetails] = useState<BoothSettlementDetailRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    fetchBoothSettlementDetail(booth.groupKey, {
+      dateFrom: dateRange.from,
+      dateTo: dateRange.to,
+    })
+      .then((data) => {
+        if (!cancelled) setDetails(data)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : '명세 조회 실패')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [booth.groupKey, dateRange.from, dateRange.to])
+
+  const handleDownload = async () => {
+    await exportBoothSettlement(booth, details, dateRange.from, dateRange.to)
+  }
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <header className={styles.modalHeader}>
+          <div>
+            <h2 className={styles.modalTitle}>{booth.label} — 정산서</h2>
+            <p className={styles.modalSub}>
+              {dateRange.from === dateRange.to
+                ? dateRange.from
+                : `${dateRange.from} ~ ${dateRange.to}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            className={styles.modalClose}
+            onClick={onClose}
+            aria-label="닫기"
+          >
+            <X size={18} />
+          </button>
+        </header>
+        <div className={styles.modalBody}>
+          <div className={styles.previewSummary}>
+            <PreviewKpi label="주문 건수" value={booth.orderCount.toLocaleString()} />
+            <PreviewKpi label="매장 매출" value={fmtMoney(booth.menuSales)} />
+            <PreviewKpi label="식권 사용" value={fmtMoney(booth.voucherUsed)} />
+            <PreviewKpi label="쿠폰 차감" value={fmtMoney(booth.couponDiscount)} />
+            <PreviewKpi label="Toss 수수료" value={fmtMoney(booth.tossFee)} />
+            <PreviewKpi label="송금액" value={fmtMoney(booth.boothPayout)} emphasis />
+          </div>
+
+          <h3 className={styles.previewSectionTitle}>주문 명세 ({details.length}건)</h3>
+          {loading ? (
+            <div className={styles.previewLoader}>불러오는 중…</div>
+          ) : error ? (
+            <div className={styles.errorBanner}>{error}</div>
+          ) : details.length === 0 ? (
+            <div className={styles.previewLoader}>명세가 없습니다</div>
+          ) : (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>주문번호</th>
+                    <th>결제시각</th>
+                    <th>결제수단</th>
+                    <th>메뉴</th>
+                    <th className={styles.thRight}>매장 금액</th>
+                    <th className={styles.thRight}>식권 사용</th>
+                    <th className={styles.thRight}>쿠폰 분배</th>
+                    <th className={styles.thRight}>송금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.map((d) => (
+                    <tr key={d.orderId}>
+                      <td>{d.orderNumber}</td>
+                      <td>{fmtDateKst(d.paidAt)}</td>
+                      <td>{PAYMENT_METHOD_SHORT[d.paymentMethod] ?? d.paymentMethod}</td>
+                      <td>
+                        {d.menuSummary}
+                        {d.isTakeout && ' (포장)'}
+                      </td>
+                      <td className={styles.tdRight}>{fmtMoney(d.subtotal)}</td>
+                      <td className={styles.tdRight}>{fmtMoney(d.voucherConsumed)}</td>
+                      <td className={styles.tdRight}>{fmtMoney(d.couponShare)}</td>
+                      <td className={styles.tdRight}>{fmtMoney(d.payout)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <footer className={styles.modalFooter}>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={onBack}
+            style={{ background: '#6B7280' }}
+          >
+            ← 매장 다시 선택
+          </button>
+          <button
+            type="button"
+            className={styles.downloadBtn}
+            onClick={() => void handleDownload()}
+            disabled={loading || details.length === 0}
+          >
+            <FileSpreadsheet size={16} />
+            엑셀 다운로드
+          </button>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+function PreviewKpi({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string
+  value: string
+  emphasis?: boolean
+}) {
+  return (
+    <div className={`${styles.previewKpi} ${emphasis ? styles.previewKpiEmphasis : ''}`}>
+      <div className={styles.previewKpiLabel}>{label}</div>
+      <div className={styles.previewKpiValue}>{value}</div>
+    </div>
+  )
+}
+
+// ─── 단일 부스 정산서 엑셀 export ──────────────────────────
+
+async function exportBoothSettlement(
+  booth: SettlementRow,
+  details: BoothSettlementDetailRow[],
+  dateFrom: string,
+  dateTo: string,
+): Promise<void> {
+  const period = dateFrom === dateTo ? dateFrom : `${dateFrom} ~ ${dateTo}`
+  const summaryRows = [
+    { k: '매장명', v: booth.label },
+    { k: '기간', v: period },
+    { k: '주문 건수', v: booth.orderCount },
+    { k: '매장 매출 (정가 합)', v: booth.menuSales },
+    { k: '식권 사용', v: booth.voucherUsed },
+    { k: '식권 소멸', v: booth.voucherBurned },
+    { k: '쿠폰 차감 (부스 분배)', v: booth.couponDiscount },
+    { k: 'PG 거래액 (부스 분배)', v: booth.pgAmount },
+    { k: 'Toss 수수료 (3.74%)', v: booth.tossFee },
+    { k: '매장 송금액', v: booth.boothPayout },
+  ]
+  const detailRows = details.map((d) => ({
+    orderNumber: d.orderNumber,
+    paidAt: fmtDateKst(d.paidAt),
+    paymentMethod: PAYMENT_METHOD_SHORT[d.paymentMethod] ?? d.paymentMethod,
+    isTakeout: d.isTakeout ? '포장' : '매장',
+    menuSummary: d.menuSummary,
+    subtotal: d.subtotal,
+    voucherConsumed: d.voucherConsumed,
+    voucherBurned: d.voucherBurned,
+    couponShare: d.couponShare,
+    pgShare: d.pgShare,
+    payout: d.payout,
+  }))
+
+  await exportToExcelMultiSheet(
+    [
+      {
+        name: '정산 요약',
+        rows: summaryRows,
+        columns: [
+          { key: 'k', label: '항목' },
+          { key: 'v', label: '값' },
+        ],
+      },
+      {
+        name: '주문 명세',
+        rows: detailRows,
+        columns: [
+          { key: 'orderNumber', label: '주문번호' },
+          { key: 'paidAt', label: '결제시각' },
+          { key: 'paymentMethod', label: '결제수단' },
+          { key: 'isTakeout', label: '포장' },
+          { key: 'menuSummary', label: '메뉴' },
+          { key: 'subtotal', label: '매장 금액' },
+          { key: 'voucherConsumed', label: '식권 사용' },
+          { key: 'voucherBurned', label: '식권 소멸' },
+          { key: 'couponShare', label: '쿠폰 분배' },
+          { key: 'pgShare', label: 'PG 분배' },
+          { key: 'payout', label: '송금액' },
+        ],
+      },
+    ],
+    `정산서_${booth.label}_${period.replace(/\s/g, '')}`,
   )
 }
 
