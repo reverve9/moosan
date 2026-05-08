@@ -70,7 +70,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: `취소 불가 상태 (${payment.status}). paid 상태만 취소 가능합니다`,
     })
   }
-  if (!payment.payment_key) {
+
+  // payment_method 분기 — pg 만 Toss 호출, 나머지는 DB 만 cancelled.
+  type Method = 'pg' | 'external_card' | 'cash' | 'voucher_only'
+  const paymentMethod: Method =
+    (payment as { payment_method?: Method }).payment_method ?? 'pg'
+
+  if (paymentMethod === 'pg' && !payment.payment_key) {
     return res.status(400).json({ error: 'payment_key 가 없습니다' })
   }
 
@@ -98,33 +104,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // 3) Toss cancel — 잔액만 환불
-  const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
-  let tossJson: unknown
-  try {
-    const tossResponse = await fetch(
-      `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key)}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: authHeader,
-          'Content-Type': 'application/json',
+  // 3) Toss cancel — pg 결제만. external_card/cash/voucher_only 는 실 환불 운영진 수동.
+  let tossJson: unknown = null
+  if (paymentMethod === 'pg') {
+    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
+    try {
+      const tossResponse = await fetch(
+        `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key as string)}/cancel`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cancelReason: reason.trim(),
+            cancelAmount: remaining,
+          }),
         },
-        body: JSON.stringify({
-          cancelReason: reason.trim(),
-          cancelAmount: remaining,
-        }),
-      },
-    )
-    tossJson = await tossResponse.json()
-    if (!tossResponse.ok) {
-      return res.status(tossResponse.status).json(tossJson)
+      )
+      tossJson = await tossResponse.json()
+      if (!tossResponse.ok) {
+        return res.status(tossResponse.status).json(tossJson)
+      }
+    } catch (err) {
+      return res.status(502).json({
+        error: 'Toss cancel API 호출 실패',
+        detail: err instanceof Error ? err.message : String(err),
+      })
     }
-  } catch (err) {
-    return res.status(502).json({
-      error: 'Toss cancel API 호출 실패',
-      detail: err instanceof Error ? err.message : String(err),
-    })
   }
 
   // 4) DB 업데이트

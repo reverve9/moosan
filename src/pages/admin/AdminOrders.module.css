@@ -587,6 +587,44 @@
   border-radius: 6px;
 }
 
+.methodNoticeExternal,
+.methodNoticeCash,
+.methodNoticeVoucher {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.methodNoticeExternal {
+  color: #1E3A8A;
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+}
+
+.methodNoticeCash {
+  color: #166534;
+  background-color: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.methodNoticeVoucher {
+  color: #5B21B6;
+  background-color: #F5F3FF;
+  border-color: #DDD6FE;
+}
+
+.methodNoticeExternal > div,
+.methodNoticeCash > div,
+.methodNoticeVoucher > div {
+  font-weight: 500;
+}
+
 .refundBlocked {
   font-size: 13px;
   color: #92400E;

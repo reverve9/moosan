@@ -95,7 +95,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: `결제가 ${payment.status} 상태라 환불할 수 없습니다`,
     })
   }
-  if (!payment.payment_key) {
+
+  // payment_method 분기 — pg 만 Toss 호출, 나머지는 DB 만 업데이트.
+  // helpdesk(현금/외부카드/식권100%) 결제는 Toss 결제건이 없어서 환불 API 가 없음.
+  // 실 환불은 운영진 수동 (현금 직접 반환 / 외부 단말기 환불 / 식권 복구 X).
+  type Method = 'pg' | 'external_card' | 'cash' | 'voucher_only'
+  const paymentMethod: Method =
+    (payment as { payment_method?: Method }).payment_method ?? 'pg'
+
+  if (paymentMethod === 'pg' && !payment.payment_key) {
     return res.status(400).json({ error: 'payment_key 가 없습니다' })
   }
 
@@ -106,34 +114,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const refundAmount = Math.min(order.subtotal, remaining)
 
-  // 4) Toss 부분 환불
-  const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
-  let tossJson: unknown
-  try {
-    const tossResponse = await fetch(
-      `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key)}/cancel`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: authHeader,
-          'Content-Type': 'application/json',
+  // 4) Toss 부분 환불 (pg 결제만)
+  let tossJson: unknown = null
+  if (paymentMethod === 'pg') {
+    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
+    try {
+      const tossResponse = await fetch(
+        `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key as string)}/cancel`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: authHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            cancelReason: reason.trim(),
+            cancelAmount: refundAmount,
+          }),
         },
-        body: JSON.stringify({
-          cancelReason: reason.trim(),
-          cancelAmount: refundAmount,
-        }),
-      },
-    )
-    tossJson = await tossResponse.json()
-    if (!tossResponse.ok) {
-      return res.status(tossResponse.status).json(tossJson)
+      )
+      tossJson = await tossResponse.json()
+      if (!tossResponse.ok) {
+        return res.status(tossResponse.status).json(tossJson)
+      }
+    } catch (err) {
+      return res.status(502).json({
+        error: 'Toss cancel API 호출 실패',
+        detail: err instanceof Error ? err.message : String(err),
+      })
     }
-  } catch (err) {
-    return res.status(502).json({
-      error: 'Toss cancel API 호출 실패',
-      detail: err instanceof Error ? err.message : String(err),
-    })
   }
+  // external_card / cash / voucher_only 는 DB 업데이트로만 진행.
 
   // 5) DB 업데이트
   const now = new Date().toISOString()

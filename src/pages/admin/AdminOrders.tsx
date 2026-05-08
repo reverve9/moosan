@@ -665,6 +665,37 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   환불 사유는 각 매장 거절 사유와 함께 손님에게 전달됩니다. 조리 완료된 주문은
                   환불할 수 없습니다.
                 </p>
+                {(() => {
+                  const m = detail.payment.payment_method ?? 'pg'
+                  if (m === 'external_card') {
+                    return (
+                      <div className={styles.methodNoticeExternal}>
+                        ⚠ 외부 카드 단말기 결제
+                        {detail.payment.external_receipt_no && (
+                          <> (영수증 {detail.payment.external_receipt_no})</>
+                        )}
+                        <div>단말기에서 별도로 환불 처리해주세요. 시스템은 정산 데이터에서만 제외됩니다.</div>
+                      </div>
+                    )
+                  }
+                  if (m === 'cash') {
+                    return (
+                      <div className={styles.methodNoticeCash}>
+                        ⚠ 현금 결제
+                        <div>손님에게 현금으로 직접 반환해주세요. 시재 관리 페이지에 자동 반영됩니다.</div>
+                      </div>
+                    )
+                  }
+                  if (m === 'voucher_only') {
+                    return (
+                      <div className={styles.methodNoticeVoucher}>
+                        ⚠ 식권 100% 결제
+                        <div>환불 처리해도 식권은 복구되지 않습니다. 필요 시 식권 재발급은 별도 진행하세요.</div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
                 {detail.orders.some(({ order }) => !!order.alcohol_consent_at) && (
                   <p className={styles.refundAlcoholHint}>
                     🍺 주류 환불 시: <b>"신분증 미제시"</b>라고 사유 기록 권장 (통계 표준화 목적)
