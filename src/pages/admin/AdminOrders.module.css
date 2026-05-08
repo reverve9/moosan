@@ -576,6 +576,17 @@
   color: #92400E;
 }
 
+.refundAlcoholHint {
+  margin: -4px 0 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #991B1B;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+}
+
 .refundBlocked {
   font-size: 13px;
   color: #92400E;

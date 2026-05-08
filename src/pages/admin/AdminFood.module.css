@@ -777,6 +777,45 @@ select.input {
   cursor: pointer;
 }
 
+.menuFlagRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.menuAlcoholBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #C53030;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.menuAlcoholToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #C53030;
+  cursor: pointer;
+  user-select: none;
+}
+
+.menuAlcoholToggle input {
+  accent-color: #C53030;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* ─── 태그 입력 ─── */
 .tagInputWrap {
   display: flex;

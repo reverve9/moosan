@@ -33,6 +33,7 @@ type MenuForm = {
   sort_order: number
   tags: string[]
   accepts_takeout: boolean
+  is_alcohol: boolean
 }
 
 const emptyMenuForm: MenuForm = {
@@ -42,6 +43,7 @@ const emptyMenuForm: MenuForm = {
   sort_order: 0,
   tags: [],
   accepts_takeout: true,
+  is_alcohol: false,
 }
 
 function boothToForm(b: FoodBoothWithMenus): BoothForm {
@@ -61,6 +63,7 @@ function menuToForm(m: FoodMenu): MenuForm {
     sort_order: m.sort_order,
     tags: m.tags ?? [],
     accepts_takeout: m.accepts_takeout ?? true,
+    is_alcohol: m.is_alcohol ?? false,
   }
 }
 
@@ -504,6 +507,7 @@ export default function AdminFood() {
         sort_order: form.sort_order,
         tags: form.tags,
         accepts_takeout: form.accepts_takeout,
+        is_alcohol: form.is_alcohol,
       })
       .eq('id', menuId)
     setSavingMenuId(null)
@@ -983,6 +987,9 @@ export default function AdminFood() {
                         if (!mForm) return null
                         return (
                           <div key={m.id} className={styles.menuRow}>
+                            {m.is_alcohol && (
+                              <div className={styles.menuAlcoholBadge}>🍺 주류</div>
+                            )}
                             <div className={styles.menuThumbRow}>
                               <div className={styles.menuThumbPreview}>
                                 {m.image_url ? (
@@ -1058,20 +1065,36 @@ export default function AdminFood() {
                               }
                               pool={allMenuTags}
                             />
-                            <label className={styles.menuTakeoutToggle}>
-                              <input
-                                type="checkbox"
-                                checked={mForm.accepts_takeout}
-                                onChange={(e) =>
-                                  updateMenuField(
-                                    m.id,
-                                    'accepts_takeout',
-                                    e.target.checked,
-                                  )
-                                }
-                              />
-                              <span>포장 가능</span>
-                            </label>
+                            <div className={styles.menuFlagRow}>
+                              <label className={styles.menuTakeoutToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={mForm.accepts_takeout}
+                                  onChange={(e) =>
+                                    updateMenuField(
+                                      m.id,
+                                      'accepts_takeout',
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                <span>포장 가능</span>
+                              </label>
+                              <label className={styles.menuAlcoholToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={mForm.is_alcohol}
+                                  onChange={(e) =>
+                                    updateMenuField(
+                                      m.id,
+                                      'is_alcohol',
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                <span>🍺 주류 메뉴 (성인 인증 필요)</span>
+                              </label>
+                            </div>
                             <div className={styles.menuActions}>
                               <button
                                 className={styles.menuSaveBtn}

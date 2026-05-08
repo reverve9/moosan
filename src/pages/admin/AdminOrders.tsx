@@ -665,6 +665,11 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   환불 사유는 각 매장 거절 사유와 함께 손님에게 전달됩니다. 조리 완료된 주문은
                   환불할 수 없습니다.
                 </p>
+                {detail.orders.some(({ order }) => !!order.alcohol_consent_at) && (
+                  <p className={styles.refundAlcoholHint}>
+                    🍺 주류 환불 시: <b>"신분증 미제시"</b>라고 사유 기록 권장 (통계 표준화 목적)
+                  </p>
+                )}
                 <textarea
                   className={styles.reasonInput}
                   placeholder="환불 사유를 입력해주세요 (손님에게도 전달됨)"

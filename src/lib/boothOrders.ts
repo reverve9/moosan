@@ -7,10 +7,12 @@ import type { Order, OrderItem } from '@/types/database'
  *  - 1 order = 1 card
  *  - items 는 order_items 를 그대로 보유 (메뉴명 × 수량 렌더링)
  *  - status: waiting (paid, 미확인) / inProgress (confirmed) / completed (ready)
+ *  - alcoholMenuIds: 이 주문 내 주류 메뉴(menu_id) 집합. 시각 강조 + 픽업 confirm 트리거.
  */
 export interface BoothOrderCardData {
   order: Order
   items: OrderItem[]
+  alcoholMenuIds: Set<string>
 }
 
 export type BoothOrderCardStatus = 'waiting' | 'inProgress' | 'completed'
@@ -59,9 +61,27 @@ export async function fetchTodayBoothOrders(
     itemsByOrder.set(item.order_id, list)
   }
 
+  // 주류 메뉴 ID 집합 — items 의 menu_id 들로 food_menus 일괄 조회.
+  // 메뉴가 삭제된 케이스(menu_id IS NULL) 는 자연 스킵.
+  const menuIds = Array.from(
+    new Set((items ?? []).map((it) => it.menu_id).filter((id): id is string => !!id)),
+  )
+  const alcoholSet = new Set<string>()
+  if (menuIds.length > 0) {
+    const { data: menus, error: mErr } = await supabase
+      .from('food_menus')
+      .select('id, is_alcohol')
+      .in('id', menuIds)
+    if (mErr) throw mErr
+    for (const m of menus ?? []) {
+      if (m.is_alcohol) alcoholSet.add(m.id)
+    }
+  }
+
   return orders.map((order) => ({
     order,
     items: itemsByOrder.get(order.id) ?? [],
+    alcoholMenuIds: alcoholSet,
   }))
 }
 

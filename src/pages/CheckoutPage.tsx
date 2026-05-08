@@ -63,6 +63,12 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(new Map())
 
+  // 주류 성인 동의 모달 — 카트에 is_alcohol 메뉴 1개 이상 시 결제 직전 노출.
+  // alcoholConsentAt 은 모달 통과 시점에 캡처해 createPendingPayment 까지 전달.
+  const hasAlcohol = useMemo(() => items.some((i) => i.isAlcohol === true), [items])
+  const [alcoholModalOpen, setAlcoholModalOpen] = useState(false)
+  const [alcoholChecked, setAlcoholChecked] = useState(false)
+
   // ── 쿠폰 ──
   // 보유 쿠폰 (전화번호 → 자동 조회). 식권 + 할인쿠폰 통합.
   const [availableOptions, setAvailableOptions] = useState<AvailableCouponOption[]>([])
@@ -224,6 +230,23 @@ export default function CheckoutPage() {
       return
     }
     if (submitting) return
+    // 주류 포함 시 동의 모달을 먼저 띄우고 사용자가 확인해야 결제 진행.
+    if (hasAlcohol) {
+      setAlcoholChecked(false)
+      setAlcoholModalOpen(true)
+      return
+    }
+    await runCheckout(null)
+  }
+
+  const handleAlcoholConfirm = async () => {
+    if (!alcoholChecked) return
+    const consentAt = new Date().toISOString()
+    setAlcoholModalOpen(false)
+    await runCheckout(consentAt)
+  }
+
+  const runCheckout = async (alcoholConsentAt: string | null) => {
     setSubmitting(true)
 
     try {
@@ -298,6 +321,7 @@ export default function CheckoutPage() {
               voucherBurned: d.voucherBurned,
             }))
           : undefined,
+        alcoholConsentAt,
       })
 
       saveLastPhone(phone)
@@ -578,6 +602,64 @@ export default function CheckoutPage() {
           </button>
         </div>
       </div>
+
+      {/* ─── 주류 성인 동의 모달 ─── */}
+      {alcoholModalOpen && (
+        <div
+          className={styles.alcoholBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-label="주류 포함 주문 확인"
+          onClick={() => setAlcoholModalOpen(false)}
+        >
+          <div
+            className={styles.alcoholModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.alcoholHeader}>
+              <span aria-hidden>⚠️</span>
+              <h2 className={styles.alcoholHeaderTitle}>주류 포함 주문 확인</h2>
+            </div>
+            <div className={styles.alcoholBody}>
+              <p className={styles.alcoholLead}>
+                주문 내역에 주류가 포함되어 있습니다.
+              </p>
+              <ul className={styles.alcoholList}>
+                <li>만 19세 미만은 주문할 수 없습니다</li>
+                <li>픽업 시 신분증을 반드시 제시해야 합니다</li>
+                <li>신분증 미제시 시 환불 처리되며, 주류는 제공되지 않습니다</li>
+              </ul>
+              <label className={styles.alcoholConsentRow}>
+                <input
+                  type="checkbox"
+                  checked={alcoholChecked}
+                  onChange={(e) => setAlcoholChecked(e.target.checked)}
+                />
+                <span className={styles.alcoholConsentText}>
+                  위 사항을 확인하고 동의합니다
+                </span>
+              </label>
+              <div className={styles.alcoholActions}>
+                <button
+                  type="button"
+                  className={styles.alcoholCancelBtn}
+                  onClick={() => setAlcoholModalOpen(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className={styles.alcoholConfirmBtn}
+                  onClick={handleAlcoholConfirm}
+                  disabled={!alcoholChecked}
+                >
+                  동의하고 결제
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

@@ -102,6 +102,44 @@
   background-color: rgba(255, 255, 255, 0.35);
 }
 
+/* 주류 픽업 — 빨간 강조 + 추가 라인 */
+.readyStripAlcohol {
+  background-color: #C53030;
+}
+
+.readyStripAlcoholLine {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FEF2F2;
+  letter-spacing: 0.01em;
+}
+
+/* ──────────────── 주류 신분증 안내 (메타박스 위) ──────────────── */
+.alcoholNotice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-left: 4px solid #C53030;
+  border-radius: var(--radius-lg);
+}
+
+.alcoholNoticeTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #991B1B;
+}
+
+.alcoholNoticeBody {
+  font-size: 13px;
+  color: #7F1D1D;
+  line-height: 1.45;
+}
+
 /* ──────────────── 상태 카드 ──────────────── */
 .statusCard {
   display: flex;

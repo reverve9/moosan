@@ -221,6 +221,14 @@ export default function OrderStatusPage() {
 
   const { payment, orders } = data
   const statusInfo = getStatusLabel(uiStatus, orders)
+  // 주류 포함 여부 — orders.alcohol_consent_at 가 채워진 row 가 1개라도 있으면 true
+  const hasAlcoholOrder = orders.some(({ order }) => !!order.alcohol_consent_at)
+  const alcoholBoothIds = new Set(
+    orders
+      .filter(({ order }) => !!order.alcohol_consent_at && order.status !== 'cancelled')
+      .map(({ order }) => order.booth_id)
+      .filter((b): b is string => !!b),
+  )
   const totalVoucherConsumed = orders.reduce(
     (s, { order }) => s + (order.voucher_consumed ?? 0),
     0,
@@ -251,27 +259,50 @@ export default function OrderStatusPage() {
 
       <div className={styles.container}>
         {/* ─── 준비완료 스트립 ─── */}
-        {readyBooths.map((booth) => (
-          <div key={booth.boothId} className={styles.readyStrip}>
-            <span className={styles.readyStripText}>
-              🍽 {booth.boothName} 준비완료 · 픽업해주세요
-            </span>
-            <button
-              type="button"
-              className={styles.readyStripBtn}
-              onClick={() => {
-                setDismissedBooths((prev) => {
-                  const next = new Set([...prev, booth.boothId])
-                  saveDismissed(id ?? '', next)
-                  return next
-                })
-              }}
-              aria-label="확인"
+        {readyBooths.map((booth) => {
+          const isAlc = alcoholBoothIds.has(booth.boothId)
+          return (
+            <div
+              key={booth.boothId}
+              className={`${styles.readyStrip} ${isAlc ? styles.readyStripAlcohol : ''}`}
             >
-              ✓
-            </button>
+              <span className={styles.readyStripText}>
+                🍽 {booth.boothName} 준비완료 · 픽업해주세요
+                {isAlc && (
+                  <span className={styles.readyStripAlcoholLine}>
+                    🍺 신분증을 반드시 지참해주세요
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                className={styles.readyStripBtn}
+                onClick={() => {
+                  setDismissedBooths((prev) => {
+                    const next = new Set([...prev, booth.boothId])
+                    saveDismissed(id ?? '', next)
+                    return next
+                  })
+                }}
+                aria-label="확인"
+              >
+                ✓
+              </button>
+            </div>
+          )
+        })}
+
+        {/* ─── 주류 신분증 안내 ─── */}
+        {hasAlcoholOrder && uiStatus !== 'cancelled' && (
+          <div className={styles.alcoholNotice}>
+            <div className={styles.alcoholNoticeTitle}>
+              🍺 픽업 시 신분증을 반드시 지참해주세요
+            </div>
+            <div className={styles.alcoholNoticeBody}>
+              미성년자 / 신분증 미제시 시 주류는 환불됩니다.
+            </div>
           </div>
-        ))}
+        )}
 
         {/* ─── 상태 카드 ─── */}
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>

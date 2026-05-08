@@ -23,6 +23,8 @@ export interface CartItem {
   acceptsTakeout?: boolean
   /** 손님 선택 — 이 라인을 포장으로 받을지. 기본 false (매장). */
   isTakeout: boolean
+  /** 주류 메뉴 여부 (food_menus.is_alcohol). 결제 시 성인 동의 모달 트리거. */
+  isAlcohol?: boolean
 }
 
 interface CartState {

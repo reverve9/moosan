@@ -40,6 +40,8 @@ interface BoothOrderCard {
   estimatedMinutes: number | null
   confirmedAt: string | null
   isTakeout: boolean
+  hasAlcohol: boolean
+  alcoholMenuIds: Set<string>
 }
 
 const HIGHLIGHT_MS = 5_000
@@ -59,18 +61,23 @@ function vibrateSafe(pattern: number[]): void {
 }
 
 function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
-  return data.map(({ order, items }) => ({
-    orderId: order.id,
-    orderNumber: order.order_number,
-    phone: order.phone,
-    orderPaidAt: order.paid_at ?? order.created_at,
-    items,
-    totalAmount: order.subtotal,
-    status: getBoothOrderCardStatus(order),
-    estimatedMinutes: order.estimated_minutes,
-    confirmedAt: order.confirmed_at,
-    isTakeout: order.is_takeout,
-  }))
+  return data.map(({ order, items, alcoholMenuIds }) => {
+    const hasAlcohol = items.some((it) => it.menu_id != null && alcoholMenuIds.has(it.menu_id))
+    return {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      phone: order.phone,
+      orderPaidAt: order.paid_at ?? order.created_at,
+      items,
+      totalAmount: order.subtotal,
+      status: getBoothOrderCardStatus(order),
+      estimatedMinutes: order.estimated_minutes,
+      confirmedAt: order.confirmed_at,
+      isTakeout: order.is_takeout,
+      hasAlcohol,
+      alcoholMenuIds,
+    }
+  })
 }
 
 function formatDateHm(iso: string): string {
@@ -325,6 +332,14 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   const handleReady = useCallback(
     async (card: BoothOrderCard) => {
       if (busyOrderId) return
+      // 주류 포함 주문은 픽업 시 신분증 확인 누락 방지를 위해 confirm 1단계 추가.
+      // 통과 시점이 사실상 prepared_at — 사후 분쟁 시 부스 의무 이행 증거.
+      if (card.hasAlcohol) {
+        const ok = window.confirm(
+          '이 주문에는 주류가 포함되어 있습니다.\n손님 신분증을 확인하셨습니까?',
+        )
+        if (!ok) return
+      }
       setBusyOrderId(card.orderId)
       try {
         await markBoothOrderReady(card.orderId)
@@ -445,8 +460,15 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     key={card.orderId}
                     className={`${styles.card} ${styles[`card_${card.status}`]} ${
                       overAlert ? styles.cardAlert : ''
-                    } ${highlighted ? styles.cardHighlight : ''}`}
+                    } ${highlighted ? styles.cardHighlight : ''} ${
+                      card.hasAlcohol ? styles.cardAlcohol : ''
+                    }`}
                   >
+                    {card.hasAlcohol && (
+                      <div className={styles.cardAlcoholBanner}>
+                        🍺 주류 — 신분증 확인 필수
+                      </div>
+                    )}
                     <div className={styles.cardHeader}>
                       <div className={styles.cardHeaderMain}>
                         <div className={styles.cardOrderBlock}>
@@ -494,9 +516,19 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         if (!it) {
                           return <li key={`empty-${i}`} className={styles.itemRowEmpty} aria-hidden />
                         }
+                        const isAlc =
+                          it.menu_id != null && card.alcoholMenuIds.has(it.menu_id)
                         return (
-                          <li key={it.id} className={styles.itemRow}>
-                            <span className={styles.itemName}>{it.menu_name}</span>
+                          <li
+                            key={it.id}
+                            className={`${styles.itemRow} ${
+                              isAlc ? styles.itemRowAlcohol : ''
+                            }`}
+                          >
+                            <span className={styles.itemName}>
+                              {isAlc && <span aria-hidden>🍺 </span>}
+                              {it.menu_name}
+                            </span>
                             <span className={styles.itemQty}>× {it.quantity}</span>
                           </li>
                         )
@@ -576,7 +608,12 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     .map((it) => `${it.menu_name}×${it.quantity}`)
                     .join(', ')
                   return (
-                    <div key={card.orderId} className={styles.completedCard}>
+                    <div
+                      key={card.orderId}
+                      className={`${styles.completedCard} ${
+                        card.hasAlcohol ? styles.completedCardAlcohol : ''
+                      }`}
+                    >
                       <div className={styles.completedRow}>
                         <span className={styles.completedNo}>
                           <span className={styles.completedCounter}>
@@ -587,6 +624,9 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                           </span>
                           {card.isTakeout && (
                             <span className={styles.completedTakeoutBadge}>포장</span>
+                          )}
+                          {card.hasAlcohol && (
+                            <span className={styles.completedAlcoholBadge}>🍺 주류</span>
                           )}
                         </span>
                         <span className={styles.completedTime}>

@@ -31,6 +31,8 @@ export interface CreatePaymentInput {
   /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움.
    *  같은 부스가 포장/매장으로 split 되면 첫 split-order 에 몰아서 기록. */
   voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
+  /** 성인 동의 timestamp (ISO). 주류 메뉴 1개 이상 포함 시에만. 모든 부스 orders row 에 동일 값 기록. */
+  alcoholConsentAt?: string | null
 }
 
 export interface CreatePaymentResult {
@@ -123,6 +125,7 @@ export async function createPendingPayment(
         phone: input.phone,
         status: 'pending',
         is_takeout: group.isTakeout,
+        alcohol_consent_at: input.alcoholConsentAt ?? null,
         festival_id: input.festivalId ?? null,
       })
       .select()

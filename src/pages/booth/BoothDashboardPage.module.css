@@ -232,6 +232,28 @@
   animation: highlightPulse 1.6s ease-out 2;
 }
 
+/* 주류 포함 주문 — 빨간 좌측 보더 + 상단 배너 (다른 강조와 공존) */
+.cardAlcohol {
+  border-left-color: #C53030 !important;
+  border-left-width: 4px;
+}
+
+.cardAlcoholBanner {
+  margin: -10px -12px 4px;
+  padding: 6px 12px;
+  background-color: #C53030;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.itemRowAlcohol .itemName {
+  color: #C53030;
+  font-weight: 700;
+}
+
 .cardHeader {
   display: flex;
   flex-direction: column;
@@ -509,6 +531,24 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.completedCardAlcohol {
+  border-left: 3px solid #C53030;
+  background-color: #FEF2F2;
+}
+
+.completedAlcoholBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #C53030;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  margin-left: 4px;
 }
 
 .completedRow {
