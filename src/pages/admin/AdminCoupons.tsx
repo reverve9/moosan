@@ -1,12 +1,10 @@
 import { RotateCw, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  createCouponManually,
   createMealVouchersBulk,
   fetchCouponsList,
   type CouponRow,
   type CouponsListFilters,
-  type DiscountSource,
   type VoucherSource,
 } from '@/lib/coupons'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
@@ -304,24 +302,7 @@ export default function AdminCoupons() {
 
 const MEAL_VOUCHER_DEFAULT_EXPIRES_DATE = '2026-05-17'
 
-function defaultDiscountExpiryDate(): string {
-  const d = new Date()
-  d.setDate(d.getDate() + 30)
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d)
-}
-
-type CouponKind = 'discount' | 'meal_voucher'
 type IssueMode = 'single' | 'csv'
-
-const DISCOUNT_SOURCE_LABEL: Record<DiscountSource, string> = {
-  manual_compensation: '민원 보상',
-  manual_external: '외부업체 의뢰',
-}
 
 const VOUCHER_SOURCE_LABEL: Record<VoucherSource, string> = {
   voucher_participant: '참가자',
@@ -407,22 +388,13 @@ interface IssueModalProps {
 }
 
 function IssueModal({ onClose, onIssued }: IssueModalProps) {
-  const [kind, setKind] = useState<CouponKind>('discount')
   const [mode, setMode] = useState<IssueMode>('single')
 
   // 공통
-  const [expiresDate, setExpiresDate] = useState<string>(() =>
-    defaultDiscountExpiryDate(),
-  )
+  const [expiresDate, setExpiresDate] = useState<string>(MEAL_VOUCHER_DEFAULT_EXPIRES_DATE)
   const [memo, setMemo] = useState('')
 
-  // 할인쿠폰 전용
-  const [discountAmount, setDiscountAmount] = useState(2000)
-  const [minOrderAmount, setMinOrderAmount] = useState(10000)
-  const [discountSource, setDiscountSource] =
-    useState<DiscountSource>('manual_compensation')
-
-  // 식권 전용
+  // 식권
   const [voucherAmount, setVoucherAmount] = useState(8000)
   const [voucherSource, setVoucherSource] =
     useState<VoucherSource>('voucher_participant')
@@ -440,18 +412,6 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<IssueResultEntry[] | null>(null)
-
-  // 종류 전환 시 default 만료일 조정
-  useEffect(() => {
-    if (kind === 'meal_voucher') {
-      setExpiresDate(MEAL_VOUCHER_DEFAULT_EXPIRES_DATE)
-      // 식권은 직접입력에서 N장 허용. CSV 모드는 그대로.
-    } else {
-      setExpiresDate(defaultDiscountExpiryDate())
-      setMode('single') // 할인쿠폰은 CSV 미지원
-      setQuantity(1) // 할인쿠폰은 1장 고정
-    }
-  }, [kind])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -486,49 +446,6 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
     // 만료일 검증
     if (new Date(expiresAtIso).getTime() <= Date.now()) {
       setError('만료일은 오늘 이후로 지정해주세요')
-      return
-    }
-
-    // ─── 할인쿠폰 (직접 입력만) ───
-    if (kind === 'discount') {
-      if (discountAmount <= 0) {
-        setError('할인 금액을 입력해주세요')
-        return
-      }
-      if (minOrderAmount < 0) {
-        setError('최소 주문 금액이 잘못되었습니다')
-        return
-      }
-      const phoneNorm = phoneInput ? normalizePhone(phoneInput) : ''
-      if (phoneInput && phoneNorm.length !== 11) {
-        setError('전화번호 형식이 올바르지 않습니다')
-        return
-      }
-      setSubmitting(true)
-      try {
-        const coupon = await createCouponManually({
-          discountAmount,
-          minOrderAmount,
-          expiresAt: expiresAtIso,
-          source: discountSource,
-          memo: memo.trim() || undefined,
-          note: memo.trim() || undefined,
-          issuedPhone: phoneNorm || undefined,
-        })
-        setResults([
-          {
-            phone: phoneNorm,
-            amount: discountAmount,
-            quantity: 1,
-            codes: [coupon.code],
-            memo: memo.trim() || undefined,
-          },
-        ])
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '발급 실패')
-      } finally {
-        setSubmitting(false)
-      }
       return
     }
 
@@ -779,143 +696,59 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
           </button>
         </header>
         <div className={styles.modalBody}>
-          {/* 종류 선택 */}
+          {/* 발급 방식 */}
           <div className={styles.field}>
-            <span className={styles.fieldLabel}>종류</span>
+            <span className={styles.fieldLabel}>발급 방식</span>
             <div className={styles.radioGroup}>
               <label className={styles.radioItem}>
                 <input
                   type="radio"
-                  checked={kind === 'discount'}
-                  onChange={() => setKind('discount')}
+                  checked={mode === 'single'}
+                  onChange={() => setMode('single')}
                 />
-                <span>할인 쿠폰</span>
+                <span>전화번호 직접 입력</span>
               </label>
               <label className={styles.radioItem}>
                 <input
                   type="radio"
-                  checked={kind === 'meal_voucher'}
-                  onChange={() => setKind('meal_voucher')}
+                  checked={mode === 'csv'}
+                  onChange={() => setMode('csv')}
                 />
-                <span>식권</span>
+                <span>CSV 일괄 업로드</span>
               </label>
             </div>
           </div>
 
-          {/* 식권 — 발급 방식 */}
-          {kind === 'meal_voucher' && (
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>발급 방식</span>
-              <div className={styles.radioGroup}>
-                <label className={styles.radioItem}>
-                  <input
-                    type="radio"
-                    checked={mode === 'single'}
-                    onChange={() => setMode('single')}
-                  />
-                  <span>전화번호 직접 입력</span>
-                </label>
-                <label className={styles.radioItem}>
-                  <input
-                    type="radio"
-                    checked={mode === 'csv'}
-                    onChange={() => setMode('csv')}
-                  />
-                  <span>CSV 일괄 업로드</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* 할인 쿠폰 폼 */}
-          {kind === 'discount' && (
-            <>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>할인 금액 (원)</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={discountAmount}
-                  onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                  className={styles.fieldInput}
-                />
-              </label>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>최소 주문 금액 (원)</span>
-                <input
-                  type="number"
-                  min={0}
-                  value={minOrderAmount}
-                  onChange={(e) => setMinOrderAmount(Number(e.target.value))}
-                  className={styles.fieldInput}
-                />
-              </label>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>발급 사유</span>
-                <div className={styles.radioGroup}>
-                  {(Object.keys(DISCOUNT_SOURCE_LABEL) as DiscountSource[]).map(
-                    (src) => (
-                      <label key={src} className={styles.radioItem}>
-                        <input
-                          type="radio"
-                          checked={discountSource === src}
-                          onChange={() => setDiscountSource(src)}
-                        />
-                        <span>{DISCOUNT_SOURCE_LABEL[src]}</span>
-                      </label>
-                    ),
-                  )}
-                </div>
-              </div>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>전화번호 (선택)</span>
-                <input
-                  type="tel"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(formatPhone(e.target.value))}
-                  placeholder="010-0000-0000"
-                  className={styles.fieldInput}
-                />
-              </label>
-            </>
-          )}
-
           {/* 식권 — 공통 */}
-          {kind === 'meal_voucher' && (
-            <>
-              <label className={styles.field}>
-                <span className={styles.fieldLabel}>액면가 (원)</span>
-                <input
-                  type="number"
-                  min={1}
-                  step={100}
-                  value={voucherAmount}
-                  onChange={(e) => setVoucherAmount(Number(e.target.value))}
-                  className={styles.fieldInput}
-                />
-              </label>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>대상</span>
-                <div className={styles.radioGroup}>
-                  {(Object.keys(VOUCHER_SOURCE_LABEL) as VoucherSource[]).map(
-                    (src) => (
-                      <label key={src} className={styles.radioItem}>
-                        <input
-                          type="radio"
-                          checked={voucherSource === src}
-                          onChange={() => setVoucherSource(src)}
-                        />
-                        <span>{VOUCHER_SOURCE_LABEL[src]}</span>
-                      </label>
-                    ),
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+          <label className={styles.field}>
+            <span className={styles.fieldLabel}>액면가 (원)</span>
+            <input
+              type="number"
+              min={1}
+              step={100}
+              value={voucherAmount}
+              onChange={(e) => setVoucherAmount(Number(e.target.value))}
+              className={styles.fieldInput}
+            />
+          </label>
+          <div className={styles.field}>
+            <span className={styles.fieldLabel}>대상</span>
+            <div className={styles.radioGroup}>
+              {(Object.keys(VOUCHER_SOURCE_LABEL) as VoucherSource[]).map((src) => (
+                <label key={src} className={styles.radioItem}>
+                  <input
+                    type="radio"
+                    checked={voucherSource === src}
+                    onChange={() => setVoucherSource(src)}
+                  />
+                  <span>{VOUCHER_SOURCE_LABEL[src]}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
           {/* 식권 — 직접 입력 */}
-          {kind === 'meal_voucher' && mode === 'single' && (
+          {mode === 'single' && (
             <>
               <label className={styles.field}>
                 <span className={styles.fieldLabel}>전화번호</span>
@@ -942,7 +775,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
           )}
 
           {/* 식권 — CSV */}
-          {kind === 'meal_voucher' && mode === 'csv' && (
+          {mode === 'csv' && (
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
                 CSV 파일 (헤더: phone, quantity, amount, memo)
@@ -998,11 +831,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              placeholder={
-                kind === 'meal_voucher'
-                  ? '예: 세종초 사생대회 인솔교사'
-                  : '예: 파트너 행사 증정'
-              }
+              placeholder="예: 세종초 사생대회 인솔교사"
               className={styles.fieldInput}
             />
           </label>
