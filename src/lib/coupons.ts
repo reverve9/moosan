@@ -737,7 +737,7 @@ export async function validateCouponByCode(
   return json as ValidateCouponResponse
 }
 
-// ─── 식권 정산 (다부스 비례 분배) ─────────────────────────
+// ─── 식권 정산 (다부스 순차 그리디 분배) ─────────────────────
 
 /**
  * 식권 1장이 부스 N개에 어떻게 분배되는지 계산.
@@ -746,8 +746,9 @@ export async function validateCouponByCode(
  *  - burned   = voucherAmount - consumed   (액면가 잔액 소멸)
  *  - userPaid = max(0, orderTotal - voucherAmount)
  *
- *  부스별 voucher_consumed 는 부스 subtotal 비율로 분배 (floor),
- *  rounding 잔여는 마지막 부스에 몰아 보장: SUM(consumed) === consumed.
+ *  부스별 voucher_consumed 는 **순차 그리디** — 첫 부스부터 subtotal 상한까지 소진 후
+ *  잔액을 다음 부스로 넘김. 정산은 부스별 subtotal × 0.9626 으로 voucher 무관이라
+ *  분배 방식이 매장 송금엔 영향 없고, 비례 분배의 끝수/취소 부유 문제를 회피.
  *  burned 는 마지막 부스에 몰아 한 번만 기록 (정산 SQL 의 SUM 정합성 유지).
  */
 export interface BoothShare {
@@ -782,16 +783,8 @@ export function calcVoucherSettlement(
   for (let i = 0; i < booths.length; i += 1) {
     const b = booths[i]
     const isLast = i === booths.length - 1
-    let boothConsumed: number
-    if (isLast) {
-      boothConsumed = remaining
-    } else {
-      // 비례 분배 + 부스 subtotal 상한
-      const proportional = orderTotal > 0
-        ? Math.floor((consumed * b.subtotal) / orderTotal)
-        : 0
-      boothConsumed = Math.min(proportional, b.subtotal, remaining)
-    }
+    // 그리디 — 이 부스 subtotal 만큼 또는 남은 voucher 만큼 소진
+    const boothConsumed = Math.min(b.subtotal, remaining)
     distributions.push({
       boothId: b.boothId,
       subtotal: b.subtotal,

@@ -88,6 +88,7 @@ interface RawOrder {
 
 export interface SettlementRawData {
   payments: RawPayment[]
+  /** cancelled 포함 전체 — aggregateBy* 함수에서 status 분기로 처리. */
   orders: RawOrder[]
 }
 
@@ -97,7 +98,8 @@ export interface SettlementFilters {
   dateTo?: string
 }
 
-/** 정산 페이지가 한 번에 읽는 raw 데이터 — paid 상태 + 환불 제외 */
+/** 정산 페이지가 한 번에 읽는 raw 데이터 — paid 상태 + 환불 제외.
+ *  cancelled 부스의 voucher 사용분은 별도 합산 → 액면가 정합성 유지 (운영자 손실로 burned 처리) */
 export async function fetchSettlementRawData(
   filters: SettlementFilters = {},
 ): Promise<SettlementRawData> {
@@ -117,12 +119,12 @@ export async function fetchSettlementRawData(
   if (paymentRows.length === 0) return { payments: [], orders: [] }
 
   const paymentIds = paymentRows.map((p) => p.id)
-  // 부스 주문 — payments.id 매칭 + 환불(cancelled) 제외
+  // cancelled 포함 전체 — aggregate 단계에서 status 분기. cancelled 부스의 voucher 는
+  // 매장 매출/송금엔 미포함이지만 식권 액면가 정합성을 위해 burned 로 회수.
   const { data: orders, error: oErr } = await supabase
     .from('orders')
     .select('id, payment_id, booth_id, booth_name, subtotal, voucher_consumed, voucher_burned, status')
     .in('payment_id', paymentIds)
-    .neq('status', 'cancelled')
   if (oErr) throw oErr
 
   return {
@@ -179,7 +181,8 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
     paymentPgAmount.set(p.id, p.total_amount)
   }
 
-  // 날짜별 누적
+  // 날짜별 누적 — cancelled 부스는 매장매출/주문수 제외하지만
+  // voucher_consumed 는 burned 로 옮겨 액면가 정합성 유지 (운영자 손실 처리).
   type Bucket = {
     paymentIds: Set<string>
     orderCount: number
@@ -199,10 +202,15 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
       voucherBurned: 0,
     }
     b.paymentIds.add(o.payment_id)
-    b.orderCount += 1
-    b.menuSales += o.subtotal
-    b.voucherUsed += o.voucher_consumed
-    b.voucherBurned += o.voucher_burned
+    if (o.status === 'cancelled') {
+      // 부스 매장 매출엔 미포함. 식권은 회수 불가라 burned 로 누적.
+      b.voucherBurned += o.voucher_consumed + o.voucher_burned
+    } else {
+      b.orderCount += 1
+      b.menuSales += o.subtotal
+      b.voucherUsed += o.voucher_consumed
+      b.voucherBurned += o.voucher_burned
+    }
     byDate.set(d, b)
   }
 
@@ -272,6 +280,8 @@ export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
   }
 
   for (const o of raw.orders) {
+    // 매장별 정산은 cancelled 부스 제외 — 매출 0, 송금 0, 식권은 운영자 손실 (전체 합계에서만 잡힘).
+    if (o.status === 'cancelled') continue
     const boothId = o.booth_id ?? `__unknown__:${o.booth_name}`
     const b = byBooth.get(boothId) ?? {
       boothId,

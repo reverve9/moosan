@@ -22,12 +22,6 @@ import styles from './AdminSettlement.module.css'
 type TabKey = 'overall' | 'byBooth'
 type Mode = 'daily' | 'total'
 
-/** 운영기간 default — v4 핸드오프 §2-1: 5/15~5/17 본행사 + 테스트.
- *  너무 좁히면 테스트 데이터가 빠져서 사용자가 직접 수정 가능하도록 input 으로 노출.
- *  기본값은 본행사 시작 ~ 종료. */
-const DEFAULT_DATE_FROM = '2026-05-15'
-const DEFAULT_DATE_TO = '2026-05-17'
-
 function todayKstString(): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Seoul',
@@ -40,8 +34,9 @@ function todayKstString(): string {
 export default function AdminSettlement() {
   const [tab, setTab] = useState<TabKey>('overall')
   const [mode, setMode] = useState<Mode>('total')
-  const [dateFrom, setDateFrom] = useState<string>(DEFAULT_DATE_FROM)
-  const [dateTo, setDateTo] = useState<string>(DEFAULT_DATE_TO)
+  // 기본 범위는 오늘 — 운영중에도 dev 테스트에도 합리적. 사용자가 직접 조정 가능.
+  const [dateFrom, setDateFrom] = useState<string>(() => todayKstString())
+  const [dateTo, setDateTo] = useState<string>(() => todayKstString())
   /** 일별 모드일 때 선택된 단일 날짜 */
   const [singleDate, setSingleDate] = useState<string>(todayKstString())
 
@@ -93,18 +88,18 @@ export default function AdminSettlement() {
   const currentRows = tab === 'overall' ? overallRows : boothRows
   const currentTotals = tab === 'overall' ? overallTotals : boothTotals
 
-  /** 4 시트 묶음 export — 항상 모든 view 포함 */
+  /** 4 시트 묶음 export — 항상 모든 view 포함.
+   *  daily mode 는 화면에 보이는 단일 일자 기준, total mode 는 dateFrom~dateTo 기준 */
   const handleExport = async () => {
     if (!raw) return
-    const totalRaw =
-      mode === 'total'
-        ? raw
-        : await fetchSettlementRawData({ dateFrom, dateTo })
+    const effectiveFrom = mode === 'daily' ? singleDate : dateFrom
+    const effectiveTo = mode === 'daily' ? singleDate : dateTo
 
-    const dailyRows = aggregateByDay(totalRaw)
-    const boothTotalRows = aggregateByBooth(totalRaw)
+    // raw 는 이미 현재 mode 에 맞는 범위로 fetch 되어 있어 그대로 사용
+    const dailyRows = aggregateByDay(raw)
+    const boothTotalRows = aggregateByBooth(raw)
 
-    // 매장별 일별 — 날짜별로 부스 집계
+    // 매장별 일별 — 날짜별로 부스 집계 (daily mode 면 1일치만 반복)
     const boothDailyRowsAll: Record<string, unknown>[] = []
     const dateSet = new Set(dailyRows.map((r) => r.groupKey))
     for (const d of [...dateSet].sort()) {
@@ -138,7 +133,7 @@ export default function AdminSettlement() {
           columns: BOOTH_DAILY_EXPORT_COLS,
         },
       ],
-      `정산_${dateFrom}_${dateTo}`,
+      `정산_${effectiveFrom}_${effectiveTo}`,
     )
   }
 
