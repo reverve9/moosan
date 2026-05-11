@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { sendRefundAlimtalk } from '../_lib/alimtalk'
+import { sendRefundAlimtalk } from '../_lib/alimtalk.js'
 
 /**
  * 부스 단위 주문 거절 + 부분 환불.

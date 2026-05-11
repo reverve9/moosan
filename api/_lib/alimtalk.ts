@@ -11,7 +11,7 @@
 
 import { SolapiMessageService } from 'solapi'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { normalizePhone, isValidNormalizedPhone } from './phone'
+import { normalizePhone, isValidNormalizedPhone } from './phone.js'
 
 // ─── Env warnings (모듈 로드 시 1회) ────────────────────────────────────────
 if (!process.env.SOLAPI_API_KEY || !process.env.SOLAPI_API_SECRET

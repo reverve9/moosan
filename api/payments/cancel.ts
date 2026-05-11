@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { sendRefundAlimtalk } from '../_lib/alimtalk'
+import { sendRefundAlimtalk } from '../_lib/alimtalk.js'
 
 /**
  * 토스페이먼츠 결제 취소(환불) API — 어드민 풀환불.

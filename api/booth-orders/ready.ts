@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { sendPickupAlimtalk } from '../_lib/alimtalk'
+import { sendPickupAlimtalk } from '../_lib/alimtalk.js'
 
 /**
  * 부스 "준비완료" 처리 — 기존 client 직호출 markBoothOrderReady 를 server 화.
