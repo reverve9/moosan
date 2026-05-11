@@ -1,4 +1,4 @@
-import { Upload, Plus, Trash2, Check, X } from 'lucide-react'
+import { Upload, Plus, Trash2, Check, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
@@ -544,6 +544,35 @@ export default function AdminFood() {
     refetch()
   }
 
+  const handleMoveMenu = async (
+    booth: FoodBoothWithMenus,
+    menuId: string,
+    direction: 'up' | 'down',
+  ) => {
+    const idx = booth.menus.findIndex((m) => m.id === menuId)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (idx < 0 || swapIdx < 0 || swapIdx >= booth.menus.length) return
+    const a = booth.menus[idx]
+    const b = booth.menus[swapIdx]
+    // sort_order 가 같은 경우(레거시 데이터) 대비: idx 기반으로 강제 부여
+    const aOrder = a.sort_order === b.sort_order ? idx + 1 : a.sort_order
+    const bOrder = a.sort_order === b.sort_order ? swapIdx + 1 : b.sort_order
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from('food_menus').update({ sort_order: bOrder }).eq('id', a.id),
+      supabase.from('food_menus').update({ sort_order: aOrder }).eq('id', b.id),
+    ])
+    if (e1 || e2) {
+      alert('순서 변경 실패: ' + (e1?.message ?? e2?.message))
+      return
+    }
+    setMenuForms((prev) => ({
+      ...prev,
+      [a.id]: prev[a.id] ? { ...prev[a.id], sort_order: bOrder } : prev[a.id],
+      [b.id]: prev[b.id] ? { ...prev[b.id], sort_order: aOrder } : prev[b.id],
+    }))
+    refetch()
+  }
+
   const handleDeleteMenu = async (menuId: string) => {
     if (!confirm('이 메뉴를 삭제하시겠습니까?')) return
     const { error } = await supabase.from('food_menus').delete().eq('id', menuId)
@@ -982,9 +1011,11 @@ export default function AdminFood() {
                     <p className={styles.emptyMenus}>아직 메뉴가 없습니다</p>
                   ) : (
                     <div className={styles.menuList}>
-                      {booth.menus.map((m) => {
+                      {booth.menus.map((m, idx) => {
                         const mForm = menuForms[m.id]
                         if (!mForm) return null
+                        const isFirst = idx === 0
+                        const isLast = idx === booth.menus.length - 1
                         return (
                           <div key={m.id} className={styles.menuRow}>
                             {m.is_alcohol && (
@@ -1096,6 +1127,26 @@ export default function AdminFood() {
                               </label>
                             </div>
                             <div className={styles.menuActions}>
+                              <div className={styles.menuMoveGroup}>
+                                <button
+                                  className={styles.menuMoveBtn}
+                                  onClick={() => handleMoveMenu(booth, m.id, 'up')}
+                                  disabled={isFirst}
+                                  aria-label="위로 이동"
+                                  title="위로 이동"
+                                >
+                                  <ChevronUp width={14} height={14} />
+                                </button>
+                                <button
+                                  className={styles.menuMoveBtn}
+                                  onClick={() => handleMoveMenu(booth, m.id, 'down')}
+                                  disabled={isLast}
+                                  aria-label="아래로 이동"
+                                  title="아래로 이동"
+                                >
+                                  <ChevronDown width={14} height={14} />
+                                </button>
+                              </div>
                               <button
                                 className={styles.menuSaveBtn}
                                 onClick={() => handleSaveMenu(m.id)}

@@ -755,8 +755,36 @@ select.input {
 .menuActions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
+}
+
+.menuMoveGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menuMoveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: #FFFFFF;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.menuMoveBtn:hover:not(:disabled) {
+  background-color: #F3F4F6;
+}
+
+.menuMoveBtn:disabled {
+  color: #D1D5DB;
+  cursor: not-allowed;
 }
 
 .menuTakeoutToggle {
