@@ -147,24 +147,24 @@ export async function cancelBoothOrder(
  *
  * 종결(status='completed')은 픽업 시점으로 분리됨 — markBoothOrderPickedUp 참고.
  * ready 후~픽업 전 윈도우에서도 부스 거절 / 어드민 환불 가능.
+ *
+ * 서버 endpoint /api/booth-orders/ready 에 위임 — 응답 200 후 함수 종료 전
+ * 솔라피 픽업 알림톡 fire-and-forget. (알림톡 키가 server-only)
  */
-export async function markBoothOrderReady(orderId: string): Promise<void> {
-  const now = new Date().toISOString()
-
-  // 확인이 아직이면 confirmed_at 도 채움
-  const { error: cErr } = await supabase
-    .from('orders')
-    .update({ confirmed_at: now, status: 'confirmed' })
-    .eq('id', orderId)
-    .is('confirmed_at', null)
-  if (cErr) throw new Error(`준비완료 처리 실패: ${cErr.message}`)
-
-  const { error } = await supabase
-    .from('orders')
-    .update({ ready_at: now })
-    .eq('id', orderId)
-    .is('ready_at', null)
-  if (error) throw new Error(`준비완료 처리 실패: ${error.message}`)
+export async function markBoothOrderReady(
+  orderId: string,
+  boothId: string,
+): Promise<void> {
+  const response = await fetch('/api/booth-orders/ready', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderId, boothId }),
+  })
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    const msg = typeof json?.error === 'string' ? json.error : '준비완료 처리 실패'
+    throw new Error(msg)
+  }
 }
 
 /**

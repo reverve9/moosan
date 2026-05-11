@@ -335,7 +335,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       if (busyOrderId) return
       setBusyOrderId(card.orderId)
       try {
-        await markBoothOrderReady(card.orderId)
+        await markBoothOrderReady(card.orderId, boothId)
         // 낙관적 업데이트 — Realtime onChange 가 전체 refetch 자동 트리거
         setData((prev) =>
           prev.map((d) =>
@@ -350,7 +350,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         setBusyOrderId(null)
       }
     },
-    [busyOrderId],
+    [busyOrderId, boothId],
   )
 
   const handlePickup = useCallback(
