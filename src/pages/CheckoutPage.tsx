@@ -308,6 +308,8 @@ export default function CheckoutPage() {
       const normalizedPhone = normalizePhone(phone)
 
       // 3) payments + 부스별 orders + order_items INSERT (status: pending)
+      //    식권 전액 결제는 Toss 우회 → payment_method='voucher_only' 명시
+      //    (디폴트 'pg' 로 저장되면 payment_key NULL 인데도 환불 코드가 pg 분기로 들어가서 차단됨)
       const { payment } = await createPendingPayment({
         phone: normalizedPhone,
         totalAmount: finalAmount,
@@ -322,6 +324,7 @@ export default function CheckoutPage() {
             }))
           : undefined,
         alcoholConsentAt,
+        paymentMethod: isVoucher && finalAmount === 0 ? 'voucher_only' : undefined,
       })
 
       saveLastPhone(phone)

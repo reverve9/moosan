@@ -121,7 +121,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const paymentMethod: Method =
     (payment as { payment_method?: Method }).payment_method ?? 'pg'
 
-  if (paymentMethod === 'pg' && !payment.payment_key) {
+  // 0원 결제(식권 100% 등 — DB 에 payment_method='pg' 인 과거 케이스 포함) 는 Toss 호출 없이
+  // DB 만 cancelled. payment_key 검증은 실제 Toss 환불 필요한 케이스에만 적용.
+  if (paymentMethod === 'pg' && !payment.payment_key && payment.total_amount > 0) {
     return res.status(400).json({ error: 'payment_key 가 없습니다' })
   }
 
@@ -165,9 +167,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     refundAmount = Math.min(order.subtotal, remaining)
   }
 
-  // 4) Toss 부분 환불 (pg 결제만, refundAmount > 0 일 때만)
+  // 4) Toss 부분 환불 (pg 결제 + refundAmount > 0 + payment_key 존재할 때만)
   let tossJson: unknown = null
-  if (paymentMethod === 'pg' && refundAmount > 0) {
+  if (paymentMethod === 'pg' && refundAmount > 0 && payment.payment_key) {
     const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
     try {
       const tossResponse = await fetch(
@@ -241,6 +243,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       error: `order 는 cancelled 됐지만 payments 업데이트 실패: ${updPErr.message}`,
       tossResult: tossJson,
     })
+  }
+
+  // (c) 결제 전액 취소(=마지막 살아있는 부스를 취소) 시 쿠폰 복원
+  //     status='used' → 'active', used_at / used_payment_id 초기화.
+  //     부분 취소(다른 부스 살아있음) 는 쿠폰 'used' 유지 — 일부 부스는 이미 혜택 사용.
+  if (reachedFull && payment.coupon_id) {
+    const { error: cRestoreErr } = await supabase
+      .from('coupons')
+      .update({ status: 'active', used_at: null, used_payment_id: null })
+      .eq('id', payment.coupon_id)
+      .eq('used_payment_id', payment.id) // 다른 결제 사용분은 건드리지 않음
+    if (cRestoreErr) {
+      console.error(
+        `[orders/cancel] coupon ${payment.coupon_id} 복원 실패 — 수동 처리 필요:`,
+        cRestoreErr,
+      )
+      // 본 환불은 성공 — 알림톡/응답은 정상 진행. 운영진이 수동 복원.
+    }
   }
 
   // 환불 알림톡 — voucher_only / 0원 환불은 skip.

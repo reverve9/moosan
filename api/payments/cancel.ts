@@ -77,7 +77,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const paymentMethod: Method =
     (payment as { payment_method?: Method }).payment_method ?? 'pg'
 
-  if (paymentMethod === 'pg' && !payment.payment_key) {
+  // 0원 결제(식권 100% 등) 는 payment_method='pg' 라도 payment_key 없음. Toss 호출 없이 DB 만.
+  if (paymentMethod === 'pg' && !payment.payment_key && payment.total_amount > 0) {
     return res.status(400).json({ error: 'payment_key 가 없습니다' })
   }
 
@@ -106,9 +107,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // 3) Toss cancel — pg 결제 + remaining > 0 일 때만. voucher_only/0원 결제는 DB only.
+  // 3) Toss cancel — pg 결제 + remaining > 0 + payment_key 존재할 때만. voucher_only/0원 결제는 DB only.
   let tossJson: unknown = null
-  if (paymentMethod === 'pg' && remaining > 0) {
+  if (paymentMethod === 'pg' && remaining > 0 && payment.payment_key) {
     const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
     try {
       const tossResponse = await fetch(
@@ -179,6 +180,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         error: `payments 는 취소됐지만 orders 업데이트 실패: ${updOErr.message}`,
         tossResult: tossJson,
       })
+    }
+  }
+
+  // 쿠폰 복원 — 결제 전액 취소이므로 status='used' → 'active'.
+  if (payment.coupon_id) {
+    const { error: cRestoreErr } = await supabase
+      .from('coupons')
+      .update({ status: 'active', used_at: null, used_payment_id: null })
+      .eq('id', payment.coupon_id)
+      .eq('used_payment_id', payment.id)
+    if (cRestoreErr) {
+      console.error(
+        `[payments/cancel] coupon ${payment.coupon_id} 복원 실패 — 수동 처리 필요:`,
+        cRestoreErr,
+      )
     }
   }
 
