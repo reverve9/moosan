@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import { sendRefundAlimtalk } from '../_lib/alimtalk'
 
 /**
  * 토스페이먼츠 결제 취소(환불) API — 어드민 풀환불.
@@ -180,5 +181,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res.status(200).json({ ok: true, paymentId, tossResult: tossJson })
+  res.status(200).json({ ok: true, paymentId, tossResult: tossJson })
+
+  // 환불 알림톡 — voucher_only(식권 100% 환불) 는 skip.
+  // 부스마다 별도 발송, Promise.allSettled 로 한 건 실패가 나머지 막지 않도록.
+  // 함수 종료 전 await 로 Vercel runtime 유지.
+  if (paymentMethod !== 'voucher_only' && remainingOrders.length > 0) {
+    const results = await Promise.allSettled(
+      remainingOrders.map((o) =>
+        sendRefundAlimtalk(o.id, o.phone, o.subtotal, o.booth_id ?? undefined),
+      ),
+    )
+    for (const r of results) {
+      if (r.status === 'rejected') {
+        console.error('[payments/cancel] alimtalk error', r.reason)
+      }
+    }
+  }
 }
