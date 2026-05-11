@@ -181,11 +181,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  res.status(200).json({ ok: true, paymentId, tossResult: tossJson })
-
   // 환불 알림톡 — voucher_only(식권 100% 환불) 는 skip.
   // 부스마다 별도 발송, Promise.allSettled 로 한 건 실패가 나머지 막지 않도록.
-  // 함수 종료 전 await 로 Vercel runtime 유지.
+  // 응답 전에 await — Vercel serverless 가 res.json() 직후 함수를 suspend 시켜서
+  // alimtalk_logs UPDATE 가 끝나기 전에 종료되는 경우 관찰됨.
   if (paymentMethod !== 'voucher_only' && remainingOrders.length > 0) {
     const results = await Promise.allSettled(
       remainingOrders.map((o) =>
@@ -198,4 +197,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
   }
+
+  return res.status(200).json({ ok: true, paymentId, tossResult: tossJson })
 }

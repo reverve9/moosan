@@ -205,17 +205,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  res.status(200).json({
-    ok: true,
-    orderId,
-    paymentId: payment.id,
-    refundAmount,
-    paymentFullyCancelled: reachedFull,
-    tossResult: tossJson,
-  })
-
   // 환불 알림톡 — voucher_only(식권 100% 환불) 는 skip.
-  // 함수 종료 전 await 로 Vercel runtime 유지. 실패는 alimtalk_logs + console.
+  // 응답 전에 await — Vercel serverless 가 res.json() 직후 함수를 suspend 시켜서
+  // alimtalk_logs UPDATE 가 끝나기 전에 종료되는 경우 관찰됨.
   if (paymentMethod !== 'voucher_only') {
     await sendRefundAlimtalk(
       orderId,
@@ -226,4 +218,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('[orders/cancel] alimtalk error', err)
     })
   }
+
+  return res.status(200).json({
+    ok: true,
+    orderId,
+    paymentId: payment.id,
+    refundAmount,
+    paymentFullyCancelled: reachedFull,
+    tossResult: tossJson,
+  })
 }

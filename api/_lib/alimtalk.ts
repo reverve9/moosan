@@ -77,8 +77,12 @@ type SendParams = {
   templateType: TemplateType
 }
 
-const SEND_TIMEOUT_MS = 3000
-const RETRY_BACKOFF_MS = 300
+// Solapi 알림톡 호출 타임아웃.
+// 짧게 잡으면 (예: 3s) Solapi 서버는 백그라운드로 메시지 발송을 완료하지만
+// 우리 클라이언트는 timeout 으로 판단해 결과 fail 처리. AbortSignal 미지원으로
+// 실 요청은 취소 불가하므로 — 로컬 timeout = "보냈는지 모름". 재시도하면 중복 발송.
+// 따라서 (a) 충분히 길게 두고 (b) timeout/네트워크 에러는 재시도 X.
+const SEND_TIMEOUT_MS = 8000
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -95,18 +99,15 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   }
 }
 
-function isRetriable(err: unknown): boolean {
-  if (!err || typeof err !== 'object') return false
-  const e = err as { statusCode?: number; status?: number; message?: string; errorCode?: string }
-  const code = e.statusCode ?? e.status
-  if (typeof code === 'number' && code >= 500 && code < 600) return true
-  const msg = e.message ?? ''
-  if (msg.includes('timeout') || msg.includes('ECONNRESET')
-      || msg.includes('ETIMEDOUT') || msg.includes('fetch failed')
-      || msg.includes('ENOTFOUND') || msg.includes('socket hang up')) {
-    return true
+// JSON 직렬화 방어 — Solapi response 가 effect-ts 스키마 메타데이터 등을 포함할 수 있어
+// supabase-js 의 자동 stringify 가 실패할 경우 alimtalk_logs UPDATE 자체가 throw.
+// 안전한 subset 으로 박제.
+function toSafeJson(value: unknown): unknown {
+  try {
+    return JSON.parse(JSON.stringify(value))
+  } catch {
+    return { serialization: 'failed', note: 'response was non-serializable' }
   }
-  return false
 }
 
 // Solapi 응답 분석 — alimtalk(ATA) 0건이고 SMS/LMS 발송됐으면 fallback.
@@ -245,23 +246,15 @@ async function _sendAlimtalk(p: SendParams): Promise<AlimtalkResult> {
     },
   }
 
-  const attempt = () => withTimeout(solapi.send(message), SEND_TIMEOUT_MS)
-
+  // 1회만 시도 — Solapi SDK 가 AbortSignal 미지원이라 로컬 timeout 으로는
+  // 서버측 발송 여부 판단 불가 (보냈는지 모름). 재시도하면 중복 발송 위험.
+  // Solapi 자체에 재시도/큐 메커니즘이 있으므로 클라이언트는 1회로 충분.
   let response: unknown = null
   let lastErr: unknown = null
   try {
-    response = await attempt()
+    response = await withTimeout(solapi.send(message), SEND_TIMEOUT_MS)
   } catch (err) {
     lastErr = err
-    if (isRetriable(err)) {
-      await new Promise((r) => setTimeout(r, RETRY_BACKOFF_MS))
-      try {
-        response = await attempt()
-        lastErr = null
-      } catch (err2) {
-        lastErr = err2
-      }
-    }
   }
 
   if (lastErr) {
@@ -270,9 +263,11 @@ async function _sendAlimtalk(p: SendParams): Promise<AlimtalkResult> {
       status: 'failed',
       error_code: e.errorCode ?? (e.statusCode != null ? String(e.statusCode) : null),
       error_message: e.message ?? String(lastErr),
-      response_payload: lastErr instanceof Error
-        ? { name: lastErr.name, message: lastErr.message }
-        : (lastErr as Record<string, unknown>),
+      response_payload: toSafeJson(
+        lastErr instanceof Error
+          ? { name: lastErr.name, message: lastErr.message }
+          : lastErr,
+      ),
     }).eq('id', logId)
     return { ok: false, status: 'failed', error: e.message ?? 'unknown' }
   }
@@ -284,7 +279,7 @@ async function _sendAlimtalk(p: SendParams): Promise<AlimtalkResult> {
   await supabase.from('alimtalk_logs').update({
     status: finalStatus,
     solapi_message_id: messageId ?? null,
-    response_payload: response as Record<string, unknown>,
+    response_payload: toSafeJson(response),
     sent_at: new Date().toISOString(),
   }).eq('id', logId)
 

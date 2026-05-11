@@ -95,14 +95,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: `ready 처리 실패: ${rErr.message}` })
   }
 
-  // 3) 200 응답 먼저 — Solapi 응답 속도에 비즈 흐름 묶지 않음
-  res.status(200).json({ ok: true })
-
-  // 4) 함수 종료 전 알림톡. 실패는 alimtalk_logs 에 기록됨 — 추가 처리 X.
-  //    Vercel Node runtime 은 핸들러가 끝날 때까지 함수를 유지함.
+  // 3) 알림톡 발송을 응답 전에 await. (응답 후 비동기 처리하면 Vercel serverless 가
+  //    res.json() 직후 함수를 suspend 시켜서 alimtalk_logs UPDATE 가 끝나기 전에
+  //    함수가 종료되는 경우 관찰됨 → 상태가 'pending' 으로 잔류.)
+  //    부스 직원 입장에서 +수초 응답 지연은 무시 가능 수준.
   await sendPickupAlimtalk(orderId, order.phone, boothName, boothId).catch(
     (err) => {
       console.error('[booth-orders/ready] alimtalk error', err)
     },
   )
+
+  // 4) 200 응답
+  return res.status(200).json({ ok: true })
 }
