@@ -6,6 +6,26 @@
 
 const loadXLSX = () => import('xlsx')
 
+/** 데이터 행(헤더 제외) 의 숫자 셀에 천단위 구분 포맷 `#,##0` 적용 */
+function applyThousandsFormat(
+  ws: Record<string, unknown>,
+  XLSX: typeof import('xlsx'),
+): void {
+  const ref = ws['!ref'] as string | undefined
+  if (!ref) return
+  const range = XLSX.utils.decode_range(ref)
+  // 헤더 행(첫 행) 은 건너뛰고 데이터 셀만
+  for (let R = range.s.r + 1; R <= range.e.r; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C })
+      const cell = ws[addr] as { t?: string; z?: string } | undefined
+      if (cell && cell.t === 'n') {
+        cell.z = '#,##0'
+      }
+    }
+  }
+}
+
 /** 2D 배열(헤더 + 데이터)을 .xlsx 파일로 다운로드 */
 export async function exportToExcel(
   rows: Record<string, unknown>[],
@@ -23,13 +43,15 @@ export async function exportToExcel(
     }),
   )
   const ws = XLSX.utils.aoa_to_sheet([header, ...data])
+  applyThousandsFormat(ws as unknown as Record<string, unknown>, XLSX)
 
-  // 열 너비 자동 조정
+  // 열 너비 자동 조정 (숫자는 천단위 구분 적용 후 길이 기준)
   ws['!cols'] = columns.map((c) => {
     const maxLen = Math.max(
       c.label.length,
       ...data.map((row) => {
         const cell = row[columns.indexOf(c)]
+        if (typeof cell === 'number') return cell.toLocaleString().length
         return String(cell ?? '').length
       }),
     )
@@ -68,10 +90,15 @@ export async function exportToExcelMultiSheet(
       }),
     )
     const ws = XLSX.utils.aoa_to_sheet([header, ...data])
+    applyThousandsFormat(ws as unknown as Record<string, unknown>, XLSX)
     ws['!cols'] = sheet.columns.map((c, idx) => {
       const maxLen = Math.max(
         c.label.length,
-        ...data.map((row) => String(row[idx] ?? '').length),
+        ...data.map((row) => {
+          const cell = row[idx]
+          if (typeof cell === 'number') return cell.toLocaleString().length
+          return String(cell ?? '').length
+        }),
       )
       return { wch: Math.min(Math.max(maxLen + 2, 8), 40) }
     })

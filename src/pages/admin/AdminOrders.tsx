@@ -5,7 +5,6 @@ import {
   boothOrderRefundAmount,
   fetchPaymentDetail,
   fetchPaymentsList,
-  isBoothOrderForceRefundable,
   isBoothOrderRefundable,
   refundBoothOrder,
   type BoothOrderRow,
@@ -99,6 +98,7 @@ export default function AdminOrders() {
     dateFrom: todayKstString(),
     dateTo: todayKstString(),
     phone: '',
+    paymentMethod: 'all',
   }))
   const [boothQuery, setBoothQuery] = useState('')
   const [rows, setRows] = useState<BoothOrderRow[]>([])
@@ -134,6 +134,7 @@ export default function AdminOrders() {
       { key: 'phone', label: '연락처' },
       { key: 'menu', label: '메뉴' },
       { key: 'subtotal', label: '매장 금액' },
+      { key: 'voucher_consumed', label: '식권 사용' },
       { key: 'sibling', label: '동시결제 매장수' },
       { key: 'payment_method', label: '결제수단' },
       { key: 'status', label: '상태' },
@@ -147,6 +148,7 @@ export default function AdminOrders() {
       phone: formatPhoneDisplay(r.payment.phone),
       menu: formatMenuSummary(r.menuLines),
       subtotal: r.order.subtotal,
+      voucher_consumed: r.order.voucher_consumed,
       sibling: r.siblingCount,
       payment_method: methodLabel(r.payment.payment_method),
       status: rowStatusLabel(r),
@@ -292,6 +294,26 @@ export default function AdminOrders() {
             className={styles.input}
           />
         </label>
+        <label className={styles.filterItem}>
+          <span className={styles.filterLabel}>결제수단</span>
+          <select
+            value={filters.paymentMethod ?? 'all'}
+            onChange={(e) =>
+              setFilters((f) => ({
+                ...f,
+                paymentMethod: e.target
+                  .value as PaymentsListFilters['paymentMethod'],
+              }))
+            }
+            className={styles.select}
+          >
+            <option value="all">전체</option>
+            <option value="pg">PG</option>
+            <option value="external_card">직영카드</option>
+            <option value="cash">현금</option>
+            <option value="voucher_only">식권</option>
+          </select>
+        </label>
         <label className={`${styles.filterItem} ${styles.filterItemGrow}`}>
           <span className={styles.filterLabel}>매장 검색</span>
           <input
@@ -351,6 +373,7 @@ export default function AdminOrders() {
                 const isOrderCancelled = r.order.status === 'cancelled'
                 const isCancelled = isPaymentCancelled || isOrderCancelled
                 const hasCoupon = r.payment.discount_amount > 0
+                const hasVoucher = r.order.voucher_consumed > 0
                 const groupedHint = r.siblingCount > 1
                 // 최근 = 큰 번호. visibleRows 전체 길이 기준 역순 index.
                 const displayNo = visibleRows.length - (pageStart + idx)
@@ -392,6 +415,14 @@ export default function AdminOrders() {
                           title={`결제 단위 쿠폰 할인 -${r.payment.discount_amount.toLocaleString()}원 (해당 결제에 한해 적용)`}
                         >
                           쿠폰
+                        </span>
+                      )}
+                      {hasVoucher && (
+                        <span
+                          className={styles.voucherBadge}
+                          title={`식권 사용 ${r.order.voucher_consumed.toLocaleString()}원 (이 부스 분배)`}
+                        >
+                          식권
                         </span>
                       )}
                       {r.order.subtotal.toLocaleString()}원
@@ -507,22 +538,26 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
     orderId: string,
     boothLabel: string,
     amount: number,
-    force = false,
+    warn: 'normal' | 'picked_up' | 'completed' = 'normal',
   ) => {
     if (!detail) return
     if (reason.trim().length === 0) {
       setError('환불 사유를 입력해주세요')
       return
     }
-    const message = force
-      ? `[강제 환불] ${boothLabel} ${amount.toLocaleString()}원을 환불합니다.\n픽업까지 끝난 주문이라 매장과 별도 협의가 필요합니다. 진행할까요?`
-      : `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`
+    const baseMsg = `${boothLabel} ${amount.toLocaleString()}원을 환불하시겠습니까?`
+    const message =
+      warn === 'picked_up'
+        ? `[픽업완료 환불] ${baseMsg}\n픽업까지 끝난 주문이라 매장과 별도 협의가 필요합니다. 진행할까요?`
+        : warn === 'completed'
+          ? `[조리완료 환불] ${baseMsg}\n조리완료 상태입니다. 매장과 별도 협의가 필요합니다. 진행할까요?`
+          : baseMsg
     const ok = window.confirm(message)
     if (!ok) return
     setRefunding(true)
     setError(null)
     try {
-      const result = await refundBoothOrder(orderId, reason.trim(), { force })
+      const result = await refundBoothOrder(orderId, reason.trim())
       // 결제가 완전히 취소된 경우(=마지막 환불 가능한 부스였음) 모달 닫기.
       // 그 외엔 모달 유지하고 detail 재조회 → 다음 부스를 이어서 처리 가능.
       if (result.paymentFullyCancelled) {
@@ -763,12 +798,15 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
               <ul className={styles.boothList}>
                 {detail.orders.map(({ order, items }) => {
                   const eligible = isBoothOrderRefundable(detail, order.id)
-                  const forceEligible =
-                    !eligible && isBoothOrderForceRefundable(detail, order.id)
-                  const refundAmt =
-                    eligible || forceEligible
-                      ? boothOrderRefundAmount(detail, order.id)
-                      : 0
+                  const refundAmt = eligible
+                    ? boothOrderRefundAmount(detail, order.id)
+                    : 0
+                  const warnKind: 'normal' | 'picked_up' | 'completed' =
+                    order.picked_up_at !== null
+                      ? 'picked_up'
+                      : order.status === 'completed'
+                        ? 'completed'
+                        : 'normal'
                   return (
                     <li key={order.id} className={styles.boothBox}>
                       <div className={styles.boothHead}>
@@ -809,42 +847,34 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                           {eligible ? (
                             <button
                               type="button"
-                              className={styles.boothRefundBtn}
+                              className={
+                                warnKind === 'normal'
+                                  ? styles.boothRefundBtn
+                                  : styles.boothForceRefundBtn
+                              }
                               onClick={() =>
                                 void handleRefundBooth(
                                   order.id,
                                   `${order.booth_no}번 · ${order.booth_name}`,
                                   refundAmt,
+                                  warnKind,
                                 )
                               }
                               disabled={refunding || reason.trim().length === 0}
+                              title={
+                                warnKind === 'picked_up'
+                                  ? '픽업완료 - 매장과 별도 협의 후 환불'
+                                  : warnKind === 'completed'
+                                    ? '조리완료 - 매장과 별도 협의 후 환불'
+                                    : undefined
+                              }
                             >
-                              {refundAmt.toLocaleString()}원 환불
+                              {warnKind === 'picked_up'
+                                ? `⚠ 픽업완료 환불 (${refundAmt.toLocaleString()}원)`
+                                : warnKind === 'completed'
+                                  ? `⚠ 조리완료 환불 (${refundAmt.toLocaleString()}원)`
+                                  : `${refundAmt.toLocaleString()}원 환불`}
                             </button>
-                          ) : forceEligible ? (
-                            <>
-                              <span className={styles.boothRefundBlocked}>
-                                {order.picked_up_at !== null
-                                  ? '픽업완료 - 일반 환불 불가'
-                                  : `${ORDER_STATUS_LABEL[order.status]} - 일반 환불 불가`}
-                              </span>
-                              <button
-                                type="button"
-                                className={styles.boothForceRefundBtn}
-                                onClick={() =>
-                                  void handleRefundBooth(
-                                    order.id,
-                                    `${order.booth_no}번 · ${order.booth_name}`,
-                                    refundAmt,
-                                    true,
-                                  )
-                                }
-                                disabled={refunding || reason.trim().length === 0}
-                                title="조리완료/완료 상태도 무시하고 강제 환불 (매장과 별도 협의 후 사용)"
-                              >
-                                ⚠ 강제 환불 ({refundAmt.toLocaleString()}원)
-                              </button>
-                            </>
                           ) : (
                             <span className={styles.boothRefundBlocked}>
                               {order.status === 'cancelled' ? '이미 환불됨' : '환불 불가'}

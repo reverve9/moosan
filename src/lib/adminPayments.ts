@@ -16,6 +16,8 @@ export interface PaymentsListFilters {
   dateFrom?: string
   dateTo?: string
   phone?: string
+  /** 결제수단 필터. 'all' = 전체. */
+  paymentMethod?: 'all' | 'pg' | 'external_card' | 'cash' | 'voucher_only'
 }
 
 /**
@@ -38,6 +40,10 @@ export interface BoothOrderRow {
     subtotal: number
     /** 포장 여부 */
     is_takeout: boolean
+    /** 식권 사용액 (부스별 분배). voucher 미사용 시 0. */
+    voucher_consumed: number
+    /** 식권 소멸액 (액면가 - 사용액). 첫 부스에만 기록. */
+    voucher_burned: number
   }
   /** 해당 부스 주문의 메뉴 라인 */
   menuLines: { name: string; quantity: number }[]
@@ -78,6 +84,9 @@ export async function fetchPaymentsList(
     const digits = normalizePhone(filters.phone)
     if (digits.length > 0) q = q.ilike('phone', `%${digits}%`)
   }
+  if (filters.paymentMethod && filters.paymentMethod !== 'all') {
+    q = q.eq('payment_method', filters.paymentMethod)
+  }
 
   const { data: payments, error } = await q.limit(300)
   if (error) throw error
@@ -86,7 +95,9 @@ export async function fetchPaymentsList(
   const paymentIds = payments.map((p) => p.id)
   const { data: orders, error: oErr } = await supabase
     .from('orders')
-    .select('id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout')
+    .select(
+      'id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout, voucher_consumed, voucher_burned',
+    )
     .in('payment_id', paymentIds)
     .order('booth_no', { ascending: true })
   if (oErr) throw oErr
@@ -135,6 +146,8 @@ export async function fetchPaymentsList(
           order_number: o.order_number,
           subtotal: o.subtotal,
           is_takeout: o.is_takeout,
+          voucher_consumed: o.voucher_consumed ?? 0,
+          voucher_burned: o.voucher_burned ?? 0,
         },
         menuLines: itemsByOrder.get(o.id) ?? [],
         siblingCount: list.length,
@@ -190,36 +203,27 @@ export async function fetchPaymentDetail(paymentId: string): Promise<PaymentDeta
 
 /**
  * 어드민이 특정 부스 주문 1건을 환불 가능한지 (client 측 pre-check, 서버도 동일 검증).
- * 부스 거절 동일 조건:
- *  - 결제는 paid 이고 잔액(total_amount - refunded_amount) > 0
- *  - 부스 주문이 'paid' 또는 'confirmed' (cancelled / completed 제외)
- *  - picked_up_at IS NULL  ← 픽업까지 끝난 주문은 환불 불가 (force 시 우회)
+ * 어드민 정책:
+ *  - 결제는 paid (잔액 > 0 또는 voucher_only / 0원 결제)
+ *  - 부스 주문이 cancelled 가 아니면 환불 가능 (paid / confirmed / completed / picked_up_at 무관)
+ *  - 픽업까지 끝난 주문도 환불 가능 (운영 요구사항 — 부스와 별도 협의 전제)
  */
 export function isBoothOrderRefundable(detail: PaymentDetail, orderId: string): boolean {
   if (detail.payment.status !== 'paid') return false
   const remaining = detail.payment.total_amount - (detail.payment.refunded_amount ?? 0)
-  if (remaining <= 0) return false
-  const target = detail.orders.find(({ order }) => order.id === orderId)
-  if (!target) return false
-  const { order } = target
-  if (order.picked_up_at !== null) return false
-  return order.status === 'paid' || order.status === 'confirmed'
-}
-
-/**
- * 강제 환불 가능 여부 — 조리완료/completed 상태도 허용. cancelled 만 차단.
- * 어드민이 "조리완료 - 환불 불가" 상황에서 예외적으로 환불해야 할 때만 사용.
- */
-export function isBoothOrderForceRefundable(detail: PaymentDetail, orderId: string): boolean {
-  if (detail.payment.status !== 'paid') return false
-  const remaining = detail.payment.total_amount - (detail.payment.refunded_amount ?? 0)
-  if (remaining <= 0) return false
+  const isZeroAmount = detail.payment.total_amount === 0
+  if (remaining <= 0 && !isZeroAmount) return false
   const target = detail.orders.find(({ order }) => order.id === orderId)
   if (!target) return false
   return target.order.status !== 'cancelled'
 }
 
-/** 부스 환불 시 실제 환불될 금액 (잔액 cap 적용). */
+/**
+ * 어드민 환불 시 손님에게 환불할 실 금액 (쿠폰 비례 분배 + 끝수 보정).
+ *  - voucher_only / 0원 결제: 0 환불 (DB only)
+ *  - 마지막 살아있는 부스: 잔액 전체 환불 (끝수 흡수)
+ *  - 그 외: floor(order.subtotal × total_amount / sum_subtotal), 잔액으로 cap.
+ */
 export function boothOrderRefundAmount(detail: PaymentDetail, orderId: string): number {
   const remaining = Math.max(
     0,
@@ -227,6 +231,25 @@ export function boothOrderRefundAmount(detail: PaymentDetail, orderId: string): 
   )
   const target = detail.orders.find(({ order }) => order.id === orderId)
   if (!target) return 0
+  if (detail.payment.total_amount === 0) return 0
+  if (remaining <= 0) return 0
+
+  const sumSubtotal = detail.orders.reduce(
+    (acc, { order }) => acc + (order.subtotal ?? 0),
+    0,
+  )
+  const otherLiveCount = detail.orders.filter(
+    ({ order }) => order.id !== orderId && order.status !== 'cancelled',
+  ).length
+  const isLastLive = otherLiveCount === 0
+
+  if (isLastLive) return remaining
+  if (sumSubtotal > 0) {
+    return Math.min(
+      Math.floor((target.order.subtotal * detail.payment.total_amount) / sumSubtotal),
+      remaining,
+    )
+  }
   return Math.min(target.order.subtotal, remaining)
 }
 
@@ -236,16 +259,18 @@ export interface RefundBoothOrderResponse {
   paymentId: string
   refundAmount: number
   paymentFullyCancelled: boolean
+  /** 결제 내 마지막 살아있던 부스를 취소한 경우 true */
+  isLastLiveBooth?: boolean
 }
 
 /**
  * 어드민이 특정 부스 주문만 환불.
  * 서버는 부스 거절과 동일한 endpoint(/api/orders/cancel)에 cancelledBy='admin' 으로 호출.
+ * admin path 는 picked_up_at/completed 무관 모두 환불 허용.
  */
 export async function refundBoothOrder(
   orderId: string,
   reason: string,
-  opts?: { force?: boolean },
 ): Promise<RefundBoothOrderResponse> {
   const response = await fetch('/api/orders/cancel', {
     method: 'POST',
@@ -254,7 +279,6 @@ export async function refundBoothOrder(
       orderId,
       reason,
       cancelledBy: 'admin',
-      force: opts?.force === true,
     }),
   })
   const json = await response.json().catch(() => ({}))

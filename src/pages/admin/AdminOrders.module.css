@@ -170,6 +170,21 @@
   letter-spacing: 0.02em;
 }
 
+.voucherBadge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #5B21B6;
+  background-color: #F5F3FF;
+  border: 1px solid #DDD6FE;
+  border-radius: 999px;
+  vertical-align: middle;
+  font-family: system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.02em;
+}
+
 .discountText {
   color: #DC2626 !important;
   font-weight: 700 !important;

@@ -730,8 +730,6 @@ const OVERALL_EXPORT_COLS = [
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '식권 사용' },
   { key: 'voucherBurned', label: '식권 소멸' },
-  { key: 'couponDiscount', label: '쿠폰 차감' },
-  { key: 'pgAmount', label: 'PG 거래액' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금' },
   { key: 'organizerPgIn', label: '운영자 PG입금' },
@@ -743,8 +741,6 @@ const BOOTH_EXPORT_COLS = [
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '식권 사용' },
-  { key: 'couponDiscount', label: '쿠폰 차감' },
-  { key: 'pgAmount', label: 'PG 거래액' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
@@ -755,8 +751,6 @@ const BOOTH_DAILY_EXPORT_COLS = [
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '식권 사용' },
-  { key: 'couponDiscount', label: '쿠폰 차감' },
-  { key: 'pgAmount', label: 'PG 거래액' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
@@ -768,8 +762,6 @@ function toOverallExportRow(r: SettlementRow): Record<string, unknown> {
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
     voucherBurned: r.voucherBurned,
-    couponDiscount: r.couponDiscount,
-    pgAmount: r.pgAmount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
     organizerPgIn: r.organizerPgIn,
@@ -783,8 +775,6 @@ function toBoothExportRow(r: SettlementRow): Record<string, unknown> {
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
-    couponDiscount: r.couponDiscount,
-    pgAmount: r.pgAmount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
   }
@@ -797,8 +787,6 @@ function toBoothDailyExportRow(r: SettlementRow, date: string): Record<string, u
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
-    couponDiscount: r.couponDiscount,
-    pgAmount: r.pgAmount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
   }

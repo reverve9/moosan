@@ -89,7 +89,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 2) 적격성 검증
   const remaining = payment.total_amount - (payment.refunded_amount ?? 0)
-  if (remaining <= 0) {
+  const isZeroAmountPayment = payment.total_amount === 0
+  if (remaining <= 0 && !isZeroAmountPayment) {
     return res.status(400).json({ error: '이미 전액 환불된 결제입니다' })
   }
 
@@ -105,9 +106,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // 3) Toss cancel — pg 결제만. external_card/cash/voucher_only 는 실 환불 운영진 수동.
+  // 3) Toss cancel — pg 결제 + remaining > 0 일 때만. voucher_only/0원 결제는 DB only.
   let tossJson: unknown = null
-  if (paymentMethod === 'pg') {
+  if (paymentMethod === 'pg' && remaining > 0) {
     const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
     try {
       const tossResponse = await fetch(
@@ -181,11 +182,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // 환불 알림톡 — voucher_only(식권 100% 환불) 는 skip.
+  // 환불 알림톡 — voucher_only / 0원 결제는 skip.
   // 부스마다 별도 발송, Promise.allSettled 로 한 건 실패가 나머지 막지 않도록.
   // 응답 전에 await — Vercel serverless 가 res.json() 직후 함수를 suspend 시켜서
   // alimtalk_logs UPDATE 가 끝나기 전에 종료되는 경우 관찰됨.
-  if (paymentMethod !== 'voucher_only' && remainingOrders.length > 0) {
+  if (
+    paymentMethod !== 'voucher_only' &&
+    !isZeroAmountPayment &&
+    remainingOrders.length > 0
+  ) {
     const results = await Promise.allSettled(
       remainingOrders.map((o) =>
         sendRefundAlimtalk(o.id, o.phone, o.subtotal, o.booth_id ?? undefined),
