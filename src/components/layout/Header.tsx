@@ -27,11 +27,11 @@ export default function Header() {
 
   const isHome = location.pathname === '/'
   const subPage = isSubPage(location.pathname)
-  // 결제 결과 페이지(/checkout/success, /checkout/fail) 는 무조건 차단.
-  // /order/:id 는 CheckoutSuccessPage 에서 진입했을 때만 차단 — CartPage
-  // "내 주문" 카드에서 진입한 경우엔 정상적으로 /cart 로 돌아가야 한다.
-  // CheckoutSuccessPage 가 ?from=checkout 쿼리로 마킹. URL 에 들어가므로
-  // 새로고침/백그라운드 복원/탭 process kill 모두 안전.
+  // 결제 결과 페이지(/payment/cancel) 는 무조건 차단.
+  // /order/:id 는 결제 완료 후 진입했을 때만 차단 — CartPage "내 주문"
+  // 카드에서 진입한 경우엔 정상적으로 /cart 로 돌아가야 한다.
+  // /api/cookiepay/return 의 302 redirect 가 ?from=checkout 쿼리로 마킹.
+  // URL 에 들어가므로 새로고침/백그라운드 복원/탭 process kill 모두 안전.
   const fromCheckout =
     new URLSearchParams(location.search).get('from') === 'checkout'
   const noBack =
