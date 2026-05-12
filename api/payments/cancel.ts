@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { sendRefundAlimtalk } from '../_lib/alimtalk.js'
+import { refundCookiePayment, isPgMethodAutoRefundable } from '../_lib/cookiepay.js'
 
 /**
  * 토스페이먼츠 결제 취소(환불) API — 어드민 풀환불.
@@ -45,13 +46,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'paymentId, reason are required' })
   }
 
-  const secretKey = process.env.TOSS_SECRET_KEY
+  const secretKey = process.env.TOSS_SECRET_KEY // legacy 토스 데이터용
   const supabaseUrl = process.env.VITE_SUPABASE_URL
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
-  if (!secretKey || !supabaseUrl || !supabaseKey) {
+  if (!supabaseUrl || !supabaseKey) {
     return res.status(500).json({
-      error:
-        'Server is missing TOSS_SECRET_KEY / VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY',
+      error: 'Server is missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY',
     })
   }
 
@@ -72,13 +72,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // payment_method 분기 — pg 만 Toss 호출, 나머지는 DB 만 cancelled.
+  // payment_method 분기 — pg 만 PG 호출, 나머지는 DB 만 cancelled.
   type Method = 'pg' | 'external_card' | 'cash' | 'voucher_only'
   const paymentMethod: Method =
     (payment as { payment_method?: Method }).payment_method ?? 'pg'
 
-  // 0원 결제(식권 100% 등) 는 payment_method='pg' 라도 payment_key 없음. Toss 호출 없이 DB 만.
-  if (paymentMethod === 'pg' && !payment.payment_key && payment.total_amount > 0) {
+  // PG 분기 — 쿠키페이/토스 + 카카오/네이버 자동환불 미지원 (B안)
+  const pgProvider = payment.pg_provider as string | null
+  const pgMethod = payment.pg_method as string | null
+  const isCookiepay = pgProvider === 'cookiepay'
+  const isLegacyToss = !isCookiepay && payment.payment_key && payment.total_amount > 0
+  const requiresManualRefund =
+    isCookiepay && paymentMethod === 'pg' && !isPgMethodAutoRefundable(pgMethod)
+
+  // 0원 결제(식권 100% 등) 는 payment_method='pg' 라도 payment_key 없음. PG 호출 없이 DB 만.
+  // payment_key 검증은 legacy 토스 케이스에만 적용.
+  if (paymentMethod === 'pg' && payment.total_amount > 0 && !isCookiepay && !payment.payment_key) {
     return res.status(400).json({ error: 'payment_key 가 없습니다' })
   }
 
@@ -107,34 +116,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   }
 
-  // 3) Toss cancel — pg 결제 + remaining > 0 + payment_key 존재할 때만. voucher_only/0원 결제는 DB only.
-  let tossJson: unknown = null
-  if (paymentMethod === 'pg' && remaining > 0 && payment.payment_key) {
-    const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
-    try {
-      const tossResponse = await fetch(
-        `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key as string)}/cancel`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: authHeader,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            cancelReason: reason.trim(),
+  // 3) PG 환불 — 결제수단/공급자별 분기
+  //    (a) 쿠키페이 + auto-refundable (card/bank): /api/cancel 호출
+  //    (b) 쿠키페이 + 간편결제(kakaopay/naverpay): PG 호출 skip + 운영진 수동 알람 (B안)
+  //    (c) legacy 토스: 기존 토스 cancel API
+  //    (d) voucher_only / 0원: DB only
+  let pgResult: unknown = null
+  let manualRefundFlag = false
+
+  if (paymentMethod === 'pg' && remaining > 0) {
+    if (isCookiepay) {
+      if (requiresManualRefund) {
+        // (b) 간편결제 자동환불 미지원 — DB cancelled + 운영진 알람
+        manualRefundFlag = true
+        console.error(
+          '[payments/cancel] manual refund required',
+          JSON.stringify({
+            paymentId,
             cancelAmount: remaining,
+            pgMethod,
+            pgTid: payment.pg_tid,
+            reason: reason.trim(),
           }),
-        },
-      )
-      tossJson = await tossResponse.json()
-      if (!tossResponse.ok) {
-        return res.status(tossResponse.status).json(tossJson)
+        )
+      } else if (payment.pg_tid) {
+        // (a) 쿠키페이 카드/계좌이체 자동 환불
+        try {
+          pgResult = await refundCookiePayment({
+            tid: payment.pg_tid as string,
+            amount: remaining,
+            reason: reason.trim(),
+          })
+        } catch (err) {
+          return res.status(502).json({
+            error: '쿠키페이 환불 API 호출 실패',
+            detail: err instanceof Error ? err.message : String(err),
+          })
+        }
+      } else {
+        return res.status(400).json({ error: 'pg_tid 가 없습니다 (쿠키페이 결제)' })
       }
-    } catch (err) {
-      return res.status(502).json({
-        error: 'Toss cancel API 호출 실패',
-        detail: err instanceof Error ? err.message : String(err),
-      })
+    } else if (isLegacyToss && secretKey) {
+      // (c) legacy 토스
+      const authHeader = 'Basic ' + Buffer.from(secretKey + ':').toString('base64')
+      try {
+        const tossResponse = await fetch(
+          `https://api.tosspayments.com/v1/payments/${encodeURIComponent(payment.payment_key as string)}/cancel`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: authHeader,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              cancelReason: reason.trim(),
+              cancelAmount: remaining,
+            }),
+          },
+        )
+        pgResult = await tossResponse.json()
+        if (!tossResponse.ok) {
+          return res.status(tossResponse.status).json(pgResult)
+        }
+      } catch (err) {
+        return res.status(502).json({
+          error: 'Toss cancel API 호출 실패',
+          detail: err instanceof Error ? err.message : String(err),
+        })
+      }
     }
   }
 
@@ -146,6 +195,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : {}
   meta.cancel_reason = reason.trim()
   meta.cancelled_via = 'admin'
+  if (manualRefundFlag) {
+    meta.manual_refund_required = true
+    meta.manual_refund_method = pgMethod
+  }
 
   const { error: updPErr } = await supabase
     .from('payments')
@@ -158,8 +211,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .eq('id', paymentId)
   if (updPErr) {
     return res.status(500).json({
-      error: `Toss 취소는 성공했으나 DB 업데이트 실패: ${updPErr.message}`,
-      tossResult: tossJson,
+      error: `PG 취소는 성공했으나 DB 업데이트 실패: ${updPErr.message}`,
+      pgResult,
     })
   }
 
@@ -178,7 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (updOErr) {
       return res.status(500).json({
         error: `payments 는 취소됐지만 orders 업데이트 실패: ${updOErr.message}`,
-        tossResult: tossJson,
+        pgResult,
       })
     }
   }
@@ -219,5 +272,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  return res.status(200).json({ ok: true, paymentId, tossResult: tossJson })
+  return res.status(200).json({
+    ok: true,
+    paymentId,
+    manualRefundRequired: manualRefundFlag,
+    pgResult,
+  })
 }
