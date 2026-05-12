@@ -63,6 +63,10 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [waitingCounts, setWaitingCounts] = useState<Map<string, number>>(new Map())
 
+  // 결제수단 선택 — 쿠키페이먼츠. 식권 100% 결제는 PG 우회라 무관.
+  // 카카오/네이버페이는 환불 자동화 미지원 → 운영진 수동 안내 표시.
+  const [payMethod, setPayMethod] = useState<'CARD' | 'KAKAOPAY' | 'NAVERPAY'>('CARD')
+
   // 주류 성인 동의 모달 — 카트에 is_alcohol 메뉴 1개 이상 시 결제 직전 노출.
   // alcoholConsentAt 은 모달 통과 시점에 캡처해 createPendingPayment 까지 전달.
   const hasAlcohol = useMemo(() => items.some((i) => i.isAlcohol === true), [items])
@@ -352,7 +356,7 @@ export default function CheckoutPage() {
         productName: orderName,
         amount: finalAmount,
         buyerPhone: normalizedPhone,
-        payMethod: 'CARD',
+        payMethod,
       })
       // 쿠키페이 결제창으로 리다이렉트되므로 아래 코드는 실행되지 않음
     } catch (err) {
@@ -516,6 +520,69 @@ export default function CheckoutPage() {
                 ※ 식권 잔액 {calc.voucherBurned.toLocaleString()}원은 결제와 함께 소멸됩니다
               </div>
             )}
+          </div>
+        )}
+
+        {/* ─── 결제수단 선택 — PG 결제 필요할 때만 ─── */}
+        {calc.finalAmount > 0 && (
+          <div className={styles.section}>
+            <h3 className={styles.sectionTitle}>결제수단</h3>
+            <ul className={styles.couponOptionList}>
+              <li
+                className={`${styles.couponOption} ${payMethod === 'CARD' ? styles.couponOptionChecked : ''}`}
+              >
+                <label className={styles.couponLabel}>
+                  <input
+                    type="radio"
+                    name="payMethod"
+                    value="CARD"
+                    checked={payMethod === 'CARD'}
+                    onChange={() => setPayMethod('CARD')}
+                  />
+                  <span className={styles.couponLabelBody}>
+                    <span className={styles.couponTitle}>카드결제</span>
+                  </span>
+                </label>
+              </li>
+              <li
+                className={`${styles.couponOption} ${payMethod === 'KAKAOPAY' ? styles.couponOptionChecked : ''}`}
+              >
+                <label className={styles.couponLabel}>
+                  <input
+                    type="radio"
+                    name="payMethod"
+                    value="KAKAOPAY"
+                    checked={payMethod === 'KAKAOPAY'}
+                    onChange={() => setPayMethod('KAKAOPAY')}
+                  />
+                  <span className={styles.couponLabelBody}>
+                    <span className={styles.couponTitle}>카카오페이</span>
+                    <span className={styles.couponMeta}>
+                      환불은 행사 운영본부 문의 (자동 환불 미지원)
+                    </span>
+                  </span>
+                </label>
+              </li>
+              <li
+                className={`${styles.couponOption} ${payMethod === 'NAVERPAY' ? styles.couponOptionChecked : ''}`}
+              >
+                <label className={styles.couponLabel}>
+                  <input
+                    type="radio"
+                    name="payMethod"
+                    value="NAVERPAY"
+                    checked={payMethod === 'NAVERPAY'}
+                    onChange={() => setPayMethod('NAVERPAY')}
+                  />
+                  <span className={styles.couponLabelBody}>
+                    <span className={styles.couponTitle}>네이버페이</span>
+                    <span className={styles.couponMeta}>
+                      환불은 행사 운영본부 문의 (자동 환불 미지원)
+                    </span>
+                  </span>
+                </label>
+              </li>
+            </ul>
           </div>
         )}
 
