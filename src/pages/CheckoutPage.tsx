@@ -557,9 +557,6 @@ export default function CheckoutPage() {
                   />
                   <span className={styles.couponLabelBody}>
                     <span className={styles.couponTitle}>카카오페이</span>
-                    <span className={styles.couponMeta}>
-                      환불은 행사 운영본부 문의 (자동 환불 미지원)
-                    </span>
                   </span>
                 </label>
               </li>
@@ -576,9 +573,6 @@ export default function CheckoutPage() {
                   />
                   <span className={styles.couponLabelBody}>
                     <span className={styles.couponTitle}>네이버페이</span>
-                    <span className={styles.couponMeta}>
-                      환불은 행사 운영본부 문의 (자동 환불 미지원)
-                    </span>
                   </span>
                 </label>
               </li>

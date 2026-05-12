@@ -213,13 +213,18 @@ export async function refundCookiePayment(
 
 /**
  * 결제수단별 자동 환불 가능 여부.
- * - card / bank: 자동 환불 (쿠키페이 /api/cancel 호출)
- * - kakaopay / naverpay: 수동 환불 (B안 정책 — PG 호출 skip)
+ * - card / bank / kakaopay / naverpay: 자동 환불 (쿠키페이 /api/cancel 호출)
+ *   (카카오/네이버페이도 쿠키페이 확인상 동일 환불 API 처리 가능 — 2026-05-12)
  * - vacct / mobile / other: 매뉴얼 미보장 — 보수적으로 수동 처리
  */
 export function isPgMethodAutoRefundable(
   pgMethod: string | null | undefined,
 ): boolean {
   if (!pgMethod) return false
-  return pgMethod === 'card' || pgMethod === 'bank'
+  return (
+    pgMethod === 'card' ||
+    pgMethod === 'bank' ||
+    pgMethod === 'kakaopay' ||
+    pgMethod === 'naverpay'
+  )
 }
