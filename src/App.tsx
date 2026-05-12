@@ -14,6 +14,7 @@ import CartPage from '@/pages/CartPage'
 import CheckoutPage from '@/pages/CheckoutPage'
 import CheckoutSuccessPage from '@/pages/CheckoutSuccessPage'
 import CheckoutFailPage from '@/pages/CheckoutFailPage'
+import PaymentCancelPage from '@/pages/PaymentCancelPage'
 import OrderStatusPage from '@/pages/OrderStatusPage'
 import ComingSoonPage from '@/pages/ComingSoonPage'
 import { isDevMode } from '@/config/flags'
@@ -119,6 +120,7 @@ function CustomerRoutes() {
         <Route path="/checkout" element={isDevMode ? <CheckoutPage /> : <ComingSoonPage />} />
         <Route path="/checkout/success" element={isDevMode ? <CheckoutSuccessPage /> : <ComingSoonPage />} />
         <Route path="/checkout/fail" element={isDevMode ? <CheckoutFailPage /> : <ComingSoonPage />} />
+        <Route path="/payment/cancel" element={isDevMode ? <PaymentCancelPage /> : <ComingSoonPage />} />
         <Route path="/order/:id" element={isDevMode ? <OrderStatusPage /> : <ComingSoonPage />} />
         {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
         <Route path="/program/youth" element={<FestivalPage slug="youth" />} />

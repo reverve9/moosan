@@ -5,7 +5,7 @@ import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
-import { getTossPayments } from '@/lib/toss'
+import { requestCookiePay } from '@/lib/cookiepay'
 import { createPendingPayment, markPaymentPaid } from '@/lib/orders'
 import {
   fetchAvailableCouponsByPhone,
@@ -337,24 +337,24 @@ export default function CheckoutPage() {
         return
       }
 
-      // 5) Toss 결제창 호출
-      const tossPayments = await getTossPayments()
+      // 5) 쿠키페이먼츠 결제창 호출
+      //    Phase 2: CARD 고정. Phase 5 에서 사용자 선택 UI(KAKAOPAY/NAVERPAY) 추가.
+      //    결제 결과는 RETURNURL(/api/cookiepay/return) 로 Form POST → 서버에서 처리 후 /order/:id 로 302.
       const firstItem = items[0]
       const orderName =
         items.length === 1
           ? firstItem.menuName
           : `${firstItem.menuName} 외 ${items.length - 1}건`
 
-      await tossPayments.requestPayment('카드', {
+      requestCookiePay({
+        orderId: payment.id,
+        orderNo: payment.toss_order_id,
+        productName: orderName,
         amount: finalAmount,
-        orderId: payment.toss_order_id,
-        orderName,
-        customerMobilePhone: normalizedPhone,
-        successUrl: `${window.location.origin}/checkout/success`,
-        failUrl: `${window.location.origin}/checkout/fail`,
-        windowTarget: 'self',
+        buyerPhone: normalizedPhone,
+        payMethod: 'CARD',
       })
-      // 토스 결제창으로 리다이렉트되므로 아래 코드는 실행되지 않음
+      // 쿠키페이 결제창으로 리다이렉트되므로 아래 코드는 실행되지 않음
     } catch (err) {
       setSubmitting(false)
       const message = err instanceof Error ? err.message : '결제 호출 중 오류가 발생했습니다'
