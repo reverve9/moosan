@@ -28,6 +28,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="설악무산축전" />
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+    <!--
+      쿠키페이먼츠 SDK — 샌드박스 (라이브 전환 시 sandbox → www 로 두 줄 모두 교체).
+      jQuery 1.12.4 는 cookiepayments-1.1.4 의 의존성. 동일 환경 스크립트만 로드.
+    -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://sandbox.cookiepayments.com/js/cookiepayments-1.1.4.js"></script>
+    <!-- 라이브 전환 시 위 두 줄을 아래 두 줄로 교체:
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://www.cookiepayments.com/js/cookiepayments-1.1.4.js"></script>
+    -->
   </head>
   <body>
     <div id="root"></div>
