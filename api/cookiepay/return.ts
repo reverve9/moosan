@@ -137,23 +137,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return failRedirect(res, 'amount_mismatch')
   }
 
-  // ── 4) payments → paid ──
+  // ── 4) payments → paid (phase 3: 정식 컬럼 사용) ──
   const now = new Date().toISOString()
   const pgMethod = normalizePayMethod(payMethod)
-  const meta = {
-    pg_provider: 'cookiepay',
-    pg_method: pgMethod,
-    accept_no: acceptNo ?? null,
-    pg_orderno: orderNo,
-  }
 
   const { error: pErr } = await supabase
     .from('payments')
     .update({
       status: 'paid',
       paid_at: now,
-      payment_key: tid,
-      meta,
+      payment_key: tid, // legacy 호환 — Phase 4 환불 시 pg_tid 우선, fallback payment_key
+      pg_provider: 'cookiepay',
+      pg_method: pgMethod,
+      pg_tid: tid,
+      pg_accept_no: acceptNo ?? null,
     })
     .eq('id', payment.id)
   if (pErr) {

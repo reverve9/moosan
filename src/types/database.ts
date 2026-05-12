@@ -797,6 +797,10 @@ export interface Database {
           paid_at: string | null
           cancelled_at: string | null
           payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          pg_provider: string | null
+          pg_method: string | null
+          pg_tid: string | null
+          pg_accept_no: string | null
           assisted_by: string | null
           external_receipt_no: string | null
           festival_id: string | null
@@ -817,6 +821,10 @@ export interface Database {
           paid_at?: string | null
           cancelled_at?: string | null
           payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          pg_provider?: string | null
+          pg_method?: string | null
+          pg_tid?: string | null
+          pg_accept_no?: string | null
           assisted_by?: string | null
           external_receipt_no?: string | null
           festival_id?: string | null
@@ -837,6 +845,10 @@ export interface Database {
           paid_at?: string | null
           cancelled_at?: string | null
           payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          pg_provider?: string | null
+          pg_method?: string | null
+          pg_tid?: string | null
+          pg_accept_no?: string | null
           assisted_by?: string | null
           external_receipt_no?: string | null
           festival_id?: string | null
