@@ -56,6 +56,25 @@
   background-color: var(--color-primary-light);
 }
 
+/* 결제 직후 진입 시 명시적 확인 버튼 — /cart 로 redirect */
+.checkoutConfirmBtn {
+  width: 100%;
+  height: 52px;
+  margin-top: 4cqw;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.checkoutConfirmBtn:hover {
+  background-color: var(--color-primary-light);
+}
+
 /* ──────────────── 컨테이너 ──────────────── */
 .container {
   display: flex;
