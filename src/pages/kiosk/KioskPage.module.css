@@ -17,6 +17,18 @@
   font-family: inherit;
   /* 손님이 만지는 화면 — 시스템 폰트 크게 + 자간 살짝 */
   letter-spacing: -0.01em;
+  /* 터치 디바이스: double-tap zoom 대기(~300ms) 제거 → 즉각 반응 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 터치 디바이스에서 hover 가 sticky 처럼 남는 문제 차단 */
+@media (hover: none) {
+  .container button:hover {
+    background-color: revert;
+    color: revert;
+    border-color: revert;
+  }
 }
 
 .header {

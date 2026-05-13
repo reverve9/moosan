@@ -361,7 +361,7 @@ export default function FoodSections({ festival }: Props) {
           ) : (
             <ul className={styles.boothList}>
               {filteredBooths.map((b) => {
-                const thumb = getAssetUrl(b.thumbnail_url)
+                const thumb = getAssetUrl(b.thumbnail_url, { width: 200 })
                 const waitingCount = waitingCounts.get(b.id)
                 const badge =
                   waitingCount !== undefined ? getBoothBadge(waitingCount) : null
@@ -378,7 +378,7 @@ export default function FoodSections({ festival }: Props) {
                     >
                       <div className={styles.boothThumb}>
                         {thumb ? (
-                          <img src={thumb} alt={b.name} />
+                          <img src={thumb} alt={b.name} loading="lazy" decoding="async" />
                         ) : (
                           <div className={styles.boothThumbPlaceholder} aria-hidden="true" />
                         )}
@@ -462,7 +462,7 @@ function BoothModal({
   isOrderingOpen: boolean
   onClose: () => void
 }) {
-  const thumb = getAssetUrl(booth.thumbnail_url)
+  const thumb = getAssetUrl(booth.thumbnail_url, { width: 400 })
   const badge = getBoothBadge(waitingCount)
 
   return (
@@ -486,7 +486,7 @@ function BoothModal({
         <div className={styles.modalHeader}>
           <div className={styles.modalThumb}>
             {thumb ? (
-              <img src={thumb} alt={booth.name} />
+              <img src={thumb} alt={booth.name} loading="lazy" decoding="async" />
             ) : (
               <div className={styles.modalThumbPlaceholder} aria-hidden="true" />
             )}
@@ -585,7 +585,7 @@ function MenuItemRow({
   const { showToast } = useToast()
   const [pendingQty, setPendingQty] = useState(1)
 
-  const menuImg = getAssetUrl(menu.image_url)
+  const menuImg = getAssetUrl(menu.image_url, { width: 240 })
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused
@@ -615,7 +615,7 @@ function MenuItemRow({
     <li className={`${styles.menuItem} ${soldOut ? styles.menuItemSoldOut : ''}`}>
       <div className={styles.menuItemThumb}>
         {menuImg ? (
-          <img src={menuImg} alt={menu.name} />
+          <img src={menuImg} alt={menu.name} loading="lazy" decoding="async" />
         ) : (
           <div className={styles.menuItemThumbPlaceholder} aria-hidden="true">
             <ImageIcon />
