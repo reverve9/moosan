@@ -93,6 +93,26 @@ export default function CheckoutPage() {
     }
   }, [items.length, navigate])
 
+  // 결제창 → PWA 복귀 감지 fallback.
+  // 결제 호출 직전 sessionStorage 에 payment.id 저장. 사용자가 결제창에서 결제 후
+  // RETURNURL 이 트리거 안 되더라도 PWA 가 다시 visible 되면 OrderStatusPage 로
+  // 자동 이동 (실제 paid 전이는 noti S2S 또는 별도 처리에 의존).
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return
+      const pid = sessionStorage.getItem('pending_payment_id')
+      if (!pid) return
+      sessionStorage.removeItem('pending_payment_id')
+      navigate(`/order/${pid}?from=checkout`, { replace: true })
+    }
+    document.addEventListener('visibilitychange', handler)
+    window.addEventListener('pageshow', handler)
+    return () => {
+      document.removeEventListener('visibilitychange', handler)
+      window.removeEventListener('pageshow', handler)
+    }
+  }, [navigate])
+
   // 부스별 대기 요약 — mount 시 1회 fetch
   useEffect(() => {
     if (items.length === 0) return
@@ -349,6 +369,9 @@ export default function CheckoutPage() {
         items.length === 1
           ? firstItem.menuName
           : `${firstItem.menuName} 외 ${items.length - 1}건`
+
+      // visibilitychange fallback 용 — 결제창 복귀 시 OrderStatusPage 로 자동 이동
+      sessionStorage.setItem('pending_payment_id', payment.id)
 
       requestCookiePay({
         orderId: payment.id,

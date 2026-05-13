@@ -25,7 +25,9 @@ export default function PaymentCancelPage() {
 
   // 결제창에서 push 된 history 흔적 차단 — 뒤로가기 누르면 결제 외부 SDK 페이지로
   // 돌아가지 않고 /cart 로 강제 이동. dummy pushState 후 popstate 가로채는 패턴.
+  // 동시에 visibilitychange fallback 용 sessionStorage 정리 (잘못 redirect 방지).
   useEffect(() => {
+    sessionStorage.removeItem('pending_payment_id')
     window.history.pushState(null, '', window.location.href)
     const handler = () => navigate('/cart', { replace: true })
     window.addEventListener('popstate', handler)

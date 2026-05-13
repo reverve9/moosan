@@ -112,9 +112,10 @@ export default function OrderStatusPage() {
   const [error, setError] = useState<string | null>(null)
   const [dismissedBooths, setDismissedBooths] = useState<Set<string>>(() => loadDismissed(id ?? ''))
 
-  // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지
+  // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지 + visibilitychange fallback 정리
   useEffect(() => {
     if (searchParams.get('from') !== 'checkout') return
+    sessionStorage.removeItem('pending_payment_id')
     window.history.pushState(null, '', window.location.href)
     const handlePop = () => {
       navigate('/program/food', { replace: true })
