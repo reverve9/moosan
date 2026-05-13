@@ -30,10 +30,21 @@ function getSupabase() {
 /**
  * 결제창 → RETURNURL 응답에서 우리 앱으로 navigate.
  *
- * 단순 302 는 결제창이 iframe(쿠키페이 PC layer) 이거나 PG 가 띄운 popup 일 때
- * 자식 프레임만 navigate 되고 부모(우리 PWA) 는 그대로 머무는 케이스가 있음.
- * → HTML 응답 + JS 로 opener / top / self 순서로 navigate. iframe sandbox 등으로
- *   top 접근이 막히면 self 로 fallback. JS 차단 환경은 meta refresh + 링크 표시.
+ * 결제창 호출 방식이 환경별로 천차만별이라(top-frame full nav / iframe layer /
+ * popup window / 새 탭 — noopener 여부도 다양) 하나만 시도하면 환경 하나에서 깨짐.
+ * 따라서 모든 경로를 동시에 시도:
+ *
+ *   1) BroadcastChannel('musanfesta-cookiepay-return') postMessage
+ *      → 동일 origin 으로 열려있는 다른 탭/창(원래 PWA) 의 CheckoutPage 가 catch.
+ *   2) localStorage.setItem(...) → storage 이벤트로 다른 탭/창에 전파 (BC 미지원
+ *      구형 브라우저 fallback). 5초 후 cleanup.
+ *   3) window.opener.location.href = url; window.close()
+ *      → PG 가 popup window 로 띄운 경우 부모 직접 navigate + self close.
+ *   4) window.top.location.href = url
+ *      → 결제창이 iframe layer 인 경우 top frame 으로 navigate.
+ *   5) window.location.replace(url) — 최종 fallback (top-level full-page submit).
+ *
+ * JS 차단 환경은 noscript meta refresh + 가시 링크 폴백.
  */
 function redirect(res: VercelResponse, location: string) {
   const safe = location.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
@@ -58,22 +69,48 @@ function redirect(res: VercelResponse, location: string) {
 <script>
 (function () {
   var url = ${JSON.stringify(location)};
-  // 1) PG 가 popup 으로 띄운 경우 — 부모 창을 navigate 하고 self close
+  var payload = { type: 'return', url: url, ts: Date.now() };
+
+  // 1) BroadcastChannel — 동일 origin 의 다른 탭/창(원래 PWA) 의 CheckoutPage 가 listen.
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      var ch = new BroadcastChannel('musanfesta-cookiepay-return');
+      ch.postMessage(payload);
+      setTimeout(function () { try { ch.close(); } catch (e) {} }, 0);
+    }
+  } catch (e) {}
+
+  // 2) localStorage — storage 이벤트로 다른 탭에 전파 (BC 미지원 fallback). 5초 후 정리.
+  try {
+    localStorage.setItem('musanfesta-cookiepay-return', JSON.stringify(payload));
+    setTimeout(function () {
+      try { localStorage.removeItem('musanfesta-cookiepay-return'); } catch (e) {}
+    }, 5000);
+  } catch (e) {}
+
+  // 3) popup with opener — 부모 직접 navigate + self close
   try {
     if (window.opener && !window.opener.closed && window.opener !== window) {
-      window.opener.location.href = url;
-      window.close();
+      try { window.opener.location.href = url; } catch (e) {}
+      try { window.close(); } catch (e) {}
+      // close 가 브라우저 정책으로 막히면 0.8초 후 self 도 navigate 해서 빈 화면 방지.
+      setTimeout(function () { window.location.replace(url); }, 800);
       return;
     }
-  } catch (e) { /* cross-origin opener 차단 — top/self 로 fallback */ }
-  // 2) iframe(쿠키페이 PC layer) 내부 — top frame 으로 navigate
+  } catch (e) {}
+
+  // 4) iframe(쿠키페이 PC layer 등) — top frame 으로 navigate
   try {
     if (window.top && window.top !== window.self) {
-      window.top.location.href = url;
-      return;
+      try { window.top.location.href = url; return; } catch (e) {
+        /* cross-origin top 접근 차단 — self 로 fallback */
+      }
     }
-  } catch (e) { /* iframe sandbox/cross-origin top 접근 차단 — self 로 fallback */ }
-  // 3) top-level(모바일 풀페이지 submit) — self navigate
+  } catch (e) {}
+
+  // 5) top-level(모바일 full-page submit / 일반 새 탭) — self navigate.
+  //    BC/storage 시그널이 원래 PWA 탭으로 갔으면 거기서도 navigate. 본 창은 본
+  //    창대로 결과 페이지 표시(빈 화면 방지).
   window.location.replace(url);
 })();
 </script>
