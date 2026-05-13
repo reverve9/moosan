@@ -111,9 +111,12 @@ export function normalizePayMethod(
 //   - KAKAOPAY/NAVERPAY 환불은 명시 없음 → B안 정책상 호출하지 않음 (수동 처리)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 토큰 발급 응답 — 쿠키페이 매뉴얼 (/docs/결제취소).
+ *   성공: { RTN_CD: '0000', RTN_MSG: '성공', TOKEN: '...' }
+ *   실패: { RTN_CD: 'E003', RTN_MSG: 'ID & KEY 불일치' } (TOKEN 없음) */
 interface TokenResponse {
-  RESULTCODE?: string
-  RESULTMSG?: string
+  RTN_CD?: string
+  RTN_MSG?: string
   TOKEN?: string
 }
 
@@ -159,16 +162,15 @@ async function getCancelToken(): Promise<string> {
     )
   }
 
-  // TOKEN 또는 token (대소문자 양쪽 흡수)
-  const token = data.TOKEN ?? (data as { token?: string }).token
-  if (!res.ok || !token) {
+  // 매뉴얼: 성공 = RTN_CD '0000' + TOKEN 있음. 실패 = RTN_CD 다른 코드 (E003 등) + TOKEN 없음.
+  if (!res.ok || data.RTN_CD !== '0000' || !data.TOKEN) {
     throw new Error(
-      `TOKEN 발급 실패 (HTTP ${res.status}): ${data?.RESULTMSG ?? data?.RESULTCODE ?? 'no token'} — body: ${rawText.slice(0, 200)}`,
+      `TOKEN 발급 실패 (HTTP ${res.status}, RTN_CD ${data?.RTN_CD ?? 'unknown'}): ${data?.RTN_MSG ?? 'no token'} — body: ${rawText.slice(0, 200)}`,
     )
   }
 
-  _tokenCache = { token, expiresAt: now + 10 * 60 * 1000 }
-  return token
+  _tokenCache = { token: data.TOKEN, expiresAt: now + 10 * 60 * 1000 }
+  return data.TOKEN
 }
 
 export interface RefundRequest {
