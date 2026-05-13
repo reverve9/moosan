@@ -93,23 +93,79 @@ export default function CheckoutPage() {
     }
   }, [items.length, navigate])
 
-  // 결제창 → PWA 복귀 감지 fallback.
-  // 결제 호출 직전 sessionStorage 에 payment.id 저장. 사용자가 결제창에서 결제 후
-  // RETURNURL 이 트리거 안 되더라도 PWA 가 다시 visible 되면 OrderStatusPage 로
-  // 자동 이동 (실제 paid 전이는 noti S2S 또는 별도 처리에 의존).
+  // ─── 결제창 → 원래 탭 복귀 시그널 처리 ───
+  //
+  // 결제창이 어떤 컨텍스트(popup window / iframe / 새 탭) 로 떴든, /api/cookiepay/return
+  // 응답 스크립트가 다음 시그널을 동시 발생시킴:
+  //   (A) BroadcastChannel('musanfesta-cookiepay-return') postMessage
+  //   (B) localStorage.setItem('musanfesta-cookiepay-return', JSON)  → storage 이벤트
+  //   (C) opener.location.href = url (popup with opener)
+  //   (D) top.location.href = url (iframe)
+  //   (E) self.location.replace(url) (top-level full nav)
+  //
+  // CheckoutPage(원래 탭)은 (A)(B) 를 listen 해서 새 탭에서 결제가 끝나도 본 탭이
+  // /order/:id 로 이동하게 한다. (C)~(E) 는 결제창/iframe/탭 본인이 navigate.
+  // visibilitychange + sessionStorage 는 시그널이 죄다 실패했을 때 최후 fallback.
   useEffect(() => {
-    const handler = () => {
+    const goToReturnUrl = (rawUrl: string) => {
+      sessionStorage.removeItem('pending_payment_id')
+      try {
+        const u = new URL(rawUrl, window.location.origin)
+        if (u.origin === window.location.origin) {
+          navigate(u.pathname + u.search, { replace: true })
+          return
+        }
+      } catch {
+        /* URL 파싱 실패 — 아래 raw path 로 navigate */
+      }
+      navigate(rawUrl, { replace: true })
+    }
+
+    // (A) BroadcastChannel
+    let bc: BroadcastChannel | null = null
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('musanfesta-cookiepay-return')
+        bc.onmessage = (ev) => {
+          const data = ev.data as { type?: string; url?: string } | null
+          if (!data || data.type !== 'return' || typeof data.url !== 'string') return
+          goToReturnUrl(data.url)
+        }
+      }
+    } catch {
+      /* BroadcastChannel 미지원 환경 — storage 이벤트로 fallback */
+    }
+
+    // (B) storage 이벤트
+    const storageHandler = (e: StorageEvent) => {
+      if (e.key !== 'musanfesta-cookiepay-return' || !e.newValue) return
+      try {
+        const data = JSON.parse(e.newValue) as { url?: string }
+        if (typeof data.url === 'string') goToReturnUrl(data.url)
+      } catch {
+        /* 본 키 외의 데이터 — 무시 */
+      }
+    }
+    window.addEventListener('storage', storageHandler)
+
+    // (F) visibilitychange + pageshow — 최후 fallback (PWA 복귀)
+    const visHandler = () => {
       if (document.visibilityState !== 'visible') return
       const pid = sessionStorage.getItem('pending_payment_id')
       if (!pid) return
       sessionStorage.removeItem('pending_payment_id')
       navigate(`/order/${pid}?from=checkout`, { replace: true })
     }
-    document.addEventListener('visibilitychange', handler)
-    window.addEventListener('pageshow', handler)
+    document.addEventListener('visibilitychange', visHandler)
+    window.addEventListener('pageshow', visHandler)
+
     return () => {
-      document.removeEventListener('visibilitychange', handler)
-      window.removeEventListener('pageshow', handler)
+      if (bc) {
+        try { bc.close() } catch { /* noop */ }
+      }
+      window.removeEventListener('storage', storageHandler)
+      document.removeEventListener('visibilitychange', visHandler)
+      window.removeEventListener('pageshow', visHandler)
     }
   }, [navigate])
 
