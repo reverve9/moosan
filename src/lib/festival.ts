@@ -10,6 +10,15 @@ import type {
 
 const STORAGE_BUCKET = 'festival-assets'
 
+interface AssetTransform {
+  /** 원하는 가로 픽셀. Supabase image transformation 호출 — Pro 플랜에서 동작, Free 플랜은 무시되어 원본 그대로. */
+  width?: number
+  /** 이미지 품질 (1~100). 미지정 시 supabase 기본. */
+  quality?: number
+  /** 리사이즈 모드. 미지정 시 cover. */
+  resize?: 'cover' | 'contain' | 'fill'
+}
+
 /**
  * Storage path 또는 정적/외부 경로 → 사용 가능한 URL
  *
@@ -17,13 +26,30 @@ const STORAGE_BUCKET = 'festival-assets'
  *  · 'festivals/youth/poster.png' → supabase storage public URL
  *  · '/images/thumb_xxx.png'      → 정적 public 경로 그대로 반환 (시드 데이터 호환)
  *  · 'https://...'                → 외부 URL 그대로 반환
+ *
+ * transform 옵션 — Supabase Image Transformation (width/quality/resize). Pro 플랜
+ * 에서 자동 리사이즈된 작은 이미지가 내려와 로딩 시간 단축. Free 플랜은 옵션 무시.
  */
-export function getAssetUrl(path: string | null | undefined): string | null {
+export function getAssetUrl(
+  path: string | null | undefined,
+  transform?: AssetTransform,
+): string | null {
   if (!path) return null
   if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }
-  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(
+    path,
+    transform
+      ? {
+          transform: {
+            width: transform.width,
+            quality: transform.quality ?? 75,
+            resize: transform.resize ?? 'cover',
+          },
+        }
+      : undefined,
+  )
   return data.publicUrl
 }
 

@@ -201,13 +201,13 @@ export default function CartPage() {
                 </div>
                 <ul className={styles.itemList}>
                   {group.items.map((item) => {
-                    const img = getAssetUrl(item.imageUrl ?? null)
+                    const img = getAssetUrl(item.imageUrl ?? null, { width: 200 })
                     const takeoutLocked = item.acceptsTakeout === false
                     return (
                       <li key={item.menuId} className={styles.item}>
                         <div className={styles.itemThumb}>
                           {img ? (
-                            <img src={img} alt={item.menuName} />
+                            <img src={img} alt={item.menuName} loading="lazy" decoding="async" />
                           ) : (
                             <div className={styles.itemThumbPlaceholder} aria-hidden="true" />
                           )}
