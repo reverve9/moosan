@@ -3,16 +3,13 @@
  * 상단 sticky 카트 바 + 카트 모달만 키오스크 전용으로 추가.
  */
 
-/* 사용자앱과 동일한 와이드 기준 (--max-width: 600px) 으로 본문 폭 제한.
- * 풀스크린 키오스크 화면에서도 카드/그리드/모달 비례가 사용자앱과 같게 유지.
- * container-type 은 사용자앱 Layout(.layout) 과 동일 — FoodSections 의 cqw
- * 단위가 600px container 기준으로 계산되어야 부스 카드/모달 등이 안 깨짐. */
+/* 키오스크는 사용자앱과 다른 와이드 환경 (스탠바이미고 1080×1920 세로 / 노트북
+ * 확장 모니터 등) — 폭 제한 없이 디바이스 폭 전체 사용. container-type 으로
+ * cqw 가 디바이스 폭 기준으로 계산되어 카드/모달/폰트가 비례 확대됨. */
 .page {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: var(--max-width);
-  margin: 0 auto;
   height: 100%;
   min-height: 0;
   background: var(--color-bg, #ffffff);
@@ -133,7 +130,6 @@
 .cartModal {
   position: relative;
   width: 100%;
-  max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
