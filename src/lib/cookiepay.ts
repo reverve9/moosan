@@ -37,6 +37,13 @@ export interface CookiePayRequestParams {
   payMethod?: CookiePayMethod
 }
 
+/** UA 기반 디바이스 분기 — MTYPE 'M'(모바일) / 'P'(PC). */
+function detectMtype(): 'M' | 'P' {
+  if (typeof navigator === 'undefined') return 'M'
+  const ua = navigator.userAgent
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(ua) ? 'M' : 'P'
+}
+
 export function requestCookiePay(params: CookiePayRequestParams) {
   ensureInit()
   const baseUrl = window.location.origin
@@ -51,7 +58,7 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     RETURNURL: `${baseUrl}/api/cookiepay/return`,
     HOMEURL: `${baseUrl}/cart`,
     CANCELURL: `${baseUrl}/payment/cancel`,
-    MTYPE: 'M',
+    MTYPE: detectMtype(),
     ETC1: params.orderId,
   })
 }

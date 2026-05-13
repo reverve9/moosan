@@ -5,7 +5,11 @@
 //
 // payload 종류:
 //   (A) 승인 통지 — PAY_METHOD/ORDERNO/AMOUNT/TID/ACCEPT_NO/ETC1 등
-//                   → 우리는 RETURNURL 에서 이미 paid 처리. 멱등 skip.
+//                   → RETURNURL 핸들러가 paid 전이 안 됐을 때 안전망. PWA
+//                     standalone / 모바일 인앱브라우저 환경에서 결제창의
+//                     RETURNURL redirect 가 차단되면 RETURNURL handler 가
+//                     실행되지 않음. 이 경우에도 PG S2S noti 는 정상 수신되어
+//                     paid 전이가 가능. 멱등성으로 RETURNURL 과 중복 안전.
 //   (B) 취소 통지 — noti_type='cancel' 또는 'deposit_cancel'
 //                   paymethod/orderno/cancel_amount/tid/cancel_date
 //                   → 사용자가 카카오/네이버페이 앱에서 직접 취소한 경우 발생.
@@ -16,11 +20,13 @@
 //   매뉴얼에 noti 인증 토큰 명시 없음. 다음으로 보호:
 //   1) orderno + tid 가 우리 DB 와 일치해야 동작 (외부에서 우리 tid 모름)
 //   2) cancel_amount 가 remaining 초과하면 거부
-//   3) 멱등성 — payment.status='cancelled' 이면 skip
+//   3) 멱등성 — payment.status='cancelled'/'paid' 면 skip
+//   4) 승인 통지 금액 검증 — payment.total_amount 와 일치해야 paid 전이
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { sendRefundAlimtalk } from '../_lib/alimtalk.js'
+import { normalizePayMethod } from '../_lib/cookiepay.js'
 
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL
@@ -45,9 +51,122 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const notiType = (body.noti_type ?? body.NOTI_TYPE) as string | undefined
   const isCancel = notiType === 'cancel' || notiType === 'deposit_cancel'
 
+  // ── 승인 통지 처리 ──
+  // RETURNURL 이 안전망 1번이지만, PWA standalone / 모바일 인앱브라우저 환경에서
+  // 결제창에서 RETURNURL 로 redirect 가 차단되는 케이스가 있어 paid 전이가 누락됨.
+  // Noti(S2S) 는 PG 서버 → 우리 서버 직접 호출이라 브라우저 환경 무관 → 결제
+  // 완료 처리의 최종 안전망. 멱등성으로 RETURNURL 과 중복 처리 방어.
   if (!isCancel) {
-    // 승인 통지: RETURNURL 에서 이미 처리. 200 OK 응답만.
-    return res.status(200).json({ ok: true, skipped: 'approval_noti' })
+    const orderNoApprov = (body.orderno ?? body.ORDERNO) as string | undefined
+    const tidApprov = (body.tid ?? body.TID) as string | undefined
+    const amountApprovRaw = (body.amount ?? body.AMOUNT) as string | number | undefined
+    const etc1Approv = (body.etc1 ?? body.ETC1) as string | undefined
+    const acceptNoApprov = (body.accept_no ?? body.ACCEPT_NO) as string | undefined
+    const payMethodApprov = (body.paymethod ?? body.PAY_METHOD) as string | undefined
+
+    // 필수 필드 부족 시 200 OK skip — PG 가 noti 재전송하지 않도록
+    if (!orderNoApprov || !tidApprov || amountApprovRaw === undefined) {
+      console.log('[cookiepay/noti] approval skip — missing fields', {
+        orderNoApprov,
+        tidApprov,
+        amountApprovRaw,
+      })
+      return res.status(200).json({ ok: true, skipped: 'approval_missing_fields' })
+    }
+
+    const amountApprov =
+      typeof amountApprovRaw === 'string' ? Number(amountApprovRaw) : amountApprovRaw
+    if (!Number.isFinite(amountApprov)) {
+      return res.status(200).json({ ok: true, skipped: 'approval_invalid_amount' })
+    }
+
+    const supabase = getSupabase()
+
+    // payments 조회 — ETC1(payment.id) 우선, fallback ORDERNO
+    let payApprov:
+      | { id: string; total_amount: number; status: string; coupon_id: string | null }
+      | null = null
+    if (etc1Approv) {
+      const r = await supabase
+        .from('payments')
+        .select('id, total_amount, status, coupon_id')
+        .eq('id', etc1Approv)
+        .maybeSingle()
+      payApprov = r.data
+    }
+    if (!payApprov) {
+      const r = await supabase
+        .from('payments')
+        .select('id, total_amount, status, coupon_id')
+        .eq('toss_order_id', orderNoApprov)
+        .maybeSingle()
+      payApprov = r.data
+    }
+
+    if (!payApprov) {
+      console.error('[cookiepay/noti] approval payment not found', {
+        orderNoApprov,
+        etc1Approv,
+      })
+      return res.status(200).json({ ok: true, skipped: 'approval_payment_not_found' })
+    }
+
+    // 멱등성 — RETURNURL 이 먼저 처리했으면 skip
+    if (payApprov.status === 'paid') {
+      return res.status(200).json({ ok: true, skipped: 'approval_already_paid' })
+    }
+
+    // 금액 검증 (위변조 방어)
+    if (payApprov.total_amount !== amountApprov) {
+      console.error('[cookiepay/noti] approval amount mismatch', {
+        paymentId: payApprov.id,
+        expected: payApprov.total_amount,
+        actual: amountApprov,
+      })
+      return res.status(200).json({ ok: true, skipped: 'approval_amount_mismatch' })
+    }
+
+    const now = new Date().toISOString()
+    const pgMethod = normalizePayMethod(payMethodApprov)
+
+    const { error: pErr } = await supabase
+      .from('payments')
+      .update({
+        status: 'paid',
+        paid_at: now,
+        payment_key: tidApprov,
+        pg_provider: 'cookiepay',
+        pg_method: pgMethod,
+        pg_tid: tidApprov,
+        pg_accept_no: acceptNoApprov ?? null,
+      })
+      .eq('id', payApprov.id)
+    if (pErr) {
+      console.error('[cookiepay/noti] approval payments update failed', pErr)
+      return res.status(500).json({ error: 'payments_update_failed' })
+    }
+
+    const { error: oErr } = await supabase
+      .from('orders')
+      .update({ status: 'paid', paid_at: now })
+      .eq('payment_id', payApprov.id)
+    if (oErr) {
+      console.error('[cookiepay/noti] approval orders update failed', oErr)
+    }
+
+    if (payApprov.coupon_id) {
+      const { error: cErr } = await supabase
+        .from('coupons')
+        .update({ status: 'used', used_at: now, used_payment_id: payApprov.id })
+        .eq('id', payApprov.coupon_id)
+        .eq('status', 'active')
+      if (cErr) {
+        console.error('[cookiepay/noti] approval coupon update failed', cErr)
+      }
+    }
+
+    console.log('[cookiepay/noti] approval processed', { paymentId: payApprov.id })
+    return res.status(200).json({ ok: true, approved: true, paymentId: payApprov.id })
   }
 
   // ── 취소 통지 처리 ──

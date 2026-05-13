@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { CircleX } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import styles from './CheckoutResult.module.css'
 
@@ -18,8 +19,18 @@ const REASON_LABEL: Record<string, string> = {
 
 export default function PaymentCancelPage() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const reason = params.get('reason') ?? ''
   const friendly = REASON_LABEL[reason] ?? (reason ? decodeURIComponent(reason) : '결제를 취소했어요')
+
+  // 결제창에서 push 된 history 흔적 차단 — 뒤로가기 누르면 결제 외부 SDK 페이지로
+  // 돌아가지 않고 /cart 로 강제 이동. dummy pushState 후 popstate 가로채는 패턴.
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href)
+    const handler = () => navigate('/cart', { replace: true })
+    window.addEventListener('popstate', handler)
+    return () => window.removeEventListener('popstate', handler)
+  }, [navigate])
 
   return (
     <section className={styles.page}>
@@ -27,7 +38,7 @@ export default function PaymentCancelPage() {
       <div className={styles.center}>
         <CircleX className={`${styles.icon} ${styles.iconError}`} />
         <p className={styles.message}>{friendly}</p>
-        <Link to="/cart" className={styles.cta}>
+        <Link to="/cart" replace className={styles.cta}>
           장바구니로 돌아가기
         </Link>
       </div>
