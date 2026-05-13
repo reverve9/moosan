@@ -153,7 +153,7 @@ export default function PhoneStep({
 
   return (
     <div className={styles.layout}>
-      <div className={styles.left}>
+      <div className={styles.inner}>
         <h2 className={styles.title}>휴대폰 번호를 입력해주세요</h2>
         <p className={styles.subtitle}>
           입력하신 번호로 픽업 안내가 전송됩니다.
@@ -166,6 +166,41 @@ export default function PhoneStep({
           {!phoneValid && digits.length > 0 && (
             <div className={styles.hint}>11자리 010 번호를 입력해주세요</div>
           )}
+        </div>
+
+        <div className={styles.keypadWrap}>
+          <div className={styles.keypad}>
+            {KEYPAD_KEYS.map((key, idx) => {
+              if (key === 'space') {
+                return <span key={`sp-${idx}`} className={styles.keypadSpacer} aria-hidden />
+              }
+              if (key === 'back') {
+                return (
+                  <button
+                    key={`bk-${idx}`}
+                    type="button"
+                    className={`${styles.keyButton} ${styles.keyButtonBack}`}
+                    onClick={() => handleKey('back')}
+                    aria-label="한 글자 지우기"
+                    disabled={submitting}
+                  >
+                    <Delete strokeWidth={1.2} size={36} aria-hidden />
+                  </button>
+                )
+              }
+              return (
+                <button
+                  key={`k-${idx}`}
+                  type="button"
+                  className={styles.keyButton}
+                  onClick={() => handleKey(key)}
+                  disabled={submitting}
+                >
+                  {key}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* ─── 식권 영역 ─── */}
@@ -247,41 +282,6 @@ export default function PhoneStep({
             <span>{submitting ? '요청 중…' : '결제 요청'}</span>
             <ArrowRight strokeWidth={1.2} size={28} aria-hidden />
           </button>
-        </div>
-      </div>
-
-      <div className={styles.right}>
-        <div className={styles.keypad}>
-          {KEYPAD_KEYS.map((key, idx) => {
-            if (key === 'space') {
-              return <span key={`sp-${idx}`} className={styles.keypadSpacer} aria-hidden />
-            }
-            if (key === 'back') {
-              return (
-                <button
-                  key={`bk-${idx}`}
-                  type="button"
-                  className={`${styles.keyButton} ${styles.keyButtonBack}`}
-                  onClick={() => handleKey('back')}
-                  aria-label="한 글자 지우기"
-                  disabled={submitting}
-                >
-                  <Delete strokeWidth={1.2} size={36} aria-hidden />
-                </button>
-              )
-            }
-            return (
-              <button
-                key={`k-${idx}`}
-                type="button"
-                className={styles.keyButton}
-                onClick={() => handleKey(key)}
-                disabled={submitting}
-              >
-                {key}
-              </button>
-            )
-          })}
         </div>
       </div>
     </div>

@@ -27,9 +27,62 @@ function getSupabase() {
   return createClient(url, key)
 }
 
+/**
+ * 결제창 → RETURNURL 응답에서 우리 앱으로 navigate.
+ *
+ * 단순 302 는 결제창이 iframe(쿠키페이 PC layer) 이거나 PG 가 띄운 popup 일 때
+ * 자식 프레임만 navigate 되고 부모(우리 PWA) 는 그대로 머무는 케이스가 있음.
+ * → HTML 응답 + JS 로 opener / top / self 순서로 navigate. iframe sandbox 등으로
+ *   top 접근이 막히면 self 로 fallback. JS 차단 환경은 meta refresh + 링크 표시.
+ */
 function redirect(res: VercelResponse, location: string) {
-  res.setHeader('Location', location)
-  res.status(302).end()
+  const safe = location.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
+  const html = `<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>결제 처리 중…</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="referrer" content="no-referrer" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif; }
+  .wrap { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: #374151; }
+  a { color: #1d4ed8; text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p>결제 결과 페이지로 이동 중입니다…</p>
+  <p><a href="${safe}">자동으로 이동하지 않으면 여기를 눌러 이동</a></p>
+</div>
+<script>
+(function () {
+  var url = ${JSON.stringify(location)};
+  // 1) PG 가 popup 으로 띄운 경우 — 부모 창을 navigate 하고 self close
+  try {
+    if (window.opener && !window.opener.closed && window.opener !== window) {
+      window.opener.location.href = url;
+      window.close();
+      return;
+    }
+  } catch (e) { /* cross-origin opener 차단 — top/self 로 fallback */ }
+  // 2) iframe(쿠키페이 PC layer) 내부 — top frame 으로 navigate
+  try {
+    if (window.top && window.top !== window.self) {
+      window.top.location.href = url;
+      return;
+    }
+  } catch (e) { /* iframe sandbox/cross-origin top 접근 차단 — self 로 fallback */ }
+  // 3) top-level(모바일 풀페이지 submit) — self navigate
+  window.location.replace(url);
+})();
+</script>
+<noscript><meta http-equiv="refresh" content="0;url=${safe}" /></noscript>
+</body>
+</html>`
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.setHeader('Cache-Control', 'no-store')
+  res.status(200).send(html)
 }
 
 function failRedirect(res: VercelResponse, reason: string) {
