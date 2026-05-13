@@ -19,7 +19,14 @@ function pickKioskStation(adminId: string): 'helpdesk-1' | 'helpdesk-2' {
 
 function openKioskWindow(station: 'helpdesk-1' | 'helpdesk-2') {
   const url = `${window.location.origin}/kiosk?station=${station}`
-  window.open(url, '_blank', 'noopener,noreferrer')
+  // popup feature + size 명시 → Chrome 이 새 탭 대신 새 창으로 처리 (HDMI 확장
+  // 모니터로 드래그·풀스크린 가능). named target 으로 같은 station 재호출 시
+  // 새 창 또 열지 않고 기존 창 focus.
+  window.open(
+    url,
+    `kiosk-${station}`,
+    'popup,width=1920,height=1080,noopener,noreferrer',
+  )
 }
 
 type Tab = 'order' | 'kiosk' | 'history' | 'cash'
