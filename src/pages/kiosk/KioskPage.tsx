@@ -20,7 +20,9 @@ const WARN_BEFORE_MS = 5 * 1000
 const FORCE_RESET_EVENT = 'force-reset'
 
 function parseStation(raw: string | null): KioskStationId {
-  return raw === 'helpdesk-2' ? 'helpdesk-2' : 'helpdesk-1'
+  if (raw === 'helpdesk-2') return 'helpdesk-2'
+  if (raw === 'helpdesk-3') return 'helpdesk-3'
+  return 'helpdesk-1'
 }
 
 /**
@@ -157,7 +159,7 @@ export default function KioskPage() {
         <div className={styles.brand}>
           설악무산문화축전 · 헬프데스크
           <span className={styles.stationBadge}>
-            #{stationId === 'helpdesk-2' ? '2' : '1'}
+            #{stationId === 'helpdesk-3' ? '3' : stationId === 'helpdesk-2' ? '2' : '1'}
           </span>
         </div>
         <div className={styles.headerSpacer} />

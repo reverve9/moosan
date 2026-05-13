@@ -96,7 +96,10 @@ function AdminRoutes() {
       </Route>
       {/* 헬프데스크 키오스크 — AdminLayout 외부 standalone 풀스크린 라우트 */}
       <Route path="/kiosk" element={<KioskPage />} />
-      {/* 어드민 ID 기반 단축 진입 — 외부 디바이스 주소창 입력용 */}
+      {/* 단축 진입 — 외부 디바이스 주소창 입력용
+            /k          → admin01 station (스탠바이미고 외부 URL 전용)
+            /k/:adminId → 어드민 ID 매핑 (admin01/02/03) */}
+      <Route path="/k" element={<KioskRedirect />} />
       <Route path="/k/:adminId" element={<KioskRedirect />} />
       {/* 픽업 대기 디스플레이 — OBS 송출용 standalone 페이지 */}
       <Route path="/display/pickup" element={<DisplayPickup />} />

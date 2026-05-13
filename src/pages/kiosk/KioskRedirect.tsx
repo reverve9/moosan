@@ -1,22 +1,20 @@
 import { Navigate, useParams } from 'react-router-dom'
+import { EXTERNAL_DEFAULT_STATION, getStationByAdminId } from '@/lib/kioskStation'
 
 /**
- * 어드민 ID 기반 키오스크 단축 진입.
+ * 키오스크 단축 진입 라우트.
  *
- *   /k/admin02 → /kiosk?station=helpdesk-1
- *   /k/admin03 → /kiosk?station=helpdesk-2
- *   /k/admin01 / /k/musanfesta → /kiosk?station=helpdesk-1 (기본)
+ *   /k             → admin01 station (스탠바이미고 외부 URL 전용)
+ *   /k/admin01     → helpdesk-1
+ *   /k/admin02     → helpdesk-2
+ *   /k/admin03     → helpdesk-3
+ *   /k/{그 외}     → helpdesk-1 (기본)
  *
- * 외부 디바이스(스탠바이미고 등)의 브라우저 주소창에 짧은 URL 만 입력해서
- * 자기 station 키오스크로 바로 진입할 수 있게 한다. AdminHelpDesk 의
- * `pickKioskStation` 매핑과 동일 규칙.
+ * 외부 디바이스(스탠바이미고) 브라우저 주소창에 짧은 URL 입력 또는
+ * 어드민이 직접 URL 입력하는 두 경로를 한 번에 흡수한다.
  */
-function pickStation(adminId: string | undefined): 'helpdesk-1' | 'helpdesk-2' {
-  return adminId === 'admin03' ? 'helpdesk-2' : 'helpdesk-1'
-}
-
 export default function KioskRedirect() {
   const { adminId } = useParams<{ adminId: string }>()
-  const station = pickStation(adminId)
+  const station = adminId ? getStationByAdminId(adminId) : EXTERNAL_DEFAULT_STATION
   return <Navigate to={`/kiosk?station=${station}`} replace />
 }

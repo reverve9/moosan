@@ -239,7 +239,7 @@ export interface KioskQueueGroup {
   /** 식권 차감 합계 (orders.voucher_consumed 의 payment 단위 합). 식권 미사용이면 0. */
   voucherConsumed: number
   createdAt: string
-  /** 키오스크 단말 식별자. 키오스크 결제는 'helpdesk-1'/'helpdesk-2', 직원 직접 입력은 NULL. */
+  /** 키오스크 단말 식별자. 키오스크 결제는 'helpdesk-1'/'helpdesk-2'/'helpdesk-3', 직원 직접 입력은 NULL. */
   kioskStationId: string | null
   orders: KioskQueueOrder[]
 }
@@ -357,7 +357,7 @@ export async function confirmKioskPayment(
  * DB 거치지 않고 broadcast 만으로 키오스크 측에 force-reset 이벤트 송신.
  */
 export async function sendKioskForceReset(
-  stationId: 'helpdesk-1' | 'helpdesk-2',
+  stationId: 'helpdesk-1' | 'helpdesk-2' | 'helpdesk-3',
 ): Promise<void> {
   const channel = supabase.channel(`kiosk:${stationId}`)
   await new Promise<void>((resolve) => {
