@@ -38,6 +38,8 @@ export function getAssetUrl(
   if (path.startsWith('/') || path.startsWith('http://') || path.startsWith('https://')) {
     return path
   }
+  // resize 는 호출자가 명시한 경우에만 적용 (디폴트 X). width 만 주면 Supabase 가
+  // 비율 유지하면서 리사이즈. cover 디폴트 박으면 강제 정사각형/크롭으로 비율 깨짐.
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(
     path,
     transform
@@ -45,7 +47,7 @@ export function getAssetUrl(
           transform: {
             width: transform.width,
             quality: transform.quality ?? 75,
-            resize: transform.resize ?? 'cover',
+            ...(transform.resize ? { resize: transform.resize } : {}),
           },
         }
       : undefined,
