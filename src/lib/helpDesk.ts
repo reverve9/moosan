@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { startOfTodayKstAsUtc, todayKstString } from './orders'
+import { markPaymentPaid, startOfTodayKstAsUtc, todayKstString } from './orders'
 import type { CashSession, Payment, Order, OrderItem, PaymentMethod } from '@/types/database'
 
 /**
@@ -211,4 +211,160 @@ export const PAYMENT_METHOD_SHORT: Record<PaymentMethod, string> = {
   external_card: '직영카드',
   cash: '현금',
   voucher_only: '식권',
+}
+
+// ─── 헬프데스크 키오스크 — 결제 대기 큐 ────────────────────────────
+
+export interface KioskQueueItem {
+  menu_name: string
+  quantity: number
+  menu_price: number
+  subtotal: number
+}
+
+export interface KioskQueueOrder {
+  id: string
+  order_number: string
+  booth_no: string
+  booth_name: string
+  subtotal: number
+  items: KioskQueueItem[]
+}
+
+export interface KioskQueueGroup {
+  paymentId: string
+  phone: string
+  /** 식권 차감 후 손님이 추가 결제해야 할 금액 (식권 단독 결제면 0). */
+  totalAmount: number
+  /** 식권 차감 합계 (orders.voucher_consumed 의 payment 단위 합). 식권 미사용이면 0. */
+  voucherConsumed: number
+  createdAt: string
+  /** 키오스크 단말 식별자. 키오스크 결제는 'helpdesk-1'/'helpdesk-2', 직원 직접 입력은 NULL. */
+  kioskStationId: string | null
+  orders: KioskQueueOrder[]
+}
+
+/**
+ * 헬프데스크 키오스크 결제 대기 큐 조회.
+ * orders.status='payment_pending' AND payment_channel='helpdesk' 인
+ * 모든 주문을 payment_id 별로 그룹화하여 반환. 오래된 것부터 표시.
+ */
+export async function fetchKioskPendingQueue(): Promise<KioskQueueGroup[]> {
+  const { data: orders, error: oErr } = await supabase
+    .from('orders')
+    .select(
+      'id, payment_id, order_number, booth_no, booth_name, subtotal, voucher_consumed, phone, created_at, kiosk_station_id',
+    )
+    .eq('status', 'payment_pending')
+    .eq('payment_channel', 'helpdesk')
+    .order('created_at', { ascending: true })
+
+  if (oErr) throw new Error(`결제 대기 큐 조회 실패: ${oErr.message}`)
+  if (!orders || orders.length === 0) return []
+
+  const paymentIds = Array.from(new Set(orders.map((o) => o.payment_id)))
+  const orderIds = orders.map((o) => o.id)
+
+  const [{ data: payments, error: pErr }, { data: items, error: iErr }] = await Promise.all([
+    supabase
+      .from('payments')
+      .select('id, phone, total_amount, created_at')
+      .in('id', paymentIds),
+    supabase
+      .from('order_items')
+      .select('order_id, menu_name, quantity, menu_price, subtotal')
+      .in('order_id', orderIds),
+  ])
+  if (pErr) throw new Error(`결제 대기 큐 결제 정보 조회 실패: ${pErr.message}`)
+  if (iErr) throw new Error(`결제 대기 큐 아이템 조회 실패: ${iErr.message}`)
+
+  const paymentById = new Map(payments?.map((p) => [p.id, p]) ?? [])
+  const itemsByOrder = new Map<string, KioskQueueItem[]>()
+  for (const it of items ?? []) {
+    const list = itemsByOrder.get(it.order_id) ?? []
+    list.push({
+      menu_name: it.menu_name,
+      quantity: it.quantity,
+      menu_price: it.menu_price,
+      subtotal: it.subtotal,
+    })
+    itemsByOrder.set(it.order_id, list)
+  }
+
+  const grouped = new Map<string, KioskQueueGroup>()
+  for (const o of orders) {
+    const payment = paymentById.get(o.payment_id)
+    if (!payment) continue
+    let group = grouped.get(o.payment_id)
+    if (!group) {
+      group = {
+        paymentId: o.payment_id,
+        phone: payment.phone,
+        totalAmount: payment.total_amount,
+        voucherConsumed: 0,
+        createdAt: payment.created_at,
+        kioskStationId: o.kiosk_station_id,
+        orders: [],
+      }
+      grouped.set(o.payment_id, group)
+    }
+    group.voucherConsumed += o.voucher_consumed ?? 0
+    group.orders.push({
+      id: o.id,
+      order_number: o.order_number,
+      booth_no: o.booth_no,
+      booth_name: o.booth_name,
+      subtotal: o.subtotal,
+      items: itemsByOrder.get(o.id) ?? [],
+    })
+  }
+
+  return Array.from(grouped.values())
+}
+
+/**
+ * 헬프데스크 키오스크 결제 완료 처리.
+ *
+ * 직원이 카드/현금 결제를 받은 뒤 호출. 기존 `HelpDeskOrderTab` 패턴과 동일하게:
+ *   1) `payments.payment_method` + `assisted_by` 를 UPDATE
+ *   2) `markPaymentPaid(paymentId, null)` 호출
+ *      → payments.status='paid', 하위 orders.status='paid', 쿠폰 처리(있다면)
+ *
+ * `method` 도메인 (식권 단독 결제 케이스 포함):
+ *   - 'external_card' — 카드 (식권 + 카드 케이스도 포함)
+ *   - 'cash'          — 현금 (식권 + 현금 케이스도 포함)
+ *   - 'voucher_only'  — 식권 100% (잔액 0)
+ */
+export async function confirmKioskPayment(
+  paymentId: string,
+  method: 'external_card' | 'cash' | 'voucher_only',
+  adminId: string,
+): Promise<void> {
+  const { error: pErr } = await supabase
+    .from('payments')
+    .update({
+      payment_method: method,
+      assisted_by: adminId,
+    })
+    .eq('id', paymentId)
+  if (pErr) throw new Error(`결제 수단 업데이트 실패: ${pErr.message}`)
+
+  await markPaymentPaid(paymentId, null)
+}
+
+/**
+ * 키오스크 강제 리셋 broadcast 전송 — `kiosk:{stationId}` 채널에만 송신.
+ * DB 거치지 않고 broadcast 만으로 키오스크 측에 force-reset 이벤트 송신.
+ */
+export async function sendKioskForceReset(
+  stationId: 'helpdesk-1' | 'helpdesk-2',
+): Promise<void> {
+  const channel = supabase.channel(`kiosk:${stationId}`)
+  await new Promise<void>((resolve) => {
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') resolve()
+    })
+  })
+  await channel.send({ type: 'broadcast', event: 'force-reset', payload: {} })
+  await supabase.removeChannel(channel)
 }

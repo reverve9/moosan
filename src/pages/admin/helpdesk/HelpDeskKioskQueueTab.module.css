@@ -1,0 +1,407 @@
+.page {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  flex: 1;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.toolbarLeft,
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.queueCount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.refreshButton,
+.kioskResetButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.refreshButton:active {
+  background: #f3f4f6;
+}
+
+.kioskResetButton {
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.kioskResetButton:active {
+  background: #fde68a;
+}
+
+.empty {
+  padding: 60px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 16px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+}
+
+/* ─── 큐 리스트 ──────────────────────────────────────────────────── */
+
+.queueList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.queueItem {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.1s ease, transform 0.06s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.queueItem:active {
+  transform: scale(0.99);
+  border-color: #111827;
+}
+
+.queueItemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.queueItemHeadLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.queueItemPhone {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stationBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.stationBadge1 {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.stationBadge2 {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.stationBadgeAdmin {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.queueItemElapsed {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.queueItemBooths {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.boothChip {
+  font-size: 13px;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  border-radius: 999px;
+  color: #374151;
+}
+
+.voucherChip {
+  background: #ecfdf5;
+  color: #047857;
+  font-weight: 700;
+}
+
+.queueItemTotal {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* ─── 결제 처리 모달 ───────────────────────────────────────────── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 28px 32px;
+  width: 560px;
+  max-width: 92vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.modalPhone {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modalOrders {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modalOrder {
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.modalOrderHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.modalOrderBooth {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalOrderSubtotal {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalItems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.voucherInfoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #047857;
+}
+
+.voucherInfoAmount {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.voucherOnlyHint {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  color: #1e40af;
+  font-size: 15px;
+}
+
+.modalTotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 16px 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 20px;
+  font-size: 16px;
+  color: #374151;
+}
+
+.modalTotalAmount {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.methodRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.methodButton {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 80px;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+
+.methodButton:active:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.methodButtonActive {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
+}
+
+.methodButtonActive:active:not(:disabled) {
+  background: #000000;
+}
+
+.methodButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modalError {
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #b91c1c;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancelButton,
+.confirmButton {
+  flex: 1;
+  min-height: 56px;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.cancelButton {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.cancelButton:active:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.confirmButton {
+  background: #111827;
+  color: #ffffff;
+}
+
+.confirmButton:active:not(:disabled) {
+  background: #000000;
+}
+
+.confirmButton:disabled,
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

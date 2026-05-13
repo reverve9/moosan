@@ -6,6 +6,7 @@ import {
   calcKpi,
   calcMenuStats,
   calcPaymentBehaviorStats,
+  calcPaymentChannelStats,
   calcTimeStats,
   fetchStatsData,
   type StatsFilters,
@@ -116,6 +117,10 @@ export default function StatsRevenueTab() {
     () => (raw ? calcPaymentBehaviorStats(raw) : null),
     [raw],
   )
+  const channel = useMemo(
+    () => (raw ? calcPaymentChannelStats(raw) : null),
+    [raw],
+  )
 
   return (
     <div className={styles.tab}>
@@ -163,6 +168,9 @@ export default function StatsRevenueTab() {
         <>
           {/* 1. KPI */}
           {kpi && <KpiSection kpi={kpi} />}
+
+          {/* 1-2. 채널별 매출 (앱 vs 헬프데스크) */}
+          {channel && <ChannelSection channel={channel} />}
 
           {/* 2. 시간 분석 */}
           {time && <TimeSection time={time} />}
@@ -230,6 +238,52 @@ function Kpi({
       <div className={styles.kpiLabel}>{label}</div>
       <div className={styles.kpiValue}>{value}</div>
     </div>
+  )
+}
+
+// ─── 1-2. 채널별 매출 섹션 ─────────────────────────
+
+function ChannelSection({
+  channel,
+}: {
+  channel: ReturnType<typeof calcPaymentChannelStats>
+}) {
+  const total = channel.total
+  const appShare = total.revenue > 0 ? channel.app.revenue / total.revenue : 0
+  const helpdeskShare = total.revenue > 0 ? channel.helpdesk.revenue / total.revenue : 0
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>채널별 매출 (앱 / 헬프데스크)</h2>
+      <div className={styles.kpiGrid}>
+        <Kpi
+          label="앱 결제"
+          value={`${fmtWon(channel.app.revenue)} · ${channel.app.count}건 · ${fmtPct(appShare)}`}
+        />
+        <Kpi
+          label="헬프데스크 결제"
+          value={`${fmtWon(channel.helpdesk.revenue)} · ${channel.helpdesk.count}건 · ${fmtPct(helpdeskShare)}`}
+        />
+        <Kpi
+          label="헬프데스크 — 카드"
+          value={`${fmtWon(channel.helpdeskCard.revenue)} · ${channel.helpdeskCard.count}건`}
+        />
+        <Kpi
+          label="헬프데스크 — 현금"
+          value={`${fmtWon(channel.helpdeskCash.revenue)} · ${channel.helpdeskCash.count}건`}
+        />
+        {channel.helpdeskOther.count > 0 && (
+          <Kpi
+            label="헬프데스크 — 기타"
+            value={`${fmtWon(channel.helpdeskOther.revenue)} · ${channel.helpdeskOther.count}건`}
+          />
+        )}
+        <Kpi
+          label="합계"
+          value={`${fmtWon(total.revenue)} · ${total.count}건`}
+          emphasis
+        />
+      </div>
+    </section>
   )
 }
 

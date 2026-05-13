@@ -32,7 +32,7 @@ export interface BoothOrderRow {
   order: {
     id: string
     payment_id: string
-    status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+    status: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
     booth_name: string
     booth_no: string
     order_number: string

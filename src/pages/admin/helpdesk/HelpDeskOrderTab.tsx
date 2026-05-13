@@ -313,6 +313,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
           : undefined,
         alcoholConsentAt: consentAt,
         paymentMethod: finalMethod,
+        paymentChannel: 'helpdesk',
         assistedBy: adminId,
         externalReceiptNo: finalMethod === 'external_card' ? externalReceiptNo.trim() : null,
       })

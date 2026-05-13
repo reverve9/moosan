@@ -1,0 +1,418 @@
+/* ===========================================================================
+ * MenuStep — 3컬럼 가로 레이아웃
+ *   좌(320px 부스 리스트) · 중(1fr 메뉴 그리드) · 우(480px 장바구니)
+ *
+ * KioskPage.module.css 의 main 영역을 채움. min-height:0 + overflow:hidden
+ * 으로 자식 영역만 스크롤하도록 격리.
+ * =========================================================================== */
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 480px;
+  min-height: 0;
+  flex: 1;
+  background: #f9fafb;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 28px;
+  color: #6b7280;
+  padding: 32px;
+  text-align: center;
+}
+
+.paneTitle {
+  margin: 0;
+  padding: 20px 24px 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ─── 좌측: 부스 리스트 ─────────────────────────────────────────────── */
+
+.boothPane {
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.boothList {
+  list-style: none;
+  margin: 0;
+  padding: 0 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.boothItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 16px;
+  min-height: 72px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 18px;
+  color: #1f2937;
+  transition: background 0.1s ease;
+}
+
+.boothItem:active {
+  background: #f3f4f6;
+}
+
+.boothItemActive {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.boothItemActive:active {
+  background: #000000;
+}
+
+.boothNo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 36px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.18);
+  color: inherit;
+  font-weight: 700;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.boothItem:not(.boothItemActive) .boothNo {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.boothName {
+  font-weight: 600;
+}
+
+/* ─── 중앙: 메뉴 그리드 ─────────────────────────────────────────────── */
+
+.menuPane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+
+.menuHeader {
+  padding: 24px 28px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.menuTitle {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.menuDesc {
+  margin: 0;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.menuGrid {
+  list-style: none;
+  margin: 0;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  overflow-y: auto;
+  flex: 1;
+  background: #f9fafb;
+}
+
+.emptyMenus {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #6b7280;
+  padding: 40px;
+}
+
+.menuCard {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 0.06s ease, box-shadow 0.1s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.menuCard:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.menuCardSoldOut {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.menuImageWrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: #f3f4f6;
+}
+
+.menuImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.menuImagePlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.alcoholBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: rgba(127, 29, 29, 0.92);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.soldOutBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 12px;
+  background: rgba(17, 24, 39, 0.88);
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.qtyBadge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  min-width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  background: #111827;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.menuInfo {
+  padding: 14px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menuName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.menuPrice {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ─── 우측: 장바구니 ───────────────────────────────────────────────── */
+
+.cartPane {
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.cartEmpty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px;
+  font-size: 18px;
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.cartList {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.cartItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.cartItemBooth {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.cartItemName {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111827;
+  margin-top: 2px;
+}
+
+.cartItemPrice {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-top: 4px;
+}
+
+.cartItemActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qtyButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #111827;
+}
+
+.qtyButton:active {
+  background: #e5e7eb;
+}
+
+.qtyValue {
+  min-width: 32px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.removeButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.removeButton:active {
+  background: #fee2e2;
+}
+
+.cartFooter {
+  padding: 20px 24px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 18px;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+.totalAmount {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.payButton {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 84px;
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  border-radius: 16px;
+  font-size: 24px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.payButton:active:not(:disabled) {
+  background: #000000;
+}
+
+.payButton:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}

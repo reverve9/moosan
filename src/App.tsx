@@ -31,6 +31,7 @@ import AdminCoupons from '@/pages/admin/AdminCoupons'
 import AdminNotices from '@/pages/admin/AdminNotices'
 import AdminQRCodes from '@/pages/admin/AdminQRCodes'
 import AdminHelpDesk from '@/pages/admin/helpdesk/AdminHelpDesk'
+import KioskPage from '@/pages/kiosk/KioskPage'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
@@ -91,6 +92,8 @@ function AdminRoutes() {
         <Route path="qrcodes" element={<AdminQRCodes />} />
         <Route path="help-desk" element={<AdminHelpDesk />} />
       </Route>
+      {/* 헬프데스크 키오스크 — AdminLayout 외부 standalone 풀스크린 라우트 */}
+      <Route path="/kiosk" element={<KioskPage />} />
       <Route path="*" element={<Navigate to="/notices" replace />} />
     </Routes>
   )

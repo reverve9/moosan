@@ -452,5 +452,85 @@ export function calcPaymentBehaviorStats(data: StatsRawData): PaymentBehaviorSta
   }
 }
 
+// ─── 5. 채널별 매출 (앱 vs 헬프데스크) ────────────
+
+export interface ChannelRow {
+  revenue: number
+  count: number
+}
+
+export interface PaymentChannelStats {
+  app: ChannelRow
+  helpdesk: ChannelRow
+  helpdeskCard: ChannelRow
+  helpdeskCash: ChannelRow
+  helpdeskOther: ChannelRow
+  total: ChannelRow
+}
+
+/**
+ * orders.payment_channel + payments.payment_method 기준 매출 분리.
+ *
+ * 한 payment 는 여러 orders 로 split 되지만 같은 payment 의 모든 orders 는
+ * 동일 채널. 따라서 payment_id 별로 첫 orders 의 payment_channel 을 추론
+ * 하여 payment 단위로 매출(=payment.total_amount - refunded_amount) 합산.
+ *
+ * 헬프데스크 내 카드/현금 분리는 `payments.payment_method` 컬럼 기준
+ * (`external_card` / `cash` / `voucher_only`).
+ */
+export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats {
+  const channelByPayment = new Map<string, string>()
+  for (const o of data.orders) {
+    if (channelByPayment.has(o.payment_id)) continue
+    channelByPayment.set(o.payment_id, o.payment_channel)
+  }
+
+  const make = (): ChannelRow => ({ revenue: 0, count: 0 })
+  const app = make()
+  const helpdesk = make()
+  const helpdeskCard = make()
+  const helpdeskCash = make()
+  const helpdeskOther = make()
+
+  for (const p of data.payments) {
+    if (p.status !== 'paid') continue
+    const channel = channelByPayment.get(p.id)
+    if (!channel) continue
+    const revenue = p.total_amount - (p.refunded_amount ?? 0)
+    if (channel === 'app') {
+      app.revenue += revenue
+      app.count += 1
+      continue
+    }
+    if (channel === 'helpdesk') {
+      helpdesk.revenue += revenue
+      helpdesk.count += 1
+      if (p.payment_method === 'external_card') {
+        helpdeskCard.revenue += revenue
+        helpdeskCard.count += 1
+      } else if (p.payment_method === 'cash') {
+        helpdeskCash.revenue += revenue
+        helpdeskCash.count += 1
+      } else {
+        // voucher_only / null / pg 등
+        helpdeskOther.revenue += revenue
+        helpdeskOther.count += 1
+      }
+    }
+  }
+
+  return {
+    app,
+    helpdesk,
+    helpdeskCard,
+    helpdeskCash,
+    helpdeskOther,
+    total: {
+      revenue: app.revenue + helpdesk.revenue,
+      count: app.count + helpdesk.count,
+    },
+  }
+}
+
 // ─── 날짜 유틸 ────────────────────────────────────
 

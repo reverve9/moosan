@@ -1,0 +1,83 @@
+/* ===========================================================================
+ * KioskPage — 풀스크린 1920×1080 헬프데스크 키오스크 컨테이너
+ *
+ * 부스 대시보드(`BoothDashboardPage.module.css`)와 동일하게 position:fixed +
+ * inset:0 패턴으로 viewport 채우기. 손님 PWA 의 max-width:600px 등 모바일
+ * 한정 스타일을 회피.
+ * =========================================================================== */
+
+.container {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 96px minmax(0, 1fr);
+  background: #ffffff;
+  color: #111827;
+  overflow: hidden;
+  font-family: inherit;
+  /* 손님이 만지는 화면 — 시스템 폰트 크게 + 자간 살짝 */
+  letter-spacing: -0.01em;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.brand {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stationBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 32px;
+  padding: 0 10px;
+  background: #111827;
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.headerSpacer {
+  flex: 1;
+}
+
+.resetButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  padding: 0 24px;
+  border-radius: 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.resetButton:active {
+  background: #e5e7eb;
+}
+
+.main {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

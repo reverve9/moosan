@@ -796,7 +796,7 @@ export interface Database {
           status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
           cancelled_at: string | null
-          payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
           pg_provider: string | null
           pg_method: string | null
           pg_tid: string | null
@@ -820,7 +820,7 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
-          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
           pg_provider?: string | null
           pg_method?: string | null
           pg_tid?: string | null
@@ -844,7 +844,7 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
-          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only'
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
           pg_provider?: string | null
           pg_method?: string | null
           pg_tid?: string | null
@@ -878,7 +878,9 @@ export interface Database {
           voucher_consumed: number
           voucher_burned: number
           phone: string
-          status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel: 'app' | 'helpdesk'
+          kiosk_station_id: string | null
           paid_at: string | null
           confirmed_at: string | null
           estimated_minutes: number | null
@@ -905,7 +907,9 @@ export interface Database {
           voucher_consumed?: number
           voucher_burned?: number
           phone: string
-          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel?: 'app' | 'helpdesk'
+          kiosk_station_id?: string | null
           paid_at?: string | null
           confirmed_at?: string | null
           estimated_minutes?: number | null
@@ -932,7 +936,9 @@ export interface Database {
           voucher_consumed?: number
           voucher_burned?: number
           phone?: string
-          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel?: 'app' | 'helpdesk'
+          kiosk_station_id?: string | null
           paid_at?: string | null
           confirmed_at?: string | null
           estimated_minutes?: number | null
@@ -1178,6 +1184,10 @@ export type BoothAccountInsert = Database['public']['Tables']['booth_accounts'][
 export type CashSession = Database['public']['Tables']['cash_sessions']['Row']
 export type CashSessionInsert = Database['public']['Tables']['cash_sessions']['Insert']
 export type PaymentMethod = 'pg' | 'external_card' | 'cash' | 'voucher_only'
+export type OrderStatus = 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+export type PaymentChannel = 'app' | 'helpdesk'
+export type KioskPaymentMethod = 'external_card' | 'cash'
+export type KioskStationId = 'helpdesk-1' | 'helpdesk-2'
 
 // Awards JSONB structure
 export type AwardItem = { rank: string; prize: string }

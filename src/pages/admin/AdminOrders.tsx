@@ -82,10 +82,11 @@ function rowStatusLabel(r: BoothOrderRow): string {
 
 // 상세 모달의 부스별 진행상태 뱃지 (여긴 운영 상태 확인에 쓸모 있어서 유지)
 const ORDER_STATUS_LABEL: Record<
-  'paid' | 'confirmed' | 'completed' | 'cancelled' | 'pending',
+  'paid' | 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'payment_pending',
   string
 > = {
   pending: '대기',
+  payment_pending: '결제대기(헬프)',
   paid: '미확인',
   confirmed: '조리중',
   completed: '완료',
