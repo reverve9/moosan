@@ -142,15 +142,33 @@ async function getCancelToken(): Promise<string> {
     body: JSON.stringify({ pay2_id: pay2Id, pay2_key: pay2Key }),
   })
 
-  const data = (await res.json()) as TokenResponse
-  if (!res.ok || !data.TOKEN) {
+  // 실제 응답 본문을 로그로 남겨 정확한 PG 응답 진단 (env 키 확인용)
+  const rawText = await res.text()
+  console.log('[cookiepay/token] response', {
+    status: res.status,
+    body: rawText.slice(0, 500),
+    pay2IdPrefix: pay2Id.slice(0, 8),
+  })
+
+  let data: TokenResponse
+  try {
+    data = JSON.parse(rawText) as TokenResponse
+  } catch {
     throw new Error(
-      `TOKEN 발급 실패 (HTTP ${res.status}): ${data?.RESULTMSG ?? 'no token'}`,
+      `TOKEN 발급 실패 (HTTP ${res.status}): 응답 JSON 파싱 실패 — ${rawText.slice(0, 200)}`,
     )
   }
 
-  _tokenCache = { token: data.TOKEN, expiresAt: now + 10 * 60 * 1000 }
-  return data.TOKEN
+  // TOKEN 또는 token (대소문자 양쪽 흡수)
+  const token = data.TOKEN ?? (data as { token?: string }).token
+  if (!res.ok || !token) {
+    throw new Error(
+      `TOKEN 발급 실패 (HTTP ${res.status}): ${data?.RESULTMSG ?? data?.RESULTCODE ?? 'no token'} — body: ${rawText.slice(0, 200)}`,
+    )
+  }
+
+  _tokenCache = { token, expiresAt: now + 10 * 60 * 1000 }
+  return token
 }
 
 export interface RefundRequest {
