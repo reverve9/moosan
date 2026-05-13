@@ -339,7 +339,7 @@ export default function MenuStep({ onGoToPhone }: Props) {
             ) : (
               <ul className={foodStyles.boothList}>
                 {filteredBooths.map((b) => {
-                  const thumb = getAssetUrl(b.thumbnail_url, { width: 400 })
+                  const thumb = getAssetUrl(b.thumbnail_url, { width: 400, height: 400, resize: 'cover' })
                   const waitingCount = waitingCounts.get(b.id)
                   const badge =
                     waitingCount !== undefined ? getBoothBadge(waitingCount) : null
@@ -455,7 +455,7 @@ function BoothModal({
   waitingCount: number
   onClose: () => void
 }) {
-  const thumb = getAssetUrl(booth.thumbnail_url, { width: 800 })
+  const thumb = getAssetUrl(booth.thumbnail_url, { width: 800, height: 500, resize: 'cover' })
   const badge = getBoothBadge(waitingCount)
 
   return (
@@ -567,7 +567,7 @@ function MenuItemRow({
   const { showToast } = useToast()
   const [pendingQty, setPendingQty] = useState(1)
 
-  const menuImg = getAssetUrl(menu.image_url, { width: 500 })
+  const menuImg = getAssetUrl(menu.image_url, { width: 500, height: 500, resize: 'cover' })
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused
@@ -720,7 +720,7 @@ function CartModal({ onClose, onPay }: { onClose: () => void; onPay: () => void 
                   </div>
                   <ul className={styles.cartItemList}>
                     {group.items.map((item) => {
-                      const img = getAssetUrl(item.imageUrl ?? null, { width: 200 })
+                      const img = getAssetUrl(item.imageUrl ?? null, { width: 200, height: 200, resize: 'cover' })
                       const takeoutLocked = item.acceptsTakeout === false
                       return (
                         <li key={item.menuId} className={styles.cartItem}>

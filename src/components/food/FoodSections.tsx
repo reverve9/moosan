@@ -361,7 +361,7 @@ export default function FoodSections({ festival }: Props) {
           ) : (
             <ul className={styles.boothList}>
               {filteredBooths.map((b) => {
-                const thumb = getAssetUrl(b.thumbnail_url, { width: 200 })
+                const thumb = getAssetUrl(b.thumbnail_url, { width: 200, height: 200, resize: 'cover' })
                 const waitingCount = waitingCounts.get(b.id)
                 const badge =
                   waitingCount !== undefined ? getBoothBadge(waitingCount) : null
@@ -462,7 +462,7 @@ function BoothModal({
   isOrderingOpen: boolean
   onClose: () => void
 }) {
-  const thumb = getAssetUrl(booth.thumbnail_url, { width: 600 })
+  const thumb = getAssetUrl(booth.thumbnail_url, { width: 600, height: 400, resize: 'cover' })
   const badge = getBoothBadge(waitingCount)
 
   return (
@@ -585,7 +585,7 @@ function MenuItemRow({
   const { showToast } = useToast()
   const [pendingQty, setPendingQty] = useState(1)
 
-  const menuImg = getAssetUrl(menu.image_url, { width: 300 })
+  const menuImg = getAssetUrl(menu.image_url, { width: 300, height: 300, resize: 'cover' })
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused

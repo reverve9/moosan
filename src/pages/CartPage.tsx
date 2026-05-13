@@ -201,7 +201,7 @@ export default function CartPage() {
                 </div>
                 <ul className={styles.itemList}>
                   {group.items.map((item) => {
-                    const img = getAssetUrl(item.imageUrl ?? null, { width: 200 })
+                    const img = getAssetUrl(item.imageUrl ?? null, { width: 200, height: 200, resize: 'cover' })
                     const takeoutLocked = item.acceptsTakeout === false
                     return (
                       <li key={item.menuId} className={styles.item}>

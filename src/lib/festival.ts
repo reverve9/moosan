@@ -13,9 +13,11 @@ const STORAGE_BUCKET = 'festival-assets'
 interface AssetTransform {
   /** 원하는 가로 픽셀. Supabase image transformation 호출 — Pro 플랜에서 동작, Free 플랜은 무시되어 원본 그대로. */
   width?: number
+  /** 원하는 세로 픽셀. width+height+resize:'cover' 조합으로 서버 측 정확한 크롭. */
+  height?: number
   /** 이미지 품질 (1~100). 미지정 시 supabase 기본. */
   quality?: number
-  /** 리사이즈 모드. 미지정 시 cover. */
+  /** 리사이즈 모드. 미지정 시 비율 유지. */
   resize?: 'cover' | 'contain' | 'fill'
 }
 
@@ -46,6 +48,7 @@ export function getAssetUrl(
       ? {
           transform: {
             width: transform.width,
+            ...(transform.height ? { height: transform.height } : {}),
             quality: transform.quality ?? 75,
             ...(transform.resize ? { resize: transform.resize } : {}),
           },
