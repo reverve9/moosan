@@ -13,6 +13,7 @@ import {
   confirmBoothOrder,
   fetchTodayBoothOrders,
   getBoothOrderCardStatus,
+  markBoothOrderPickedUp,
   markBoothOrderReady,
   subscribeBoothOrders,
 } from '@/lib/boothOrders'
@@ -20,6 +21,7 @@ import BoothMenuModal from '@/components/booth/BoothMenuModal'
 import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { playSound } from '@/lib/audioCue'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
@@ -38,6 +40,9 @@ interface BoothOrderCard {
   status: CardStatus
   estimatedMinutes: number | null
   confirmedAt: string | null
+  isTakeout: boolean
+  hasAlcohol: boolean
+  alcoholMenuIds: Set<string>
 }
 
 const HIGHLIGHT_MS = 5_000
@@ -57,17 +62,23 @@ function vibrateSafe(pattern: number[]): void {
 }
 
 function buildCards(data: BoothOrderCardData[]): BoothOrderCard[] {
-  return data.map(({ order, items }) => ({
-    orderId: order.id,
-    orderNumber: order.order_number,
-    phone: order.phone,
-    orderPaidAt: order.paid_at ?? order.created_at,
-    items,
-    totalAmount: order.subtotal,
-    status: getBoothOrderCardStatus(order),
-    estimatedMinutes: order.estimated_minutes,
-    confirmedAt: order.confirmed_at,
-  }))
+  return data.map(({ order, items, alcoholMenuIds }) => {
+    const hasAlcohol = items.some((it) => it.menu_id != null && alcoholMenuIds.has(it.menu_id))
+    return {
+      orderId: order.id,
+      orderNumber: order.order_number,
+      phone: order.phone,
+      orderPaidAt: order.paid_at ?? order.created_at,
+      items,
+      totalAmount: order.subtotal,
+      status: getBoothOrderCardStatus(order),
+      estimatedMinutes: order.estimated_minutes,
+      confirmedAt: order.confirmed_at,
+      isTakeout: order.is_takeout,
+      hasAlcohol,
+      alcoholMenuIds,
+    }
+  })
 }
 
 function formatDateHm(iso: string): string {
@@ -294,14 +305,29 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       setBusyOrderId(card.orderId)
       try {
         await confirmBoothOrder(card.orderId, minutes)
-        await refetch()
+        // 낙관적 업데이트 — Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? {
+                  ...d,
+                  order: {
+                    ...d.order,
+                    status: 'confirmed' as const,
+                    confirmed_at: new Date().toISOString(),
+                    estimated_minutes: minutes,
+                  },
+                }
+              : d,
+          ),
+        )
       } catch (e) {
         setError(e instanceof Error ? e.message : '확인 처리 실패')
       } finally {
         setBusyOrderId(null)
       }
     },
-    [busyOrderId, refetch],
+    [busyOrderId],
   )
 
   const handleReady = useCallback(
@@ -309,29 +335,74 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       if (busyOrderId) return
       setBusyOrderId(card.orderId)
       try {
-        await markBoothOrderReady(card.orderId)
-        await refetch()
+        await markBoothOrderReady(card.orderId, boothId)
+        // 낙관적 업데이트 — Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? { ...d, order: { ...d.order, ready_at: new Date().toISOString() } }
+              : d,
+          ),
+        )
       } catch (e) {
         setError(e instanceof Error ? e.message : '준비완료 처리 실패')
       } finally {
         setBusyOrderId(null)
       }
     },
-    [busyOrderId, refetch],
+    [busyOrderId, boothId],
+  )
+
+  const handlePickup = useCallback(
+    async (card: BoothOrderCard) => {
+      if (busyOrderId) return
+      // 주류 픽업 시 신분증 확인 — 손님이 부스에 도착한 시점이라 실제 검증 가능.
+      if (card.hasAlcohol) {
+        const ok = window.confirm(
+          '이 주문에는 주류가 포함되어 있습니다.\n손님 신분증(만 19세 이상)을 확인하셨습니까?',
+        )
+        if (!ok) return
+      }
+      setBusyOrderId(card.orderId)
+      try {
+        await markBoothOrderPickedUp(card.orderId)
+        setData((prev) =>
+          prev.map((d) =>
+            d.order.id === card.orderId
+              ? {
+                  ...d,
+                  order: {
+                    ...d.order,
+                    picked_up_at: new Date().toISOString(),
+                    status: 'completed' as const,
+                  },
+                }
+              : d,
+          ),
+        )
+      } catch (e) {
+        setError(e instanceof Error ? e.message : '픽업완료 처리 실패')
+      } finally {
+        setBusyOrderId(null)
+      }
+    },
+    [busyOrderId],
   )
 
   const handleCancelConfirm = useCallback(
     async (reason: string) => {
       if (!cancelTarget || busyOrderId) return
-      setBusyOrderId(cancelTarget.orderId)
+      const targetId = cancelTarget.orderId
+      setBusyOrderId(targetId)
       try {
-        await cancelBoothOrder(cancelTarget.orderId, reason)
+        await cancelBoothOrder(targetId, reason)
         showToast(`[${cancelTarget.orderNumber}] 거절 + 환불 처리됐어요`, {
           type: 'success',
           duration: 4000,
         })
         setCancelTarget(null)
-        await refetch()
+        // 낙관적 업데이트 — 카드 즉시 제거. Realtime onChange 가 전체 refetch 자동 트리거
+        setData((prev) => prev.filter((d) => d.order.id !== targetId))
       } catch (e) {
         const msg = e instanceof Error ? e.message : '주문 거절 실패'
         setError(msg)
@@ -340,7 +411,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         setBusyOrderId(null)
       }
     },
-    [cancelTarget, busyOrderId, refetch, showToast],
+    [cancelTarget, busyOrderId, showToast],
   )
 
   return (
@@ -418,11 +489,33 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     key={card.orderId}
                     className={`${styles.card} ${styles[`card_${card.status}`]} ${
                       overAlert ? styles.cardAlert : ''
-                    } ${highlighted ? styles.cardHighlight : ''}`}
+                    } ${highlighted ? styles.cardHighlight : ''} ${
+                      card.hasAlcohol ? styles.cardAlcohol : ''
+                    }`}
                   >
+                    {card.hasAlcohol && (
+                      <div className={styles.cardAlcoholBanner}>
+                        🍺 주류 — 픽업 시 신분증 확인 필수
+                      </div>
+                    )}
+                    {card.status === 'ready' && (
+                      <div className={styles.cardReadyBadge}>🔔 픽업 대기 중</div>
+                    )}
                     <div className={styles.cardHeader}>
                       <div className={styles.cardHeaderMain}>
-                        <span className={styles.cardOrderNo}>{card.orderNumber}</span>
+                        <div className={styles.cardOrderBlock}>
+                          <div className={styles.cardOrderTopRow}>
+                            <span className={styles.cardCounter}>
+                              {parseOrderNumber(card.orderNumber).counter}
+                            </span>
+                            {card.isTakeout && (
+                              <span className={styles.cardTakeoutBadge}>포장</span>
+                            )}
+                          </div>
+                          <span className={styles.cardOrderNoFull}>
+                            {card.orderNumber}
+                          </span>
+                        </div>
                         <span
                           className={`${styles.cardElapsed} ${
                             overAlert ? styles.cardElapsedAlert : ''
@@ -455,9 +548,19 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         if (!it) {
                           return <li key={`empty-${i}`} className={styles.itemRowEmpty} aria-hidden />
                         }
+                        const isAlc =
+                          it.menu_id != null && card.alcoholMenuIds.has(it.menu_id)
                         return (
-                          <li key={it.id} className={styles.itemRow}>
-                            <span className={styles.itemName}>{it.menu_name}</span>
+                          <li
+                            key={it.id}
+                            className={`${styles.itemRow} ${
+                              isAlc ? styles.itemRowAlcohol : ''
+                            }`}
+                          >
+                            <span className={styles.itemName}>
+                              {isAlc && <span aria-hidden>🍺 </span>}
+                              {it.menu_name}
+                            </span>
                             <span className={styles.itemQty}>× {it.quantity}</span>
                           </li>
                         )
@@ -477,14 +580,25 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                         >
                           {busy ? '...' : '거절'}
                         </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.actionReady}`}
-                          onClick={() => handleReady(card)}
-                          disabled={busy}
-                        >
-                          {busy ? '처리 중...' : '조리완료'}
-                        </button>
+                        {card.status === 'ready' ? (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionPickup}`}
+                            onClick={() => handlePickup(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '처리 중...' : '픽업완료'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`${styles.actionBtn} ${styles.actionReady}`}
+                            onClick={() => handleReady(card)}
+                            disabled={busy}
+                          >
+                            {busy ? '처리 중...' : '조리완료'}
+                          </button>
+                        )}
                       </div>
                       {card.status === 'waiting' && (
                         <div className={styles.timeOverlay}>
@@ -537,9 +651,27 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
                     .map((it) => `${it.menu_name}×${it.quantity}`)
                     .join(', ')
                   return (
-                    <div key={card.orderId} className={styles.completedCard}>
+                    <div
+                      key={card.orderId}
+                      className={`${styles.completedCard} ${
+                        card.hasAlcohol ? styles.completedCardAlcohol : ''
+                      }`}
+                    >
                       <div className={styles.completedRow}>
-                        <span className={styles.completedNo}>{card.orderNumber}</span>
+                        <span className={styles.completedNo}>
+                          <span className={styles.completedCounter}>
+                            {parseOrderNumber(card.orderNumber).counter}
+                          </span>
+                          <span className={styles.completedNoFull}>
+                            {card.orderNumber}
+                          </span>
+                          {card.isTakeout && (
+                            <span className={styles.completedTakeoutBadge}>포장</span>
+                          )}
+                          {card.hasAlcohol && (
+                            <span className={styles.completedAlcoholBadge}>🍺 주류</span>
+                          )}
+                        </span>
                         <span className={styles.completedTime}>
                           {formatDateHm(card.orderPaidAt)}
                         </span>

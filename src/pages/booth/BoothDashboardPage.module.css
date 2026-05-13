@@ -196,6 +196,33 @@
   border-left-color: var(--color-primary);
 }
 
+.card_ready {
+  border-left-color: #0EA5E9;
+  background-color: #F0F9FF;
+}
+
+.cardReadyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369A1;
+  background-color: #E0F2FE;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+
+.actionPickup {
+  background-color: #0EA5E9;
+  color: #FFFFFF;
+}
+
+.actionPickup:hover:not(:disabled) {
+  background-color: #0284C7;
+}
+
 .card_completed {
   border-left-color: #9CA3AF;
 }
@@ -232,6 +259,28 @@
   animation: highlightPulse 1.6s ease-out 2;
 }
 
+/* 주류 포함 주문 — 빨간 좌측 보더 + 상단 배너 (다른 강조와 공존) */
+.cardAlcohol {
+  border-left-color: #C53030 !important;
+  border-left-width: 4px;
+}
+
+.cardAlcoholBanner {
+  margin: -10px -12px 4px;
+  padding: 6px 12px;
+  background-color: #C53030;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.itemRowAlcohol .itemName {
+  color: #C53030;
+  font-weight: 700;
+}
+
 .cardHeader {
   display: flex;
   flex-direction: column;
@@ -240,7 +289,7 @@
 
 .cardHeaderMain {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
 }
@@ -250,6 +299,68 @@
   font-weight: 700;
   color: #111827;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardOrderBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.cardOrderTopRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cardTakeoutBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.completedTakeoutBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin-left: 4px;
+}
+
+.cardCounter {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.cardOrderNoFull {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -449,6 +560,24 @@
   gap: 4px;
 }
 
+.completedCardAlcohol {
+  border-left: 3px solid #C53030;
+  background-color: #FEF2F2;
+}
+
+.completedAlcoholBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #C53030;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  margin-left: 4px;
+}
+
 .completedRow {
   display: flex;
   align-items: baseline;
@@ -457,10 +586,25 @@
 }
 
 .completedNo {
-  font-size: 13px;
-  font-weight: 700;
-  color: #111827;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   font-variant-numeric: tabular-nums;
+}
+
+.completedCounter {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.completedNoFull {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6B7280;
+  letter-spacing: 0.02em;
 }
 
 .completedTime {

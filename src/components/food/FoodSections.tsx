@@ -1,6 +1,6 @@
 import { Minus, Plus, X, Image as ImageIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
@@ -45,6 +45,8 @@ export default function FoodSections({ festival }: Props) {
   )
   const { hash } = useLocation()
   const scrolledRef = useRef('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const qrBoothHandledRef = useRef(false)
 
   useEffect(() => {
     if (hash !== '#booths') {
@@ -59,6 +61,28 @@ export default function FoodSections({ festival }: Props) {
       }, 100)
     }
   }, [hash, booths])
+
+  /* ─── QR 진입: ?booth={id} → 모달 자동 오픈 + 부스 섹션 스크롤 ─── */
+  useEffect(() => {
+    if (qrBoothHandledRef.current) return
+    const boothParam = searchParams.get('booth')
+    if (!boothParam || booths.length === 0) return
+
+    const target = booths.find((b) => b.id === boothParam)
+    qrBoothHandledRef.current = true
+
+    // 쿼리는 1회 소비 후 제거 (새로고침/뒤로가기 시 재오픈 방지)
+    const next = new URLSearchParams(searchParams)
+    next.delete('booth')
+    setSearchParams(next, { replace: true })
+
+    if (!target) return
+    setSelectedBooth(target)
+    setTimeout(() => {
+      const el = document.getElementById('booths')
+      el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }, [booths, searchParams, setSearchParams])
 
   const categoryLabel = useMemo(() => {
     const map = new Map<string, string>()
@@ -276,8 +300,24 @@ export default function FoodSections({ festival }: Props) {
     .layout_image_url
   const layoutUrl = getAssetUrl(layoutPath ?? null)
 
+  // is_ordering_open 은 43_festivals_is_ordering_open.sql 에서 추가된 신규 컬럼.
+  // false 면 미리보기 모드 — 매장/메뉴 둘러보기는 가능하되 "담기" 진입점 차단.
+  const isOrderingOpen =
+    (festival as Festival & { is_ordering_open?: boolean }).is_ordering_open !== false
+
   return (
     <>
+      {!isOrderingOpen && (
+        <div className={styles.previewBanner} role="status">
+          <strong className={styles.previewBannerTitle}>
+            5월 15일(목) 오픈 예정
+          </strong>
+          <span className={styles.previewBannerBody}>
+            매장과 메뉴를 미리 둘러보실 수 있어요. 주문은 오픈 시각부터 가능합니다.
+          </span>
+        </div>
+      )}
+
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>부스 위치도</h2>
         <div className={styles.layoutWrap}>
@@ -398,6 +438,7 @@ export default function FoodSections({ festival }: Props) {
               : ''
           }
           waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
+          isOrderingOpen={isOrderingOpen}
           onClose={() => setSelectedBooth(null)}
         />
       )}
@@ -411,12 +452,14 @@ function BoothModal({
   categoryLabel,
   categoryColorClass,
   waitingCount,
+  isOrderingOpen,
   onClose,
 }: {
   booth: FoodBoothWithMenus
   categoryLabel: string | null
   categoryColorClass: string
   waitingCount: number
+  isOrderingOpen: boolean
   onClose: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
@@ -469,7 +512,11 @@ function BoothModal({
         <div className={styles.modalDivider} />
 
         {/* ─── 영업 상태 안내 ─── */}
-        {!booth.is_open ? (
+        {!isOrderingOpen ? (
+          <div className={`${styles.statusNotice} ${styles.statusNoticePreview}`}>
+            5월 15일(목) 오픈 예정 — 메뉴는 미리 둘러보실 수 있어요.
+          </div>
+        ) : !booth.is_open ? (
           <div className={`${styles.statusNotice} ${styles.statusNoticeClosed}`}>
             오늘 영업이 종료되었습니다.
           </div>
@@ -507,7 +554,12 @@ function BoothModal({
           ) : (
             <ul className={styles.menuList}>
               {booth.menus.map((m) => (
-                <MenuItemRow key={m.id} booth={booth} menu={m} />
+                <MenuItemRow
+                  key={m.id}
+                  booth={booth}
+                  menu={m}
+                  isOrderingOpen={isOrderingOpen}
+                />
               ))}
             </ul>
           )}
@@ -523,9 +575,11 @@ type MenuItem = FoodBoothWithMenus['menus'][number]
 function MenuItemRow({
   booth,
   menu,
+  isOrderingOpen,
 }: {
   booth: FoodBoothWithMenus
   menu: MenuItem
+  isOrderingOpen: boolean
 }) {
   const { items, addItem } = useCart()
   const { showToast } = useToast()
@@ -535,7 +589,8 @@ function MenuItemRow({
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused
-  const orderable = !soldOut && !boothUnavailable && menu.price != null && menu.price > 0
+  const orderable =
+    !soldOut && !boothUnavailable && isOrderingOpen && menu.price != null && menu.price > 0
 
   const handleAdd = () => {
     if (!orderable || menu.price == null) return
@@ -548,6 +603,9 @@ function MenuItemRow({
       price: menu.price,
       quantity: pendingQty,
       imageUrl: menu.image_url ?? undefined,
+      acceptsTakeout: menu.accepts_takeout ?? true,
+      isTakeout: false,
+      isAlcohol: menu.is_alcohol ?? false,
     })
     showToast(`장바구니에 ${pendingQty}개 담았어요`)
     setPendingQty(1)
@@ -575,6 +633,15 @@ function MenuItemRow({
             {soldOut && <span className={styles.soldOutBadge}>품절</span>}
             {menu.name}
           </span>
+          {menu.tags && menu.tags.length > 0 && (
+            <div className={styles.menuTags}>
+              {menu.tags.map((t) => (
+                <span key={t} className={styles.menuTagBadge}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           {menu.description && <p className={styles.menuDesc}>{menu.description}</p>}
         </div>
         <div className={styles.menuRight}>

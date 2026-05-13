@@ -170,6 +170,21 @@
   letter-spacing: 0.02em;
 }
 
+.voucherBadge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #5B21B6;
+  background-color: #F5F3FF;
+  border: 1px solid #DDD6FE;
+  border-radius: 999px;
+  vertical-align: middle;
+  font-family: system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.02em;
+}
+
 .discountText {
   color: #DC2626 !important;
   font-weight: 700 !important;
@@ -257,6 +272,18 @@
 .boothCellExtra {
   font-size: 11px;
   color: #6B7280;
+}
+
+.takeoutTag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: 4px;
+  vertical-align: middle;
 }
 
 .menuCell {
@@ -349,6 +376,22 @@
   background-color: #FEF3C7;
   color: #92400E;
 }
+
+/* 결제수단 뱃지 — HelpDeskHistoryTab 팔레트와 동일 톤 */
+.methodBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+.methodCash { background-color: #16A34A; }
+.methodExternal { background-color: #2563EB; }
+.methodVoucher { background-color: #7C3AED; }
+.methodPg { background-color: #6B7280; }
 
 .badge_order_paid {
   background-color: #FEF3C7;
@@ -564,6 +607,55 @@
   color: #92400E;
 }
 
+.refundAlcoholHint {
+  margin: -4px 0 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #991B1B;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+}
+
+.methodNoticeExternal,
+.methodNoticeCash,
+.methodNoticeVoucher {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.methodNoticeExternal {
+  color: #1E3A8A;
+  background-color: #EFF6FF;
+  border-color: #BFDBFE;
+}
+
+.methodNoticeCash {
+  color: #166534;
+  background-color: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.methodNoticeVoucher {
+  color: #5B21B6;
+  background-color: #F5F3FF;
+  border-color: #DDD6FE;
+}
+
+.methodNoticeExternal > div,
+.methodNoticeCash > div,
+.methodNoticeVoucher > div {
+  font-weight: 500;
+}
+
 .refundBlocked {
   font-size: 13px;
   color: #92400E;
@@ -610,5 +702,87 @@
 
 .cancelBtn:disabled {
   background-color: #FCA5A5;
+  cursor: not-allowed;
+}
+
+.bulkRefundBtn {
+  margin-top: 12px;
+  height: 42px;
+  padding: 0 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #B45309;
+  border-radius: 10px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.bulkRefundBtn:hover:not(:disabled) {
+  background-color: #92400E;
+}
+
+.bulkRefundBtn:disabled {
+  background-color: #FCD34D;
+  color: #FFFFFF;
+  cursor: not-allowed;
+}
+
+.boothRefundRow {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #E5E7EB;
+}
+
+.boothRefundBtn {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #FFFFFF;
+  background-color: #DC2626;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.boothRefundBtn:hover:not(:disabled) {
+  background-color: #B91C1C;
+}
+
+.boothRefundBtn:disabled {
+  background-color: #FCA5A5;
+  cursor: not-allowed;
+}
+
+.boothRefundBlocked {
+  font-size: 12px;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+/* 강제 환불 — 조리완료된 주문에도 어드민이 예외적으로 환불할 때 */
+.boothForceRefundBtn {
+  height: 32px;
+  margin-left: 8px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #92400E;
+  background-color: #FEF3C7;
+  border: 1px solid #FCD34D;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.boothForceRefundBtn:hover:not(:disabled) {
+  background-color: #FDE68A;
+  border-color: #F59E0B;
+}
+
+.boothForceRefundBtn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }

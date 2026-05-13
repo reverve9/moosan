@@ -1,6 +1,12 @@
 import { supabase } from './supabase'
 import type { CartItem } from '@/store/cartStore'
-import type { Order, OrderItem, Payment } from '@/types/database'
+import type {
+  Order,
+  OrderItem,
+  Payment,
+  PaymentChannel,
+  PaymentMethod,
+} from '@/types/database'
 
 /**
  * 결제/주문 모델 (12_payments_booth_orders 이후):
@@ -19,13 +25,28 @@ import type { Order, OrderItem, Payment } from '@/types/database'
 
 export interface CreatePaymentInput {
   phone: string
-  /** 할인 적용 후 결제 실금액 (= subtotal - discountAmount). Toss 에 넘기는 금액 */
+  /** 할인 적용 후 결제 실금액 (= subtotal - discountAmount - voucherAmount).
+   *  PG 결제 금액과 일치. 전액 식권 결제 시 0 가능. */
   totalAmount: number
   items: CartItem[]
   festivalId?: string | null
-  /** 쿠폰 검증이 성공한 경우에만 전달 */
+  /** 쿠폰 검증이 성공한 경우에만 전달 (할인쿠폰/식권 공용 — 식권도 1결제 1장) */
   couponId?: string | null
+  /** 할인쿠폰 차감액 (식권은 별도 voucherDistributions 사용) */
   discountAmount?: number
+  /** 부스별 식권 분배 결과. boothId 매칭으로 voucher_consumed/voucher_burned 채움.
+   *  같은 부스가 포장/매장으로 split 되면 첫 split-order 에 몰아서 기록. */
+  voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
+  /** 성인 동의 timestamp (ISO). 주류 메뉴 1개 이상 포함 시에만. 모든 부스 orders row 에 동일 값 기록. */
+  alcoholConsentAt?: string | null
+  /** 결제 방식. 미지정 시 'pg'. 헬프데스크 대행 결제만 cash/external_card/voucher_only 지정. */
+  paymentMethod?: PaymentMethod
+  /** orders.payment_channel. 미지정 시 'app'. 헬프데스크 대행 결제는 'helpdesk'. */
+  paymentChannel?: PaymentChannel
+  /** 헬프데스크 대행 시 처리 도우미 어드민 ID. payment_method != 'pg' 일 때만 채움. */
+  assistedBy?: string | null
+  /** 직영카드 단말기 영수증 번호. payment_method = 'external_card' 시 필수. */
+  externalReceiptNo?: string | null
 }
 
 export interface CreatePaymentResult {
@@ -37,6 +58,7 @@ export interface CreatePaymentResult {
  * 결제 호출 직전에 호출.
  * 1) payments INSERT (status=pending, 트리거가 toss_order_id 자동 채움)
  * 2) 카트 → 부스별 group → 각 부스마다 orders INSERT + order_items INSERT
+ *    (voucherDistributions 가 있으면 부스 매칭으로 voucher_consumed/burned 채움)
  *
  * 어느 단계에서 실패하면 던짐. payments 는 ON DELETE CASCADE 로 orders/items
  * 까지 내려가므로 호출자에서 복구 필요 시 payment.id 로 delete 가능.
@@ -53,6 +75,9 @@ export async function createPendingPayment(
       discount_amount: input.discountAmount ?? 0,
       coupon_id: input.couponId ?? null,
       status: 'pending',
+      payment_method: input.paymentMethod ?? 'pg',
+      assisted_by: input.assistedBy ?? null,
+      external_receipt_no: input.externalReceiptNo ?? null,
       festival_id: input.festivalId ?? null,
     })
     .select()
@@ -62,30 +87,63 @@ export async function createPendingPayment(
     throw new Error(`결제 생성 실패: ${pErr?.message ?? 'unknown'}`)
   }
 
-  // 2) 부스별 group
-  const groups = new Map<string, CartItem[]>()
+  // 2) (boothId, isTakeout) group — 같은 부스라도 포장/매장 섞이면 split 됨.
+  //    포장 불가 메뉴는 isTakeout 강제 false (스토어가 보장하지만 방어적으로 한 번 더).
+  interface OrderGroup {
+    boothId: string
+    isTakeout: boolean
+    items: CartItem[]
+  }
+  const groupMap = new Map<string, OrderGroup>()
+  // boothId 별로 처음 등장한 group key 를 기록 — 식권은 첫 split-order 에 몰아서 기록.
+  const firstGroupKeyByBooth = new Map<string, string>()
   for (const item of input.items) {
-    const list = groups.get(item.boothId) ?? []
-    list.push(item)
-    groups.set(item.boothId, list)
+    const safeTakeout = item.acceptsTakeout === false ? false : item.isTakeout
+    const key = `${item.boothId}:${safeTakeout ? 'T' : 'D'}`
+    let group = groupMap.get(key)
+    if (!group) {
+      group = { boothId: item.boothId, isTakeout: safeTakeout, items: [] }
+      groupMap.set(key, group)
+      if (!firstGroupKeyByBooth.has(item.boothId)) {
+        firstGroupKeyByBooth.set(item.boothId, key)
+      }
+    }
+    group.items.push(item)
   }
 
-  // 3) 부스별 orders + items
+  // 식권 분배 lookup (boothId 단위)
+  const distMap = new Map<string, { voucherConsumed: number; voucherBurned: number }>()
+  for (const d of input.voucherDistributions ?? []) {
+    distMap.set(d.boothId, {
+      voucherConsumed: d.voucherConsumed,
+      voucherBurned: d.voucherBurned,
+    })
+  }
+
+  // 3) split-그룹별 orders + items
   const createdOrders: Order[] = []
-  for (const [boothId, boothItems] of groups) {
-    const first = boothItems[0]
-    const subtotal = boothItems.reduce((sum, it) => sum + it.price * it.quantity, 0)
+  for (const [groupKey, group] of groupMap) {
+    const first = group.items[0]
+    const subtotal = group.items.reduce((sum, it) => sum + it.price * it.quantity, 0)
+    // 식권은 부스별 첫 split-order 에만 기록 (나머지는 0)
+    const isFirstForBooth = firstGroupKeyByBooth.get(group.boothId) === groupKey
+    const dist = isFirstForBooth ? distMap.get(group.boothId) : undefined
 
     const { data: order, error: oErr } = await supabase
       .from('orders')
       .insert({
         payment_id: payment.id,
-        booth_id: boothId,
+        booth_id: group.boothId,
         booth_no: first.boothNo,
         booth_name: first.boothName,
         subtotal,
+        voucher_consumed: dist?.voucherConsumed ?? 0,
+        voucher_burned: dist?.voucherBurned ?? 0,
         phone: input.phone,
         status: 'pending',
+        payment_channel: input.paymentChannel ?? 'app',
+        is_takeout: group.isTakeout,
+        alcohol_consent_at: input.alcoholConsentAt ?? null,
         festival_id: input.festivalId ?? null,
       })
       .select()
@@ -95,7 +153,7 @@ export async function createPendingPayment(
       throw new Error(`주문 생성 실패(${first.boothName}): ${oErr?.message ?? 'unknown'}`)
     }
 
-    const itemRows = boothItems.map((it) => ({
+    const itemRows = group.items.map((it) => ({
       order_id: order.id,
       menu_id: it.menuId,
       menu_name: it.menuName,
@@ -125,14 +183,20 @@ export async function createPendingPayment(
  */
 export async function markPaymentPaid(
   paymentId: string,
-  paymentKey: string,
+  paymentKey: string | null,
 ): Promise<void> {
   const now = new Date().toISOString()
 
-  // 1) payments → paid
+  // 1) payments → paid (전액 식권 결제 시 paymentKey=null — payment_key 그대로 NULL 유지)
+  const updatePayload: { status: 'paid'; paid_at: string; payment_key?: string } = {
+    status: 'paid',
+    paid_at: now,
+  }
+  if (paymentKey) updatePayload.payment_key = paymentKey
+
   const { data: payment, error: pErr } = await supabase
     .from('payments')
-    .update({ status: 'paid', payment_key: paymentKey, paid_at: now })
+    .update(updatePayload)
     .eq('id', paymentId)
     .select()
     .single()
@@ -168,6 +232,134 @@ export async function markPaymentPaid(
       )
     }
   }
+}
+
+/**
+ * 헬프데스크 키오스크 — 손님이 셀프로 메뉴 입력 후 "결제 요청" 한 시점에 호출.
+ *
+ * 차이점 (`createPendingPayment` 대비)
+ *   · PG 호출 없음 (Toss 결제창 절대 안 띄움)
+ *   · payments.payment_method 는 임시 'cash' (직원이 결제 처리 시점에 실제 값 덮어씀)
+ *   · orders.status = 'payment_pending' (PG 진행 중인 'pending' 과 의미가 다름)
+ *   · orders.payment_channel = 'helpdesk'
+ *   · orders.payment_method = NULL (직원 처리 시점에 'card'/'cash' 채움)
+ *   · 쿠폰/식권 미지원 (v1 단순화 — 필요해지면 어드민 결제 대기 큐에서 적용)
+ *
+ * 사용처: `src/pages/kiosk/steps/PhoneStep.tsx` 결제 요청 버튼.
+ */
+export interface CreateKioskPaymentInput {
+  phone: string
+  /** 식권 차감 후 손님이 추가 결제해야 할 금액 (식권 단독 결제면 0). */
+  totalAmount: number
+  items: CartItem[]
+  festivalId?: string | null
+  alcoholConsentAt?: string | null
+  /** 키오스크 단말 식별자 — URL ?station= 파라미터에서 받음. 'helpdesk-1' / 'helpdesk-2'. */
+  kioskStationId?: string | null
+  /** 식권 사용 시 검증된 coupon.id (validateCouponByCode 의 응답값). */
+  couponId?: string | null
+  /** 식권 부스별 분배 (calcVoucherSettlement 결과). */
+  voucherDistributions?: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
+}
+
+export async function createKioskPaymentPending(
+  input: CreateKioskPaymentInput,
+): Promise<CreatePaymentResult> {
+  // 1) payments — status=pending, payment_method=NULL (41 마이그 이후 NULL 허용).
+  //    식권 사용 시 coupon_id 채움. 직원이 결제 완료 처리 시점에 payment_method
+  //    ('external_card'/'cash'/'voucher_only') 로 update.
+  const { data: payment, error: pErr } = await supabase
+    .from('payments')
+    .insert({
+      phone: input.phone,
+      total_amount: input.totalAmount,
+      discount_amount: 0,
+      coupon_id: input.couponId ?? null,
+      status: 'pending',
+      payment_method: null,
+      assisted_by: null,
+      external_receipt_no: null,
+      festival_id: input.festivalId ?? null,
+    })
+    .select()
+    .single()
+
+  if (pErr || !payment) {
+    throw new Error(`결제 요청 생성 실패: ${pErr?.message ?? 'unknown'}`)
+  }
+
+  // 2) 부스별 group (포장 옵션 미지원 — 키오스크 v1 단순화. 전부 매장 식사로 처리.)
+  interface OrderGroup {
+    boothId: string
+    items: CartItem[]
+  }
+  const groupMap = new Map<string, OrderGroup>()
+  for (const item of input.items) {
+    let group = groupMap.get(item.boothId)
+    if (!group) {
+      group = { boothId: item.boothId, items: [] }
+      groupMap.set(item.boothId, group)
+    }
+    group.items.push(item)
+  }
+
+  // 식권 분배 lookup (boothId 단위, 기존 createPendingPayment 와 동일 패턴)
+  const distMap = new Map<string, { voucherConsumed: number; voucherBurned: number }>()
+  for (const d of input.voucherDistributions ?? []) {
+    distMap.set(d.boothId, {
+      voucherConsumed: d.voucherConsumed,
+      voucherBurned: d.voucherBurned,
+    })
+  }
+
+  const createdOrders: Order[] = []
+  for (const group of groupMap.values()) {
+    const first = group.items[0]
+    const subtotal = group.items.reduce((sum, it) => sum + it.price * it.quantity, 0)
+    const dist = distMap.get(group.boothId)
+
+    const { data: order, error: oErr } = await supabase
+      .from('orders')
+      .insert({
+        payment_id: payment.id,
+        booth_id: group.boothId,
+        booth_no: first.boothNo,
+        booth_name: first.boothName,
+        subtotal,
+        voucher_consumed: dist?.voucherConsumed ?? 0,
+        voucher_burned: dist?.voucherBurned ?? 0,
+        phone: input.phone,
+        status: 'payment_pending',
+        payment_channel: 'helpdesk',
+        kiosk_station_id: input.kioskStationId ?? null,
+        is_takeout: false,
+        alcohol_consent_at: input.alcoholConsentAt ?? null,
+        festival_id: input.festivalId ?? null,
+      })
+      .select()
+      .single()
+
+    if (oErr || !order) {
+      throw new Error(`주문 생성 실패(${first.boothName}): ${oErr?.message ?? 'unknown'}`)
+    }
+
+    const itemRows = group.items.map((it) => ({
+      order_id: order.id,
+      menu_id: it.menuId,
+      menu_name: it.menuName,
+      menu_price: it.price,
+      quantity: it.quantity,
+      subtotal: it.price * it.quantity,
+    }))
+    const { error: iErr } = await supabase.from('order_items').insert(itemRows)
+    if (iErr) {
+      throw new Error(`주문 아이템 생성 실패(${first.boothName}): ${iErr.message}`)
+    }
+
+    createdOrders.push(order)
+  }
+
+  return { payment, orders: createdOrders }
 }
 
 /** toss_order_id (Toss 의 orderId) 로 payment 조회. success/fail 페이지에서 사용 */

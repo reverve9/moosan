@@ -6,13 +6,23 @@ import {
   calcKpi,
   calcMenuStats,
   calcPaymentBehaviorStats,
+  calcPaymentChannelStats,
   calcTimeStats,
   fetchStatsData,
   type StatsFilters,
   type StatsRawData,
 } from '@/lib/adminStats'
 import { todayKstString } from '@/lib/orders'
-import { fetchCouponStats, type CouponStats } from '@/lib/coupons'
+import {
+  fetchCouponStats,
+  fetchDiscountStatsBySource,
+  fetchVoucherStats,
+  DISCOUNT_SOURCE_LABEL,
+  VOUCHER_SOURCE_LABEL,
+  type CouponStats,
+  type DiscountStatsBySource,
+  type VoucherStats,
+} from '@/lib/coupons'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { ExportButton } from '@/components/admin/ExcelButtons'
 import styles from './StatsRevenueTab.module.css'
@@ -33,18 +43,24 @@ export default function StatsRevenueTab() {
   }))
   const [raw, setRaw] = useState<StatsRawData | null>(null)
   const [couponStats, setCouponStats] = useState<CouponStats | null>(null)
+  const [voucherStats, setVoucherStats] = useState<VoucherStats | null>(null)
+  const [discountSourceStats, setDiscountSourceStats] = useState<DiscountStatsBySource | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const refetch = useCallback(async () => {
     setLoading(true)
     try {
-      const [data, cStats] = await Promise.all([
+      const [data, cStats, vStats, dSrcStats] = await Promise.all([
         fetchStatsData(filters),
         fetchCouponStats({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+        fetchVoucherStats({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
+        fetchDiscountStatsBySource({ dateFrom: filters.dateFrom, dateTo: filters.dateTo }),
       ])
       setRaw(data)
       setCouponStats(cStats)
+      setVoucherStats(vStats)
+      setDiscountSourceStats(dSrcStats)
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '조회 실패')
@@ -101,6 +117,10 @@ export default function StatsRevenueTab() {
     () => (raw ? calcPaymentBehaviorStats(raw) : null),
     [raw],
   )
+  const channel = useMemo(
+    () => (raw ? calcPaymentChannelStats(raw) : null),
+    [raw],
+  )
 
   return (
     <div className={styles.tab}>
@@ -149,6 +169,9 @@ export default function StatsRevenueTab() {
           {/* 1. KPI */}
           {kpi && <KpiSection kpi={kpi} />}
 
+          {/* 1-2. 채널별 매출 (앱 vs 헬프데스크) */}
+          {channel && <ChannelSection channel={channel} />}
+
           {/* 2. 시간 분석 */}
           {time && <TimeSection time={time} />}
 
@@ -164,8 +187,13 @@ export default function StatsRevenueTab() {
             {behavior && <BehaviorSection behavior={behavior} />}
           </div>
 
-          {/* 7. 쿠폰 */}
-          {couponStats && <CouponSection stats={couponStats} />}
+          {/* 7. 할인 쿠폰 */}
+          {couponStats && discountSourceStats && (
+            <DiscountCouponSection stats={couponStats} bySource={discountSourceStats} />
+          )}
+
+          {/* 8. 식권 운영 현황 */}
+          {voucherStats && <VoucherSection stats={voucherStats} />}
         </>
       )}
     </div>
@@ -210,6 +238,52 @@ function Kpi({
       <div className={styles.kpiLabel}>{label}</div>
       <div className={styles.kpiValue}>{value}</div>
     </div>
+  )
+}
+
+// ─── 1-2. 채널별 매출 섹션 ─────────────────────────
+
+function ChannelSection({
+  channel,
+}: {
+  channel: ReturnType<typeof calcPaymentChannelStats>
+}) {
+  const total = channel.total
+  const appShare = total.revenue > 0 ? channel.app.revenue / total.revenue : 0
+  const helpdeskShare = total.revenue > 0 ? channel.helpdesk.revenue / total.revenue : 0
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>채널별 매출 (앱 / 헬프데스크)</h2>
+      <div className={styles.kpiGrid}>
+        <Kpi
+          label="앱 결제"
+          value={`${fmtWon(channel.app.revenue)} · ${channel.app.count}건 · ${fmtPct(appShare)}`}
+        />
+        <Kpi
+          label="헬프데스크 결제"
+          value={`${fmtWon(channel.helpdesk.revenue)} · ${channel.helpdesk.count}건 · ${fmtPct(helpdeskShare)}`}
+        />
+        <Kpi
+          label="헬프데스크 — 카드"
+          value={`${fmtWon(channel.helpdeskCard.revenue)} · ${channel.helpdeskCard.count}건`}
+        />
+        <Kpi
+          label="헬프데스크 — 현금"
+          value={`${fmtWon(channel.helpdeskCash.revenue)} · ${channel.helpdeskCash.count}건`}
+        />
+        {channel.helpdeskOther.count > 0 && (
+          <Kpi
+            label="헬프데스크 — 기타"
+            value={`${fmtWon(channel.helpdeskOther.revenue)} · ${channel.helpdeskOther.count}건`}
+          />
+        )}
+        <Kpi
+          label="합계"
+          value={`${fmtWon(total.revenue)} · ${total.count}건`}
+          emphasis
+        />
+      </div>
+    </section>
   )
 }
 
@@ -571,12 +645,18 @@ function CustomerSection({
 
 // ─── 6. 결제 행동 ────────────────────────────────
 
-// ─── 7. 쿠폰 섹션 ────────────────────────────────
+// ─── 7. 할인 쿠폰 섹션 (source별 분리) ───────────
 
-function CouponSection({ stats }: { stats: CouponStats }) {
+function DiscountCouponSection({
+  stats,
+  bySource,
+}: {
+  stats: CouponStats
+  bySource: DiscountStatsBySource
+}) {
   return (
     <section className={styles.section}>
-      <h2 className={styles.sectionTitle}>쿠폰</h2>
+      <h2 className={styles.sectionTitle}>할인 쿠폰</h2>
       <div className={styles.kpiGrid}>
         <Kpi label="발급" value={`${stats.issuedCount.toLocaleString()}건`} />
         <Kpi label="사용 완료" value={`${stats.usedCount.toLocaleString()}건`} />
@@ -584,6 +664,82 @@ function CouponSection({ stats }: { stats: CouponStats }) {
         <Kpi label="사용가능" value={`${stats.activeCount.toLocaleString()}건`} />
         <Kpi label="총 할인액" value={fmtWon(stats.totalDiscount)} />
       </div>
+      <div className={styles.subTitle}>발급 사유별</div>
+      <table className={styles.simpleTable}>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th className={styles.right}>발급</th>
+            <th className={styles.right}>사용</th>
+            <th className={styles.right}>할인합계</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bySource.bySource.map((s) => (
+            <tr key={s.source}>
+              <td>{DISCOUNT_SOURCE_LABEL[s.source]}</td>
+              <td className={styles.right}>{s.issuedCount.toLocaleString()}건</td>
+              <td className={styles.right}>{s.usedCount.toLocaleString()}건</td>
+              <td className={styles.right}>{fmtWon(s.totalDiscount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )
+}
+
+// ─── 8. 식권 운영 현황 섹션 ───────────────────────
+
+function VoucherSection({ stats }: { stats: VoucherStats }) {
+  const avgUsed =
+    stats.totalUsedCount > 0
+      ? Math.round(stats.organizerCost / stats.totalUsedCount)
+      : 0
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>식권 운영 현황</h2>
+      <div className={styles.kpiGrid}>
+        <Kpi
+          label="총 발급"
+          value={`${stats.totalIssuedCount.toLocaleString()}장 / ${fmtWon(stats.totalIssuedFaceValue)}`}
+        />
+        <Kpi
+          label="사용"
+          value={`${stats.totalUsedCount.toLocaleString()}장 (${fmtPct(stats.usageRate)})`}
+          emphasis
+        />
+        <Kpi
+          label="미사용"
+          value={`${stats.unusedCount.toLocaleString()}장 / ${fmtWon(stats.unusedFaceValue)}`}
+        />
+        <Kpi label="운영자 식권 부담" value={fmtWon(stats.organizerCost)} />
+        <Kpi label="잔액 소멸" value={fmtWon(stats.burned)} />
+        <Kpi label="식권당 평균 사용액" value={fmtWon(avgUsed)} />
+      </div>
+      <div className={styles.subTitle}>대상별 분리</div>
+      <table className={styles.simpleTable}>
+        <thead>
+          <tr>
+            <th>대상</th>
+            <th className={styles.right}>발급</th>
+            <th className={styles.right}>발급 액면</th>
+            <th className={styles.right}>사용</th>
+            <th className={styles.right}>사용 액면</th>
+          </tr>
+        </thead>
+        <tbody>
+          {stats.bySource.map((s) => (
+            <tr key={s.source}>
+              <td>{VOUCHER_SOURCE_LABEL[s.source]}</td>
+              <td className={styles.right}>{s.issuedCount.toLocaleString()}장</td>
+              <td className={styles.right}>{fmtWon(s.issuedTotal)}</td>
+              <td className={styles.right}>{s.usedCount.toLocaleString()}장</td>
+              <td className={styles.right}>{fmtWon(s.usedFaceValue)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   )
 }

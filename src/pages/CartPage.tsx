@@ -6,6 +6,7 @@ import Input from '@/components/ui/Input'
 import { useCart, type CartItem } from '@/store/cartStore'
 import { getAssetUrl } from '@/lib/festival'
 import { fetchPaymentsByPhoneToday, type PaymentWithOrders } from '@/lib/orders'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { supabase } from '@/lib/supabase'
 import { formatPhone, isValidPhone, loadLastPhone, normalizePhone } from '@/lib/phone'
 import styles from './CartPage.module.css'
@@ -87,7 +88,7 @@ function summarizeItems(items: OrderListEntry['items']): string {
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { items, totalAmount, totalCount, updateQuantity, removeItem, clear } = useCart()
+  const { items, totalAmount, totalCount, updateQuantity, removeItem, clear, setItemTakeout } = useCart()
 
   const groups = useMemo(() => groupByBooth(items), [items])
   const hasCart = items.length > 0
@@ -201,6 +202,7 @@ export default function CartPage() {
                 <ul className={styles.itemList}>
                   {group.items.map((item) => {
                     const img = getAssetUrl(item.imageUrl ?? null)
+                    const takeoutLocked = item.acceptsTakeout === false
                     return (
                       <li key={item.menuId} className={styles.item}>
                         <div className={styles.itemThumb}>
@@ -212,7 +214,12 @@ export default function CartPage() {
                         </div>
                         <div className={styles.itemInfo}>
                           <div className={styles.itemHead}>
-                            <span className={styles.itemName}>{item.menuName}</span>
+                            <span className={styles.itemName}>
+                              {item.menuName}
+                              {takeoutLocked && (
+                                <span className={styles.itemTakeoutNoBadge}>포장 불가</span>
+                              )}
+                            </span>
                             <button
                               type="button"
                               className={styles.removeBtn}
@@ -220,6 +227,28 @@ export default function CartPage() {
                               aria-label={`${item.menuName} 삭제`}
                             >
                               <Trash2 className={styles.removeIcon} />
+                            </button>
+                          </div>
+                          <div className={styles.takeoutToggleRow}>
+                            <button
+                              type="button"
+                              className={`${styles.takeoutBtn} ${!item.isTakeout ? styles.takeoutBtnActive : ''}`}
+                              onClick={() => setItemTakeout(item.menuId, false)}
+                              aria-pressed={!item.isTakeout}
+                            >
+                              매장
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.takeoutBtn} ${item.isTakeout ? styles.takeoutBtnActive : ''}`}
+                              onClick={() => {
+                                if (!takeoutLocked) setItemTakeout(item.menuId, true)
+                              }}
+                              disabled={takeoutLocked}
+                              aria-pressed={item.isTakeout}
+                              title={takeoutLocked ? '포장 불가 메뉴' : undefined}
+                            >
+                              포장
                             </button>
                           </div>
                           <div className={styles.itemBottom}>
@@ -333,6 +362,7 @@ export default function CartPage() {
                 hour: '2-digit',
                 minute: '2-digit',
               })
+              const { counter, full } = parseOrderNumber(order.order_number)
               return (
                 <li key={order.id}>
                   <Link to={`/order/${entry.paymentId}`} className={styles.orderCard}>
@@ -342,7 +372,9 @@ export default function CartPage() {
                     <div className={styles.orderBody}>
                       <div className={styles.orderHead}>
                         <span className={styles.orderNumber}>
-                          {order.booth_name ?? ''} · {order.order_number}
+                          <span className={styles.orderBooth}>{order.booth_name ?? ''}</span>
+                          <span className={styles.orderCounter}>{counter}</span>
+                          <span className={styles.orderFullCode}>{full}</span>
                         </span>
                         <span className={styles.orderTime}>{orderTime}</span>
                       </div>

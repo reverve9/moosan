@@ -25,7 +25,14 @@ dist-ssr
 
 # Environment
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 .vercel
-.env*.local
+
+# Internal development files
+_DEV/*
+!_DEV/Handoff/
+_DEV/Handoff/*.zip
+
+# Claude local config
+.claude/

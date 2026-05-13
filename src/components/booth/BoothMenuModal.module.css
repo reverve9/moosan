@@ -197,6 +197,12 @@
   background-color: #FFFBFB;
 }
 
+.menuToggleStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .thumb {
   position: relative;
   width: 72px;

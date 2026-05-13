@@ -1,0 +1,306 @@
+/* ===========================================================================
+ * PhoneStep — 좌(전번 표시·CTA) 우(큰 숫자 키패드) 2컬럼.
+ *
+ * 노년층 사용 고려: 키 최소 120×120, 폰트 48px. 동적 hover 효과 절제.
+ * =========================================================================== */
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 720px;
+  min-height: 0;
+  flex: 1;
+  background: #f9fafb;
+}
+
+.left {
+  padding: 56px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+}
+
+.title {
+  margin: 0 0 12px;
+  font-size: 36px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 0 0 40px;
+  font-size: 20px;
+  color: #6b7280;
+}
+
+.displayWrap {
+  margin-bottom: 40px;
+}
+
+.display {
+  font-size: 56px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  padding: 28px 32px;
+  background: #f9fafb;
+  border: 2px solid #d1d5db;
+  border-radius: 16px;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+}
+
+.placeholder {
+  color: #d1d5db;
+  font-weight: 700;
+}
+
+.hint {
+  margin-top: 12px;
+  font-size: 16px;
+  color: #ef4444;
+}
+
+.voucherBlock {
+  margin-bottom: 24px;
+  padding: 16px 18px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.voucherHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.voucherLabel {
+  letter-spacing: 0;
+}
+
+.voucherRow {
+  display: flex;
+  gap: 8px;
+}
+
+.voucherInput {
+  flex: 1;
+  min-height: 56px;
+  padding: 0 14px;
+  font-size: 20px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.voucherInput::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.voucherButton {
+  min-width: 100px;
+  min-height: 56px;
+  padding: 0 18px;
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voucherButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voucherApplied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #ecfdf5;
+  border: 1px solid #d1fae5;
+  border-radius: 10px;
+}
+
+.voucherAppliedInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.voucherAppliedLabel {
+  font-size: 13px;
+  color: #047857;
+}
+
+.voucherAppliedAmount {
+  font-size: 22px;
+  font-weight: 800;
+  color: #047857;
+}
+
+.voucherClearButton {
+  background: transparent;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voucherClearButton:active {
+  background: #d1fae5;
+}
+
+.voucherError {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #b91c1c;
+}
+
+.voucherFullCover {
+  margin: -10px 0 16px;
+  padding: 12px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 15px;
+  color: #1e40af;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 20px 0;
+  border-top: 1px solid #e5e7eb;
+  font-size: 20px;
+  color: #374151;
+  margin-bottom: 28px;
+}
+
+.totalAmount {
+  font-size: 32px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.error {
+  padding: 16px 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  color: #b91c1c;
+  font-size: 17px;
+  margin-bottom: 20px;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.backButton,
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 88px;
+  border-radius: 16px;
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.backButton {
+  flex: 0 0 220px;
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.backButton:active:not(:disabled) {
+  background: #e5e7eb;
+}
+
+.submitButton {
+  flex: 1;
+  background: #111827;
+  color: #ffffff;
+}
+
+.submitButton:active:not(:disabled) {
+  background: #000000;
+}
+
+.submitButton:disabled,
+.backButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── 우측 키패드 ──────────────────────────────────────────────────── */
+
+.right {
+  padding: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 180px);
+  grid-template-rows: repeat(4, 130px);
+  gap: 20px;
+}
+
+.keyButton {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  font-size: 48px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  transition: background 0.06s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.keyButton:active:not(:disabled) {
+  background: #f3f4f6;
+  transform: scale(0.97);
+}
+
+.keyButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.keyButtonBack {
+  color: #ef4444;
+}
+
+.keypadSpacer {
+  display: block;
+}

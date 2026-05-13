@@ -6,6 +6,7 @@ import {
   setBoothOpen,
   setBoothPaused,
   setMenuSoldOut,
+  setMenuAcceptsTakeout,
 } from '@/lib/boothMenus'
 import { getAssetUrl } from '@/lib/festival'
 import type { FoodBooth, FoodMenu } from '@/types/database'
@@ -16,7 +17,7 @@ interface BoothMenuModalProps {
   onClose: () => void
 }
 
-type BusyKey = 'open' | 'paused' | `menu-${string}` | null
+type BusyKey = 'open' | 'paused' | `menu-${string}` | `takeout-${string}` | null
 
 export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps) {
   const [booth, setBooth] = useState<FoodBooth | null>(null)
@@ -104,6 +105,28 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
           prev.map((m) => (m.id === menu.id ? { ...m, is_sold_out: !next } : m)),
         )
         setError(e instanceof Error ? e.message : '품절 상태 변경 실패')
+      } finally {
+        setBusy(null)
+      }
+    },
+    [busy],
+  )
+
+  const handleToggleTakeout = useCallback(
+    async (menu: FoodMenu) => {
+      if (busy) return
+      setBusy(`takeout-${menu.id}`)
+      const next = !menu.accepts_takeout
+      setMenus((prev) =>
+        prev.map((m) => (m.id === menu.id ? { ...m, accepts_takeout: next } : m)),
+      )
+      try {
+        await setMenuAcceptsTakeout(menu.id, next)
+      } catch (e) {
+        setMenus((prev) =>
+          prev.map((m) => (m.id === menu.id ? { ...m, accepts_takeout: !next } : m)),
+        )
+        setError(e instanceof Error ? e.message : '포장 가능 상태 변경 실패')
       } finally {
         setBusy(null)
       }
@@ -233,19 +256,34 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                                 : '가격 미정'}
                             </div>
                           </div>
-                          <button
-                            type="button"
-                            className={`${styles.toggle} ${!soldOut ? styles.toggleOn : ''}`}
-                            onClick={() => handleToggleMenu(menu)}
-                            disabled={menuBusy || busy !== null}
-                            aria-pressed={!soldOut}
-                            aria-label={`${menu.name} 판매 토글`}
-                          >
-                            <span className={styles.toggleKnob} />
-                            <span className={styles.toggleLabel}>
-                              {soldOut ? '품절' : '판매중'}
-                            </span>
-                          </button>
+                          <div className={styles.menuToggleStack}>
+                            <button
+                              type="button"
+                              className={`${styles.toggle} ${!soldOut ? styles.toggleOn : ''}`}
+                              onClick={() => handleToggleMenu(menu)}
+                              disabled={menuBusy || busy !== null}
+                              aria-pressed={!soldOut}
+                              aria-label={`${menu.name} 판매 토글`}
+                            >
+                              <span className={styles.toggleKnob} />
+                              <span className={styles.toggleLabel}>
+                                {soldOut ? '품절' : '판매중'}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`${styles.toggle} ${menu.accepts_takeout ? styles.toggleOn : ''}`}
+                              onClick={() => handleToggleTakeout(menu)}
+                              disabled={busy === `takeout-${menu.id}` || busy !== null}
+                              aria-pressed={menu.accepts_takeout}
+                              aria-label={`${menu.name} 포장 가능 토글`}
+                            >
+                              <span className={styles.toggleKnob} />
+                              <span className={styles.toggleLabel}>
+                                {menu.accepts_takeout ? '포장 O' : '포장 X'}
+                              </span>
+                            </button>
+                          </div>
                         </article>
                       )
                     })}

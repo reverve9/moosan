@@ -102,6 +102,44 @@
   background-color: rgba(255, 255, 255, 0.35);
 }
 
+/* 주류 픽업 — 빨간 강조 + 추가 라인 */
+.readyStripAlcohol {
+  background-color: #C53030;
+}
+
+.readyStripAlcoholLine {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #FEF2F2;
+  letter-spacing: 0.01em;
+}
+
+/* ──────────────── 주류 신분증 안내 (메타박스 위) ──────────────── */
+.alcoholNotice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-left: 4px solid #C53030;
+  border-radius: var(--radius-lg);
+}
+
+.alcoholNoticeTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #991B1B;
+}
+
+.alcoholNoticeBody {
+  font-size: 13px;
+  color: #7F1D1D;
+  line-height: 1.45;
+}
+
 /* ──────────────── 상태 카드 ──────────────── */
 .statusCard {
   display: flex;
@@ -183,6 +221,17 @@
 }
 .status_completed .statusIcon svg {
   color: var(--color-primary);
+}
+
+.status_picked_up {
+  border-color: #6EE7B7;
+  background: #ECFDF5;
+}
+.status_picked_up .statusIcon {
+  background-color: #D1FAE5;
+}
+.status_picked_up .statusIcon svg {
+  color: #059669;
 }
 
 .status_cancelled .statusIcon svg {
@@ -274,7 +323,23 @@
 }
 
 .booth_ready {
-  border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+  border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+
+.booth_ready .callNumber {
+  color: var(--color-primary);
+}
+
+.booth_preparing .callNumber {
+  color: color-mix(in srgb, #b45309 90%, var(--color-text));
+}
+
+.booth_cancelled .callNumber {
+  color: #B91C1C;
+  text-decoration: line-through;
+  text-decoration-thickness: 4px;
+  opacity: 0.7;
 }
 
 .booth_cancelled {
@@ -325,26 +390,98 @@
   color: #DC2626;
 }
 
-.boothHeader {
+.voucherText {
+  color: #B45309;
+}
+
+.boothVoucherBox {
+  padding: 10px 16px;
+  background: #FFFBEB;
+  border-top: 1px solid #FDE68A;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.boothVoucherRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
+  gap: 12px;
+}
+
+.boothVoucherLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400E;
+}
+
+.boothVoucherValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: #B45309;
+  font-variant-numeric: tabular-nums;
+}
+
+.boothHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border-light);
 }
 
-.boothName {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--color-text);
+.boothHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.orderNo {
+.boothName {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.boothTakeoutBadge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #FFFFFF;
+  background-color: #D97706;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.callNumberBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 0 0;
+}
+
+.callNumber {
+  font-size: 60px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.orderNoFull {
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .boothStatusBadge {

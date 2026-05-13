@@ -1,10 +1,11 @@
 import { supabase } from './supabase'
-import {
-  DuplicateSurveyCouponError,
-  hasSurveyCouponByPhone,
-  issueSurveyCoupon,
-} from './coupons'
-import type { Coupon, Json, Survey } from '@/types/database'
+// [비상 비활성 — 만족도조사] 원복 시 아래 import 와 Json 타입 재추가
+// import {
+//   DuplicateSurveyCouponError,
+//   hasSurveyCouponByPhone,
+//   issueSurveyCoupon,
+// } from './coupons'
+import type { Coupon, Survey } from '@/types/database'
 import {
   GENDER_OPTIONS,
   REGION_OPTIONS,
@@ -537,37 +538,40 @@ export interface SubmitSurveyResult {
 export async function submitSurvey(
   input: SubmitSurveyInput,
 ): Promise<SubmitSurveyResult> {
-  // 1) 중복 쿠폰 사전 체크
-  if (await hasSurveyCouponByPhone(input.phone)) {
-    throw new DuplicateSurveyCouponError()
-  }
-
-  // 2) 설문 insert
-  const { data, error } = await supabase
-    .from('surveys')
-    .insert({
-      festival_id: input.festivalId,
-      gender: input.gender,
-      age: input.age,
-      region: input.region,
-      name: input.name,
-      phone: input.phone,
-      privacy_consented: input.privacyConsented,
-      answers: input.answers as Json,
-    })
-    .select()
-    .single()
-
-  if (error) {
-    // Postgres unique violation — 같은 phone+festival 재제출
-    if (error.code === '23505') {
-      throw new Error('이미 제출하신 연락처입니다. 설문은 한 번만 참여 가능합니다.')
-    }
-    throw new Error(error.message || '설문 제출에 실패했습니다.')
-  }
-
-  // 3) 쿠폰 자동 발급
-  const coupon = await issueSurveyCoupon(input.phone)
-
-  return { survey: data as Survey, coupon }
+  // [비상 비활성 — 만족도조사 + 자동 쿠폰 발급] 원복 시 아래 throw 삭제하고 본문 주석 해제
+  void input
+  throw new Error('만족도조사 접수가 일시 중단되었습니다.')
+  // // 1) 중복 쿠폰 사전 체크
+  // if (await hasSurveyCouponByPhone(input.phone)) {
+  //   throw new DuplicateSurveyCouponError()
+  // }
+  //
+  // // 2) 설문 insert
+  // const { data, error } = await supabase
+  //   .from('surveys')
+  //   .insert({
+  //     festival_id: input.festivalId,
+  //     gender: input.gender,
+  //     age: input.age,
+  //     region: input.region,
+  //     name: input.name,
+  //     phone: input.phone,
+  //     privacy_consented: input.privacyConsented,
+  //     answers: input.answers as Json,
+  //   })
+  //   .select()
+  //   .single()
+  //
+  // if (error) {
+  //   // Postgres unique violation — 같은 phone+festival 재제출
+  //   if (error.code === '23505') {
+  //     throw new Error('이미 제출하신 연락처입니다. 설문은 한 번만 참여 가능합니다.')
+  //   }
+  //   throw new Error(error.message || '설문 제출에 실패했습니다.')
+  // }
+  //
+  // // 3) 쿠폰 자동 발급
+  // const coupon = await issueSurveyCoupon(input.phone)
+  //
+  // return { survey: data as Survey, coupon }
 }

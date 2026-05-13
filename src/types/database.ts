@@ -573,8 +573,11 @@ export interface Database {
           image_url: string | null
           is_signature: boolean
           is_sold_out: boolean
+          accepts_takeout: boolean
+          is_alcohol: boolean
           sort_order: number
           is_active: boolean
+          tags: string[]
           created_at: string
           updated_at: string
         }
@@ -587,8 +590,11 @@ export interface Database {
           image_url?: string | null
           is_signature?: boolean
           is_sold_out?: boolean
+          accepts_takeout?: boolean
+          is_alcohol?: boolean
           sort_order?: number
           is_active?: boolean
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -601,8 +607,11 @@ export interface Database {
           image_url?: string | null
           is_signature?: boolean
           is_sold_out?: boolean
+          accepts_takeout?: boolean
+          is_alcohol?: boolean
           sort_order?: number
           is_active?: boolean
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -670,10 +679,22 @@ export interface Database {
         Row: {
           id: string
           code: string
+          type: 'discount' | 'meal_voucher'
+          source:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount: number
-          min_order_amount: number
+          min_order_amount: number | null
           status: 'active' | 'used'
           issued_source: 'manual' | 'survey'
+          issued_by: string | null
+          batch_id: string | null
+          memo: string | null
           issued_phone: string | null
           phone: string | null
           note: string | null
@@ -688,10 +709,22 @@ export interface Database {
         Insert: {
           id?: string
           code: string
+          type?: 'discount' | 'meal_voucher'
+          source?:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount: number
-          min_order_amount?: number
+          min_order_amount?: number | null
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
+          issued_by?: string | null
+          batch_id?: string | null
+          memo?: string | null
           issued_phone?: string | null
           phone?: string | null
           note?: string | null
@@ -706,10 +739,22 @@ export interface Database {
         Update: {
           id?: string
           code?: string
+          type?: 'discount' | 'meal_voucher'
+          source?:
+            | 'auto_survey'
+            | 'manual_compensation'
+            | 'manual_external'
+            | 'voucher_participant'
+            | 'voucher_staff'
+            | 'voucher_vip'
+            | 'voucher_other'
           discount_amount?: number
-          min_order_amount?: number
+          min_order_amount?: number | null
           status?: 'active' | 'used'
           issued_source?: 'manual' | 'survey'
+          issued_by?: string | null
+          batch_id?: string | null
+          memo?: string | null
           issued_phone?: string | null
           phone?: string | null
           note?: string | null
@@ -751,6 +796,13 @@ export interface Database {
           status: 'pending' | 'paid' | 'cancelled'
           paid_at: string | null
           cancelled_at: string | null
+          payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
+          pg_provider: string | null
+          pg_method: string | null
+          pg_tid: string | null
+          pg_accept_no: string | null
+          assisted_by: string | null
+          external_receipt_no: string | null
           festival_id: string | null
           meta: Json
           created_at: string
@@ -768,6 +820,13 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
+          pg_provider?: string | null
+          pg_method?: string | null
+          pg_tid?: string | null
+          pg_accept_no?: string | null
+          assisted_by?: string | null
+          external_receipt_no?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -785,6 +844,13 @@ export interface Database {
           status?: 'pending' | 'paid' | 'cancelled'
           paid_at?: string | null
           cancelled_at?: string | null
+          payment_method?: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
+          pg_provider?: string | null
+          pg_method?: string | null
+          pg_tid?: string | null
+          pg_accept_no?: string | null
+          assisted_by?: string | null
+          external_receipt_no?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -809,15 +875,22 @@ export interface Database {
           booth_no: string
           booth_name: string
           subtotal: number
+          voucher_consumed: number
+          voucher_burned: number
           phone: string
-          status: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel: 'app' | 'helpdesk'
+          kiosk_station_id: string | null
           paid_at: string | null
           confirmed_at: string | null
           estimated_minutes: number | null
           ready_at: string | null
+          picked_up_at: string | null
           cancelled_at: string | null
           cancel_reason: string | null
           cancelled_by: 'booth' | 'admin' | null
+          is_takeout: boolean
+          alcohol_consent_at: string | null
           festival_id: string | null
           meta: Json
           created_at: string
@@ -831,15 +904,22 @@ export interface Database {
           booth_no: string
           booth_name: string
           subtotal: number
+          voucher_consumed?: number
+          voucher_burned?: number
           phone: string
-          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel?: 'app' | 'helpdesk'
+          kiosk_station_id?: string | null
           paid_at?: string | null
           confirmed_at?: string | null
           estimated_minutes?: number | null
           ready_at?: string | null
+          picked_up_at?: string | null
           cancelled_at?: string | null
           cancel_reason?: string | null
           cancelled_by?: 'booth' | 'admin' | null
+          is_takeout?: boolean
+          alcohol_consent_at?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -853,15 +933,22 @@ export interface Database {
           booth_no?: string
           booth_name?: string
           subtotal?: number
+          voucher_consumed?: number
+          voucher_burned?: number
           phone?: string
-          status?: 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          status?: 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+          payment_channel?: 'app' | 'helpdesk'
+          kiosk_station_id?: string | null
           paid_at?: string | null
           confirmed_at?: string | null
           estimated_minutes?: number | null
           ready_at?: string | null
+          picked_up_at?: string | null
           cancelled_at?: string | null
           cancel_reason?: string | null
           cancelled_by?: 'booth' | 'admin' | null
+          is_takeout?: boolean
+          alcohol_consent_at?: string | null
           festival_id?: string | null
           meta?: Json
           created_at?: string
@@ -965,6 +1052,48 @@ export interface Database {
           },
         ]
       }
+      cash_sessions: {
+        Row: {
+          id: string
+          session_date: string
+          starting_amount: number
+          ending_amount: number | null
+          expected_amount: number | null
+          difference: number | null
+          notes: string | null
+          started_by: string | null
+          started_at: string
+          ended_by: string | null
+          ended_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_date: string
+          starting_amount: number
+          ending_amount?: number | null
+          expected_amount?: number | null
+          difference?: number | null
+          notes?: string | null
+          started_by?: string | null
+          started_at?: string
+          ended_by?: string | null
+          ended_at?: string | null
+        }
+        Update: {
+          id?: string
+          session_date?: string
+          starting_amount?: number
+          ending_amount?: number | null
+          expected_amount?: number | null
+          difference?: number | null
+          notes?: string | null
+          started_by?: string | null
+          started_at?: string
+          ended_by?: string | null
+          ended_at?: string | null
+        }
+        Relationships: []
+      }
       booth_accounts: {
         Row: {
           id: string
@@ -1052,6 +1181,13 @@ export type OrderItem = Database['public']['Tables']['order_items']['Row']
 export type OrderItemInsert = Database['public']['Tables']['order_items']['Insert']
 export type BoothAccount = Database['public']['Tables']['booth_accounts']['Row']
 export type BoothAccountInsert = Database['public']['Tables']['booth_accounts']['Insert']
+export type CashSession = Database['public']['Tables']['cash_sessions']['Row']
+export type CashSessionInsert = Database['public']['Tables']['cash_sessions']['Insert']
+export type PaymentMethod = 'pg' | 'external_card' | 'cash' | 'voucher_only'
+export type OrderStatus = 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
+export type PaymentChannel = 'app' | 'helpdesk'
+export type KioskPaymentMethod = 'external_card' | 'cash'
+export type KioskStationId = 'helpdesk-1' | 'helpdesk-2'
 
 // Awards JSONB structure
 export type AwardItem = { rank: string; prize: string }

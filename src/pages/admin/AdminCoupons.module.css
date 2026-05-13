@@ -297,6 +297,12 @@
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.24);
   display: flex;
   flex-direction: column;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.modalWide {
+  max-width: 560px;
 }
 
 .modalHeader {
@@ -456,4 +462,91 @@
 
 .issuedDoneBtn:hover {
   background-color: var(--color-primary-dark);
+}
+
+/* ─── 라디오 그룹 ─── */
+
+.radioGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  background-color: #F9FAFB;
+}
+
+.radioItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.radioItem input[type='radio'] {
+  accent-color: var(--color-primary);
+}
+
+/* ─── CSV 업로드 ─── */
+
+.csvSummary {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #374151;
+}
+
+.csvErrCount {
+  color: #B91C1C;
+  font-weight: 600;
+}
+
+.csvErrBtn {
+  margin-left: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--color-primary);
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ─── 결과 리포트 ─── */
+
+.resultSummary {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #111827;
+  background-color: #F3F4F6;
+  border-radius: 8px;
+}
+
+.resultListWrap {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+}
+
+.resultTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.resultTable th,
+.resultTable td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.resultTable th {
+  position: sticky;
+  top: 0;
+  background-color: #F9FAFB;
+  font-weight: 600;
+  color: #374151;
 }

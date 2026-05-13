@@ -8,17 +8,18 @@ import ApplyPage from '@/pages/ApplyPage'
 import LocationPage from '@/pages/LocationPage'
 import NoticePage from '@/pages/NoticePage'
 import NoticeDetailPage from '@/pages/NoticeDetailPage'
-import SurveyPage from '@/pages/SurveyPage'
+// [비상 비활성 — 만족도조사] 원복 시 주석 해제
+// import SurveyPage from '@/pages/SurveyPage'
 import CartPage from '@/pages/CartPage'
 import CheckoutPage from '@/pages/CheckoutPage'
-import CheckoutSuccessPage from '@/pages/CheckoutSuccessPage'
-import CheckoutFailPage from '@/pages/CheckoutFailPage'
+import PaymentCancelPage from '@/pages/PaymentCancelPage'
 import OrderStatusPage from '@/pages/OrderStatusPage'
 import ComingSoonPage from '@/pages/ComingSoonPage'
 import { isDevMode } from '@/config/flags'
 import ProgramDetailPage from '@/pages/program/ProgramDetailPage'
 import FestivalPage from '@/pages/program/FestivalPage'
 import AdminRevenue from '@/pages/admin/AdminRevenue'
+import AdminSettlement from '@/pages/admin/settlement/AdminSettlement'
 import AdminSurvey from '@/pages/admin/AdminSurvey'
 import AdminApplications from '@/pages/admin/AdminApplications'
 import AdminContentDetail from '@/pages/admin/AdminContentDetail'
@@ -28,6 +29,11 @@ import AdminMonitor from '@/pages/admin/AdminMonitor'
 import AdminOrders from '@/pages/admin/AdminOrders'
 import AdminCoupons from '@/pages/admin/AdminCoupons'
 import AdminNotices from '@/pages/admin/AdminNotices'
+import AdminQRCodes from '@/pages/admin/AdminQRCodes'
+import AdminHelpDesk from '@/pages/admin/helpdesk/AdminHelpDesk'
+import KioskPage from '@/pages/kiosk/KioskPage'
+import KioskRedirect from '@/pages/kiosk/KioskRedirect'
+import DisplayPickup from '@/pages/display/DisplayPickup'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
@@ -76,6 +82,7 @@ function AdminRoutes() {
         <Route path="applications" element={<AdminApplications />} />
         <Route path="coupons" element={<AdminCoupons />} />
         <Route path="revenue" element={<AdminRevenue />} />
+        <Route path="settlement" element={<AdminSettlement />} />
         <Route path="survey" element={<AdminSurvey />} />
         <Route path="content/musan" element={<AdminContentDetail slug="musan" />} />
         <Route path="content/youth" element={<AdminContentDetail slug="youth" />} />
@@ -84,7 +91,15 @@ function AdminRoutes() {
         <Route path="booth-accounts" element={<AdminBoothAccounts />} />
         <Route path="monitor" element={<AdminMonitor />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="qrcodes" element={<AdminQRCodes />} />
+        <Route path="help-desk" element={<AdminHelpDesk />} />
       </Route>
+      {/* 헬프데스크 키오스크 — AdminLayout 외부 standalone 풀스크린 라우트 */}
+      <Route path="/kiosk" element={<KioskPage />} />
+      {/* 어드민 ID 기반 단축 진입 — 외부 디바이스 주소창 입력용 */}
+      <Route path="/k/:adminId" element={<KioskRedirect />} />
+      {/* 픽업 대기 디스플레이 — OBS 송출용 standalone 페이지 */}
+      <Route path="/display/pickup" element={<DisplayPickup />} />
       <Route path="*" element={<Navigate to="/notices" replace />} />
     </Routes>
   )
@@ -102,14 +117,15 @@ function CustomerRoutes() {
         <Route path="/programs" element={<ProgramsPage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/apply/:slug" element={<ApplyPage />} />
-        <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} />
+        {/* [비상 비활성 — 만족도조사] 원복 시 주석 해제 */}
+        {/* <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} /> */}
+        <Route path="/survey" element={<ComingSoonPage />} />
         <Route path="/location" element={isDevMode ? <LocationPage /> : <ComingSoonPage />} />
         <Route path="/notice" element={<NoticePage />} />
         <Route path="/notice/:id" element={<NoticeDetailPage />} />
         <Route path="/cart" element={isDevMode ? <CartPage /> : <ComingSoonPage />} />
         <Route path="/checkout" element={isDevMode ? <CheckoutPage /> : <ComingSoonPage />} />
-        <Route path="/checkout/success" element={isDevMode ? <CheckoutSuccessPage /> : <ComingSoonPage />} />
-        <Route path="/checkout/fail" element={isDevMode ? <CheckoutFailPage /> : <ComingSoonPage />} />
+        <Route path="/payment/cancel" element={isDevMode ? <PaymentCancelPage /> : <ComingSoonPage />} />
         <Route path="/order/:id" element={isDevMode ? <OrderStatusPage /> : <ComingSoonPage />} />
         {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
         <Route path="/program/youth" element={<FestivalPage slug="youth" />} />

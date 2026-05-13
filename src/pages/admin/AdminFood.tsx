@@ -1,4 +1,4 @@
-import { Upload, Plus, Trash2, Check, X } from 'lucide-react'
+import { Upload, Plus, Trash2, Check, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
@@ -31,6 +31,9 @@ type MenuForm = {
   price: string
   description: string
   sort_order: number
+  tags: string[]
+  accepts_takeout: boolean
+  is_alcohol: boolean
 }
 
 const emptyMenuForm: MenuForm = {
@@ -38,6 +41,9 @@ const emptyMenuForm: MenuForm = {
   price: '',
   description: '',
   sort_order: 0,
+  tags: [],
+  accepts_takeout: true,
+  is_alcohol: false,
 }
 
 function boothToForm(b: FoodBoothWithMenus): BoothForm {
@@ -55,12 +61,109 @@ function menuToForm(m: FoodMenu): MenuForm {
     price: m.price != null ? String(m.price) : '',
     description: m.description ?? '',
     sort_order: m.sort_order,
+    tags: m.tags ?? [],
+    accepts_takeout: m.accepts_takeout ?? true,
+    is_alcohol: m.is_alcohol ?? false,
   }
 }
 
+/**
+ * 메뉴 태그 입력 — 칩(현재 태그) + 인풋(추가) + 추천(기존 태그 풀).
+ * 자유 입력이지만 표기 통일을 위해 전체 매장에서 이미 쓰인 태그를 자동완성으로 노출.
+ */
+function TagChipInput({
+  value,
+  onChange,
+  pool,
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+  pool: string[]
+}) {
+  const [draft, setDraft] = useState('')
+
+  const suggestions = useMemo(() => {
+    const lower = draft.trim().toLowerCase()
+    return pool
+      .filter((t) => !value.includes(t))
+      .filter((t) => lower.length === 0 || t.toLowerCase().includes(lower))
+      .slice(0, 8)
+  }, [draft, pool, value])
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim()
+    if (!trimmed) {
+      setDraft('')
+      return
+    }
+    if (!value.includes(trimmed)) onChange([...value, trimmed])
+    setDraft('')
+  }
+
+  const removeTag = (t: string) => {
+    onChange(value.filter((x) => x !== t))
+  }
+
+  return (
+    <div className={styles.tagInputWrap}>
+      <div className={styles.tagChips}>
+        {value.map((t) => (
+          <span key={t} className={styles.tagChip}>
+            {t}
+            <button
+              type="button"
+              className={styles.tagChipRemove}
+              onClick={() => removeTag(t)}
+              aria-label={`${t} 제거`}
+            >
+              <X width={11} height={11} />
+            </button>
+          </span>
+        ))}
+        <input
+          className={styles.tagInputField}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              addTag(draft)
+            } else if (
+              e.key === 'Backspace' &&
+              draft.length === 0 &&
+              value.length > 0
+            ) {
+              removeTag(value[value.length - 1])
+            }
+          }}
+          placeholder={value.length === 0 ? '태그 추가 (예: 디저트, 인기)' : ''}
+        />
+      </div>
+      {suggestions.length > 0 && (
+        <div className={styles.tagSuggestions}>
+          <span className={styles.tagSuggestLabel}>추천</span>
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={styles.tagSuggestChip}
+              onClick={() => addTag(s)}
+            >
+              + {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function sortBoothsForAdmin(list: FoodBoothWithMenus[]): FoodBoothWithMenus[] {
-  // 부스번호 우선 (자연 정렬), 없으면 매장명 → created_at 폴백
+  // 물리 위치 순서 (sort_order) 우선 → 부스번호 자연정렬 → 매장명 폴백
   return [...list].sort((a, b) => {
+    const ao = a.sort_order ?? 0
+    const bo = b.sort_order ?? 0
+    if (ao !== bo) return ao - bo
     const an = a.booth_no ?? ''
     const bn = b.booth_no ?? ''
     if (an && bn) return an.localeCompare(bn, undefined, { numeric: true })
@@ -94,6 +197,17 @@ export default function AdminFood() {
     if (activeCategory === 'all') return booths
     return booths.filter((b) => b.category === activeCategory)
   }, [booths, activeCategory])
+
+  // 모든 매장에서 이미 사용 중인 태그 풀 — 자동완성 추천용 (전체 매장 통합)
+  const allMenuTags = useMemo(() => {
+    const set = new Set<string>()
+    for (const b of booths) {
+      for (const m of b.menus) {
+        for (const t of m.tags ?? []) set.add(t)
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [booths])
 
   // 부스 폼 상태 (lazy: 펼친 카드만 채워짐)
   const [boothForms, setBoothForms] = useState<Record<string, BoothForm>>({})
@@ -391,6 +505,9 @@ export default function AdminFood() {
         price: Number.isFinite(priceNum) ? priceNum : null,
         description: form.description || null,
         sort_order: form.sort_order,
+        tags: form.tags,
+        accepts_takeout: form.accepts_takeout,
+        is_alcohol: form.is_alcohol,
       })
       .eq('id', menuId)
     setSavingMenuId(null)
@@ -424,6 +541,35 @@ export default function AdminFood() {
       alert('DB 업데이트 실패: ' + dbError.message)
       return
     }
+    refetch()
+  }
+
+  const handleMoveMenu = async (
+    booth: FoodBoothWithMenus,
+    menuId: string,
+    direction: 'up' | 'down',
+  ) => {
+    const idx = booth.menus.findIndex((m) => m.id === menuId)
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
+    if (idx < 0 || swapIdx < 0 || swapIdx >= booth.menus.length) return
+    const a = booth.menus[idx]
+    const b = booth.menus[swapIdx]
+    // sort_order 가 같은 경우(레거시 데이터) 대비: idx 기반으로 강제 부여
+    const aOrder = a.sort_order === b.sort_order ? idx + 1 : a.sort_order
+    const bOrder = a.sort_order === b.sort_order ? swapIdx + 1 : b.sort_order
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from('food_menus').update({ sort_order: bOrder }).eq('id', a.id),
+      supabase.from('food_menus').update({ sort_order: aOrder }).eq('id', b.id),
+    ])
+    if (e1 || e2) {
+      alert('순서 변경 실패: ' + (e1?.message ?? e2?.message))
+      return
+    }
+    setMenuForms((prev) => ({
+      ...prev,
+      [a.id]: prev[a.id] ? { ...prev[a.id], sort_order: bOrder } : prev[a.id],
+      [b.id]: prev[b.id] ? { ...prev[b.id], sort_order: aOrder } : prev[b.id],
+    }))
     refetch()
   }
 
@@ -494,7 +640,7 @@ export default function AdminFood() {
         if (!boothMap.has(boothName)) {
           boothMap.set(boothName, {
             name: boothName,
-            category: row['카테고리']?.trim() ?? '',
+            category: row['카테고리']?.trim() ?? row['구역']?.trim() ?? '',
             description: row['설명']?.trim() ?? '',
             menus: [],
           })
@@ -600,7 +746,7 @@ export default function AdminFood() {
         <div className={styles.categoryManagerHeader}>
           <h2 className={styles.categoryManagerTitle}>카테고리 관리</h2>
           <span className={styles.categoryManagerHint}>
-            slug 는 영문 소문자/숫자/-/_ · 라벨은 자유 (예: korean / 한식)
+            slug 는 영문 소문자/숫자/-/_ · 라벨은 자유 (예: meal / 식사)
           </span>
         </div>
         <div className={styles.categoryList}>
@@ -626,7 +772,7 @@ export default function AdminFood() {
         <div className={styles.categoryAddRow}>
           <input
             className={styles.input}
-            placeholder="slug (예: korean)"
+            placeholder="slug (예: meal)"
             value={newCatSlug}
             onChange={(e) => {
               setNewCatSlug(e.target.value)
@@ -636,7 +782,7 @@ export default function AdminFood() {
           />
           <input
             className={styles.input}
-            placeholder="라벨 (예: 한식)"
+            placeholder="라벨 (예: 식사)"
             value={newCatLabel}
             onChange={(e) => {
               setNewCatLabel(e.target.value)
@@ -748,7 +894,7 @@ export default function AdminFood() {
                         onChange={(e) =>
                           updateBoothField(booth.id, 'booth_no', e.target.value)
                         }
-                        placeholder="A01"
+                        placeholder="M01"
                       />
                     </div>
                     <div className={styles.field}>
@@ -865,11 +1011,16 @@ export default function AdminFood() {
                     <p className={styles.emptyMenus}>아직 메뉴가 없습니다</p>
                   ) : (
                     <div className={styles.menuList}>
-                      {booth.menus.map((m) => {
+                      {booth.menus.map((m, idx) => {
                         const mForm = menuForms[m.id]
                         if (!mForm) return null
+                        const isFirst = idx === 0
+                        const isLast = idx === booth.menus.length - 1
                         return (
                           <div key={m.id} className={styles.menuRow}>
+                            {m.is_alcohol && (
+                              <div className={styles.menuAlcoholBadge}>🍺 주류</div>
+                            )}
                             <div className={styles.menuThumbRow}>
                               <div className={styles.menuThumbPreview}>
                                 {m.image_url ? (
@@ -938,7 +1089,64 @@ export default function AdminFood() {
                               }
                               placeholder="메뉴 설명 (옵션)"
                             />
+                            <TagChipInput
+                              value={mForm.tags}
+                              onChange={(next) =>
+                                updateMenuField(m.id, 'tags', next)
+                              }
+                              pool={allMenuTags}
+                            />
+                            <div className={styles.menuFlagRow}>
+                              <label className={styles.menuTakeoutToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={mForm.accepts_takeout}
+                                  onChange={(e) =>
+                                    updateMenuField(
+                                      m.id,
+                                      'accepts_takeout',
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                <span>포장 가능</span>
+                              </label>
+                              <label className={styles.menuAlcoholToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={mForm.is_alcohol}
+                                  onChange={(e) =>
+                                    updateMenuField(
+                                      m.id,
+                                      'is_alcohol',
+                                      e.target.checked,
+                                    )
+                                  }
+                                />
+                                <span>🍺 주류 메뉴 (성인 인증 필요)</span>
+                              </label>
+                            </div>
                             <div className={styles.menuActions}>
+                              <div className={styles.menuMoveGroup}>
+                                <button
+                                  className={styles.menuMoveBtn}
+                                  onClick={() => handleMoveMenu(booth, m.id, 'up')}
+                                  disabled={isFirst}
+                                  aria-label="위로 이동"
+                                  title="위로 이동"
+                                >
+                                  <ChevronUp width={14} height={14} />
+                                </button>
+                                <button
+                                  className={styles.menuMoveBtn}
+                                  onClick={() => handleMoveMenu(booth, m.id, 'down')}
+                                  disabled={isLast}
+                                  aria-label="아래로 이동"
+                                  title="아래로 이동"
+                                >
+                                  <ChevronDown width={14} height={14} />
+                                </button>
+                              </div>
                               <button
                                 className={styles.menuSaveBtn}
                                 onClick={() => handleSaveMenu(m.id)}

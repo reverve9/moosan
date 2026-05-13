@@ -882,3 +882,31 @@
 .distListEmphasis .distBarFill {
   border-radius: 9px;
 }
+
+/* ─── 단순 테이블 (할인쿠폰/식권 source 분리) ─── */
+.simpleTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.simpleTable th,
+.simpleTable td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #F3F4F6;
+  text-align: left;
+}
+
+.simpleTable th {
+  background: #F9FAFB;
+  color: #374151;
+  font-weight: 700;
+  font-size: 12px;
+  border-bottom-color: #E5E7EB;
+}
+
+.right {
+  text-align: right;
+}
+

@@ -3,11 +3,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
+import { parseOrderNumber } from '@/lib/orderNumber'
 import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
 
-type UIStatus = 'pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled' | 'partial'
+type UIStatus =
+  | 'pending'
+  | 'paid'
+  | 'confirmed'
+  | 'completed'
+  | 'picked_up'
+  | 'cancelled'
+  | 'partial'
 
 function computePaymentStatus(data: PaymentWithOrders): UIStatus {
   const { payment, orders } = data
@@ -23,15 +31,17 @@ function computePaymentStatus(data: PaymentWithOrders): UIStatus {
     if (liveOrders.every((o) => o.order.ready_at)) return 'partial'
     return 'partial'
   }
+  if (orders.every((o) => o.order.picked_up_at)) return 'picked_up'
   if (orders.every((o) => o.order.ready_at)) return 'completed'
   if (orders.every((o) => o.order.confirmed_at)) return 'confirmed'
   return 'paid'
 }
 
-type BoothStatus = 'waiting' | 'preparing' | 'ready' | 'cancelled'
+type BoothStatus = 'waiting' | 'preparing' | 'ready' | 'picked_up' | 'cancelled'
 
 function computeBoothStatus(order: Order): BoothStatus {
   if (order.status === 'cancelled') return 'cancelled'
+  if (order.picked_up_at) return 'picked_up'
   if (order.ready_at) return 'ready'
   if (order.confirmed_at) return 'preparing'
   return 'waiting'
@@ -46,6 +56,7 @@ function getStatusLabel(
     paid: { title: '결제 완료', sub: '매장에서 주문을 확인하는 중이에요' },
     confirmed: { title: '조리 중', sub: '매장에서 음식을 조리하고 있어요' },
     completed: { title: '조리 완료', sub: '매장에서 음식을 픽업해주세요' },
+    picked_up: { title: '수령 완료', sub: '맛있게 드세요 🍽' },
     cancelled: { title: '취소됨', sub: '주문이 취소되었습니다' },
     partial: { title: '일부 취소', sub: '일부 매장이 주문을 거절해 환불 처리됐어요' },
   }
@@ -69,6 +80,7 @@ function boothStatusLabel(status: BoothStatus, order: Order): string {
     waiting: '확인 대기중',
     preparing: '조리 중',
     ready: '조리 완료',
+    picked_up: '수령 완료',
     cancelled: '취소됨',
   }
   return labels[status]
@@ -183,7 +195,13 @@ export default function OrderStatusPage() {
     for (const { order } of data.orders) {
       const bid = order.booth_id
       if (!bid) continue
-      if (order.ready_at && order.status !== 'cancelled' && !dismissedBooths.has(bid) && !seen.has(bid)) {
+      if (
+        order.ready_at &&
+        !order.picked_up_at &&
+        order.status !== 'cancelled' &&
+        !dismissedBooths.has(bid) &&
+        !seen.has(bid)
+      ) {
         seen.add(bid)
         result.push({ boothId: bid, boothName: order.booth_name ?? '' })
       }
@@ -220,6 +238,23 @@ export default function OrderStatusPage() {
 
   const { payment, orders } = data
   const statusInfo = getStatusLabel(uiStatus, orders)
+  // 주류 포함 여부 — orders.alcohol_consent_at 가 채워진 row 가 1개라도 있으면 true
+  const hasAlcoholOrder = orders.some(({ order }) => !!order.alcohol_consent_at)
+  const alcoholBoothIds = new Set(
+    orders
+      .filter(({ order }) => !!order.alcohol_consent_at && order.status !== 'cancelled')
+      .map(({ order }) => order.booth_id)
+      .filter((b): b is string => !!b),
+  )
+  const totalVoucherConsumed = orders.reduce(
+    (s, { order }) => s + (order.voucher_consumed ?? 0),
+    0,
+  )
+  const totalVoucherBurned = orders.reduce(
+    (s, { order }) => s + (order.voucher_burned ?? 0),
+    0,
+  )
+  const orderSubtotalSum = orders.reduce((s, { order }) => s + order.subtotal, 0)
   const cancelReason =
     uiStatus === 'cancelled' &&
     payment.meta &&
@@ -241,32 +276,57 @@ export default function OrderStatusPage() {
 
       <div className={styles.container}>
         {/* ─── 준비완료 스트립 ─── */}
-        {readyBooths.map((booth) => (
-          <div key={booth.boothId} className={styles.readyStrip}>
-            <span className={styles.readyStripText}>
-              🍽 {booth.boothName} 준비완료 · 픽업해주세요
-            </span>
-            <button
-              type="button"
-              className={styles.readyStripBtn}
-              onClick={() => {
-                setDismissedBooths((prev) => {
-                  const next = new Set([...prev, booth.boothId])
-                  saveDismissed(id ?? '', next)
-                  return next
-                })
-              }}
-              aria-label="확인"
+        {readyBooths.map((booth) => {
+          const isAlc = alcoholBoothIds.has(booth.boothId)
+          return (
+            <div
+              key={booth.boothId}
+              className={`${styles.readyStrip} ${isAlc ? styles.readyStripAlcohol : ''}`}
             >
-              ✓
-            </button>
+              <span className={styles.readyStripText}>
+                🍽 {booth.boothName} 준비완료 · 픽업해주세요
+                {isAlc && (
+                  <span className={styles.readyStripAlcoholLine}>
+                    🍺 신분증을 반드시 지참해주세요
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                className={styles.readyStripBtn}
+                onClick={() => {
+                  setDismissedBooths((prev) => {
+                    const next = new Set([...prev, booth.boothId])
+                    saveDismissed(id ?? '', next)
+                    return next
+                  })
+                }}
+                aria-label="확인"
+              >
+                ✓
+              </button>
+            </div>
+          )
+        })}
+
+        {/* ─── 주류 신분증 안내 ─── */}
+        {hasAlcoholOrder && uiStatus !== 'cancelled' && (
+          <div className={styles.alcoholNotice}>
+            <div className={styles.alcoholNoticeTitle}>
+              🍺 픽업 시 신분증을 반드시 지참해주세요
+            </div>
+            <div className={styles.alcoholNoticeBody}>
+              미성년자 / 신분증 미제시 시 주류는 환불됩니다.
+            </div>
           </div>
-        ))}
+        )}
 
         {/* ─── 상태 카드 ─── */}
         <div className={`${styles.statusCard} ${styles[`status_${uiStatus}`]}`}>
           <div className={styles.statusIcon}>
-            {uiStatus === 'completed' ? (
+            {uiStatus === 'picked_up' ? (
+              <ShoppingBag />
+            ) : uiStatus === 'completed' ? (
               <CircleCheck />
             ) : uiStatus === 'confirmed' ? (
               <Flame />
@@ -289,12 +349,36 @@ export default function OrderStatusPage() {
             <span className={styles.metaLabel}>주문시각</span>
             <span className={styles.metaValue}>{orderTime}</span>
           </div>
+          {totalVoucherConsumed > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>주문 합계</span>
+              <span className={styles.metaValue}>
+                {orderSubtotalSum.toLocaleString()}원
+              </span>
+            </div>
+          )}
+          {totalVoucherConsumed > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>식권 사용</span>
+              <span className={`${styles.metaValueStrong} ${styles.voucherText}`}>
+                -{totalVoucherConsumed.toLocaleString()}원
+              </span>
+            </div>
+          )}
           <div className={styles.metaRow}>
             <span className={styles.metaLabel}>결제금액</span>
             <span className={styles.metaValueStrong}>
               {payment.total_amount.toLocaleString()}원
             </span>
           </div>
+          {totalVoucherBurned > 0 && (
+            <div className={styles.metaRow}>
+              <span className={styles.metaLabel}>식권 잔액 소멸</span>
+              <span className={`${styles.metaValue} ${styles.voucherText}`}>
+                {totalVoucherBurned.toLocaleString()}원
+              </span>
+            </div>
+          )}
           {payment.refunded_amount > 0 && (
             <div className={styles.metaRow}>
               <span className={styles.metaLabel}>환불금액</span>
@@ -312,19 +396,28 @@ export default function OrderStatusPage() {
             {orders.map(({ order, items }) => {
               const boothStatus = computeBoothStatus(order)
               const isCancelled = boothStatus === 'cancelled'
+              const { counter, full } = parseOrderNumber(order.order_number)
               return (
                 <li
                   key={order.id}
                   className={`${styles.boothGroup} ${styles[`booth_${boothStatus}`]}`}
                 >
                   <div className={styles.boothHeader}>
-                    <span className={styles.boothName}>
-                      {order.booth_name}
-                      <span className={styles.orderNo}> · {order.order_number}</span>
-                    </span>
-                    <span className={styles.boothStatusBadge}>
-                      {boothStatusLabel(boothStatus, order)}
-                    </span>
+                    <div className={styles.boothHeaderTop}>
+                      <span className={styles.boothName}>
+                        {order.booth_name}
+                        {order.is_takeout && (
+                          <span className={styles.boothTakeoutBadge}>포장</span>
+                        )}
+                      </span>
+                      <span className={styles.boothStatusBadge}>
+                        {boothStatusLabel(boothStatus, order)}
+                      </span>
+                    </div>
+                    <div className={styles.callNumberBlock}>
+                      <span className={styles.callNumber}>{counter}</span>
+                      <span className={styles.orderNoFull}>{full}</span>
+                    </div>
                   </div>
                   {isCancelled && order.cancel_reason && (
                     <div className={styles.boothCancelBox}>
@@ -351,6 +444,26 @@ export default function OrderStatusPage() {
                       </li>
                     ))}
                   </ul>
+                  {(order.voucher_consumed > 0 || order.voucher_burned > 0) && !isCancelled && (
+                    <div className={styles.boothVoucherBox}>
+                      {order.voucher_consumed > 0 && (
+                        <div className={styles.boothVoucherRow}>
+                          <span className={styles.boothVoucherLabel}>식권 사용</span>
+                          <span className={styles.boothVoucherValue}>
+                            -{order.voucher_consumed.toLocaleString()}원
+                          </span>
+                        </div>
+                      )}
+                      {order.voucher_burned > 0 && (
+                        <div className={styles.boothVoucherRow}>
+                          <span className={styles.boothVoucherLabel}>식권 잔액 소멸</span>
+                          <span className={styles.boothVoucherValue}>
+                            {order.voucher_burned.toLocaleString()}원
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </li>
               )
             })}
@@ -360,6 +473,12 @@ export default function OrderStatusPage() {
         {uiStatus === 'completed' && (
           <div className={styles.pickupNotice}>
             🎉 모든 음식이 조리 완료됐어요! 매장에서 픽업해주세요
+          </div>
+        )}
+
+        {uiStatus === 'picked_up' && (
+          <div className={styles.pickupNotice}>
+            ✓ 수령 완료되었습니다 · 맛있게 드세요 🍽
           </div>
         )}
 

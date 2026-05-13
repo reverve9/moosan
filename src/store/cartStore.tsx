@@ -19,6 +19,12 @@ export interface CartItem {
   price: number
   quantity: number
   imageUrl?: string
+  /** 메뉴 단위 포장 허용 여부 (food_menus.accepts_takeout). 미설정 시 true 로 간주. */
+  acceptsTakeout?: boolean
+  /** 손님 선택 — 이 라인을 포장으로 받을지. 기본 false (매장). */
+  isTakeout: boolean
+  /** 주류 메뉴 여부 (food_menus.is_alcohol). 결제 시 성인 동의 모달 트리거. */
+  isAlcohol?: boolean
 }
 
 interface CartState {
@@ -31,6 +37,7 @@ type CartAction =
   | { type: 'ADD'; item: CartItem }
   | { type: 'REMOVE'; menuId: string }
   | { type: 'UPDATE_QTY'; menuId: string; quantity: number }
+  | { type: 'SET_ITEM_TAKEOUT'; menuId: string; value: boolean }
   | { type: 'CLEAR' }
 
 interface CartContextValue {
@@ -41,6 +48,7 @@ interface CartContextValue {
   addItem: (item: CartItem) => void
   removeItem: (menuId: string) => void
   updateQuantity: (menuId: string, quantity: number) => void
+  setItemTakeout: (menuId: string, value: boolean) => void
   clear: () => void
 }
 
@@ -69,9 +77,17 @@ function cartReducer(state: CartState, action: CartAction): CartState {
     }
 
     case 'REMOVE':
+      return { ...state, items: state.items.filter((i) => i.menuId !== action.menuId) }
+
+    case 'SET_ITEM_TAKEOUT':
       return {
         ...state,
-        items: state.items.filter((i) => i.menuId !== action.menuId),
+        items: state.items.map((i) => {
+          if (i.menuId !== action.menuId) return i
+          // 포장 불가 메뉴는 항상 false 강제
+          if (i.acceptsTakeout === false) return { ...i, isTakeout: false }
+          return { ...i, isTakeout: action.value }
+        }),
       }
 
     case 'UPDATE_QTY': {
@@ -107,18 +123,23 @@ function loadFromStorage(): CartItem[] {
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
-    // 최소한의 shape 검증 — 잘못된 데이터 무시
-    return parsed.filter(
-      (i): i is CartItem =>
-        typeof i?.menuId === 'string' &&
-        typeof i?.boothId === 'string' &&
-        typeof i?.boothNo === 'string' &&
-        typeof i?.boothName === 'string' &&
-        typeof i?.menuName === 'string' &&
-        typeof i?.price === 'number' &&
-        typeof i?.quantity === 'number' &&
-        i.quantity > 0,
-    )
+    return parsed
+      .filter(
+        (i): i is Omit<CartItem, 'isTakeout'> & { isTakeout?: unknown } =>
+          typeof i?.menuId === 'string' &&
+          typeof i?.boothId === 'string' &&
+          typeof i?.boothNo === 'string' &&
+          typeof i?.boothName === 'string' &&
+          typeof i?.menuName === 'string' &&
+          typeof i?.price === 'number' &&
+          typeof i?.quantity === 'number' &&
+          i.quantity > 0,
+      )
+      .map((i) => ({
+        ...i,
+        // 구버전(boothTakeout 맵 시절) localStorage 호환 — isTakeout 누락 시 false
+        isTakeout: i.isTakeout === true,
+      }))
   } catch {
     return []
   }
@@ -145,10 +166,11 @@ export function CartProvider({ children }: CartProviderProps) {
 
   // 마운트 시 localStorage 에서 hydrate
   useEffect(() => {
-    dispatch({ type: 'HYDRATE', items: loadFromStorage() })
+    const items = loadFromStorage()
+    dispatch({ type: 'HYDRATE', items })
   }, [])
 
-  // items 변경 시 persist (hydrate 완료 후에만 — 빈 상태로 덮어쓰기 방지)
+  // items 변경 시 persist (hydrate 완료 후에만)
   useEffect(() => {
     if (!state.hydrated) return
     saveToStorage(state.items)
@@ -164,6 +186,10 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const updateQuantity = useCallback((menuId: string, quantity: number) => {
     dispatch({ type: 'UPDATE_QTY', menuId, quantity })
+  }, [])
+
+  const setItemTakeout = useCallback((menuId: string, value: boolean) => {
+    dispatch({ type: 'SET_ITEM_TAKEOUT', menuId, value })
   }, [])
 
   const clear = useCallback(() => {
@@ -189,9 +215,20 @@ export function CartProvider({ children }: CartProviderProps) {
       addItem,
       removeItem,
       updateQuantity,
+      setItemTakeout,
       clear,
     }),
-    [state.items, state.hydrated, totalAmount, totalCount, addItem, removeItem, updateQuantity, clear],
+    [
+      state.items,
+      state.hydrated,
+      totalAmount,
+      totalCount,
+      addItem,
+      removeItem,
+      updateQuantity,
+      setItemTakeout,
+      clear,
+    ],
   )
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
