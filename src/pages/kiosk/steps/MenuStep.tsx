@@ -339,7 +339,7 @@ export default function MenuStep({ onGoToPhone }: Props) {
             ) : (
               <ul className={foodStyles.boothList}>
                 {filteredBooths.map((b) => {
-                  const thumb = getAssetUrl(b.thumbnail_url, { width: 300 })
+                  const thumb = getAssetUrl(b.thumbnail_url)
                   const waitingCount = waitingCounts.get(b.id)
                   const badge =
                     waitingCount !== undefined ? getBoothBadge(waitingCount) : null
@@ -415,23 +415,25 @@ export default function MenuStep({ onGoToPhone }: Props) {
       </div>
 
       {selectedBooth && (
-        <BoothModal
-          booth={selectedBooth}
-          categoryLabel={
-            selectedBooth.category
-              ? categoryLabel.get(selectedBooth.category) ?? null
-              : null
-          }
-          categoryColorClass={
-            selectedBooth.category
-              ? foodStyles[
-                  `catColor${getCategoryColorIndex(selectedBooth.category, categories)}`
-                ]
-              : ''
-          }
-          waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
-          onClose={() => setSelectedBooth(null)}
-        />
+        <div className={styles.boothModalScope}>
+          <BoothModal
+            booth={selectedBooth}
+            categoryLabel={
+              selectedBooth.category
+                ? categoryLabel.get(selectedBooth.category) ?? null
+                : null
+            }
+            categoryColorClass={
+              selectedBooth.category
+                ? foodStyles[
+                    `catColor${getCategoryColorIndex(selectedBooth.category, categories)}`
+                  ]
+                : ''
+            }
+            waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
+            onClose={() => setSelectedBooth(null)}
+          />
+        </div>
       )}
 
       {cartOpen && <CartModal onClose={() => setCartOpen(false)} onPay={onGoToPhone} />}
@@ -453,7 +455,7 @@ function BoothModal({
   waitingCount: number
   onClose: () => void
 }) {
-  const thumb = getAssetUrl(booth.thumbnail_url, { width: 600 })
+  const thumb = getAssetUrl(booth.thumbnail_url)
   const badge = getBoothBadge(waitingCount)
 
   return (
@@ -561,7 +563,7 @@ function MenuItemRow({
   const { showToast } = useToast()
   const [pendingQty, setPendingQty] = useState(1)
 
-  const menuImg = getAssetUrl(menu.image_url, { width: 360 })
+  const menuImg = getAssetUrl(menu.image_url)
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused
@@ -714,7 +716,7 @@ function CartModal({ onClose, onPay }: { onClose: () => void; onPay: () => void 
                   </div>
                   <ul className={styles.cartItemList}>
                     {group.items.map((item) => {
-                      const img = getAssetUrl(item.imageUrl ?? null, { width: 200 })
+                      const img = getAssetUrl(item.imageUrl ?? null)
                       const takeoutLocked = item.acceptsTakeout === false
                       return (
                         <li key={item.menuId} className={styles.cartItem}>
