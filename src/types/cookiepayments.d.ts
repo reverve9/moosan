@@ -15,7 +15,7 @@ interface CookiePaymentsRequest {
   RETURNURL: string
   HOMEURL?: string
   CANCELURL?: string
-  MTYPE?: 'M'
+  MTYPE?: 'M' | 'P'
   ETC1?: string
   ETC2?: string
   ETC3?: string
