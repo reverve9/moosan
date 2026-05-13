@@ -466,7 +466,11 @@ function BoothModal({
       aria-modal="true"
       aria-label={`${booth.name} 상세`}
     >
-      <div className={foodStyles.modal} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={foodStyles.modal}
+        style={{ containerType: 'inline-size' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           className={foodStyles.modalClose}
