@@ -33,6 +33,7 @@ import AdminQRCodes from '@/pages/admin/AdminQRCodes'
 import AdminHelpDesk from '@/pages/admin/helpdesk/AdminHelpDesk'
 import KioskPage from '@/pages/kiosk/KioskPage'
 import KioskRedirect from '@/pages/kiosk/KioskRedirect'
+import DisplayPickup from '@/pages/display/DisplayPickup'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
@@ -97,6 +98,8 @@ function AdminRoutes() {
       <Route path="/kiosk" element={<KioskPage />} />
       {/* 어드민 ID 기반 단축 진입 — 외부 디바이스 주소창 입력용 */}
       <Route path="/k/:adminId" element={<KioskRedirect />} />
+      {/* 픽업 대기 디스플레이 — OBS 송출용 standalone 페이지 */}
+      <Route path="/display/pickup" element={<DisplayPickup />} />
       <Route path="*" element={<Navigate to="/notices" replace />} />
     </Routes>
   )

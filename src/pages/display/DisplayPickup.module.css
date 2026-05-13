@@ -1,0 +1,227 @@
+/* ──────────────── 픽업 대기 디스플레이 (OBS 송출) ────────────────
+ * 캔버스: 1920x1080 고정.
+ * 송출 영역(상단 720px)은 완전 투명 — OBS 수퍼소스 레이어 3 텍스트 전용.
+ * 컨트롤 패널(하단 360px)은 다크 배경 — 크롭 경계 시각 구분 + 운영자 조작용.
+ */
+
+.root {
+  width: 1920px;
+  height: 1080px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  font-family: var(--font-base, system-ui, -apple-system, sans-serif);
+  overflow: hidden;
+}
+
+/* ── 송출 영역 ── */
+.broadcast {
+  flex: 0 0 720px;
+  display: flex;
+  align-items: center;
+  padding: 60px 80px;
+  background: transparent;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.broadcast::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── 카드 ── */
+.card {
+  flex: 0 0 auto;
+  min-width: 200px;
+  padding: 28px 36px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  animation: slideIn 0.3s ease-out both;
+}
+
+.cardRemoving {
+  animation: removeOut 0.4s ease-in forwards;
+  pointer-events: none;
+}
+
+.booth {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-align: center;
+  line-height: 1.2;
+  word-break: keep-all;
+  max-width: 280px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  /* 2행까지 자연스럽게 줄바꿈 가능 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.order {
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 애니메이션 ── */
+@keyframes slideIn {
+  from {
+    transform: translateX(-80px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes removeOut {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  60% {
+    transform: scale(0.85);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+}
+
+/* ── 컨트롤 패널 (OBS 크롭 밖) ── */
+.controls {
+  flex: 0 0 360px;
+  background-color: #1a1a1a;
+  color: #E5E7EB;
+  padding: 24px 40px 32px;
+  border-top: 2px dashed #444;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.controlsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.controlsTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: #FBBF24;
+  letter-spacing: -0.01em;
+}
+
+.controlsHint {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.controlsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px 32px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controlLabel {
+  font-size: 13px;
+  color: #D1D5DB;
+  font-weight: 500;
+}
+
+.control input[type="range"] {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #374151;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.control input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FBBF24;
+  cursor: pointer;
+  border: 2px solid #1a1a1a;
+}
+
+.control input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FBBF24;
+  cursor: pointer;
+  border: 2px solid #1a1a1a;
+}
+
+.control input[type="color"] {
+  height: 38px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #4B5563;
+  background: #111827;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.controlActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.btnTest,
+.btnClear {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+  border: 1px solid transparent;
+}
+
+.btnTest:hover,
+.btnClear:hover {
+  opacity: 0.85;
+}
+
+.btnTest {
+  background-color: #FBBF24;
+  color: #1F2937;
+  border-color: #FBBF24;
+}
+
+.btnClear {
+  background-color: transparent;
+  color: #D1D5DB;
+  border-color: #4B5563;
+}

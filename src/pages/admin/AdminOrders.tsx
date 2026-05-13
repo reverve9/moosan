@@ -1,4 +1,4 @@
-import { RotateCw, X } from 'lucide-react'
+import { ExternalLink, RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Pagination, { DEFAULT_PAGE_SIZE } from '@/components/admin/Pagination'
 import {
@@ -248,6 +248,16 @@ export default function AdminOrders() {
               className={`${styles.refreshIcon} ${loading ? styles.refreshIconSpin : ''}`}
             />
             <span>새로고침</span>
+          </button>
+          <button
+            type="button"
+            className={styles.refreshBtn}
+            onClick={() =>
+              window.open('/display/pickup', '_blank', 'noopener,noreferrer')
+            }
+          >
+            <ExternalLink className={styles.refreshIcon} />
+            <span>픽업 디스플레이</span>
           </button>
         </div>
       </header>
