@@ -344,6 +344,17 @@ export default function OrderStatusPage() {
           </div>
         </div>
 
+        {/* 결제 직후 진입 — 사용자가 확인 후 /cart 로 명시적 이동 */}
+        {searchParams.get('from') === 'checkout' && (
+          <button
+            type="button"
+            className={styles.checkoutConfirmBtn}
+            onClick={() => navigate('/cart', { replace: true })}
+          >
+            확인
+          </button>
+        )}
+
         {/* ─── 결제 정보 ─── */}
         <div className={styles.metaBox}>
           <div className={styles.metaRow}>
