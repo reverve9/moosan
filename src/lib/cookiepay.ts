@@ -44,9 +44,23 @@ function detectMtype(): 'M' | 'P' {
   return /Mobi|Android|iPhone|iPad|iPod/i.test(ua) ? 'M' : 'P'
 }
 
+/**
+ * RETURNURL/HOMEURL/CANCELURL 베이스. Vercel primary 가 www 라
+ * apex(musanfesta.com) 호출 시 307 redirect → PG 클라이언트가 따라가지 않아
+ * paid 전이 누락. 강제로 www. prefix 보장하여 redirect 우회.
+ */
+function buildPayBaseUrl(): string {
+  const { protocol, host } = window.location
+  // prod (musanfesta.com / www.musanfesta.com) 만 www 강제. localhost/vercel.app 등은 그대로.
+  if (host === 'musanfesta.com') {
+    return `${protocol}//www.musanfesta.com`
+  }
+  return `${protocol}//${host}`
+}
+
 export function requestCookiePay(params: CookiePayRequestParams) {
   ensureInit()
-  const baseUrl = window.location.origin
+  const baseUrl = buildPayBaseUrl()
 
   cookiepayments.payrequest({
     ORDERNO: params.orderNo,
