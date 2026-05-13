@@ -17,13 +17,12 @@
 }
 
 /* 사용자앱 BoothModal 의 .modal 은 max-width: calc(var(--max-width) - 8cqw) 로
- * 글로벌 600 기준. 키오스크 풀스크린 환경에서 너무 좁아짐 → backdrop 안에서만
- * --max-width 와 cqw 컨테이너를 800 기준으로 override 해 적정 모달 폭 확보. */
+ * 글로벌 600 기준. 키오스크 풀스크린 환경에서 너무 좁아짐 → --max-width 만
+ * override 해 모달 폭만 확장. container-type 은 두면 backdrop 의 position:fixed
+ * containing block 이 wrapper 가 되어 페이지 흐름 위치(본문 아래)에 모달이 뜸. */
 .boothModalScope {
   --max-width: 800px;
-  container-type: inline-size;
-  width: 800px;
-  max-width: 100%;
+  display: contents;
 }
 
 .loading {
