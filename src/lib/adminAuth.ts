@@ -21,6 +21,8 @@ export interface AdminAccount {
 export const ADMIN_ACCOUNTS: AdminAccount[] = [
   { id: 'musanfesta', pw: '123456', displayName: '운영본부', role: 'super' },
   { id: 'admin01', pw: 'M12345678!', displayName: '도우미01', role: 'helper' },
+  { id: 'admin02', pw: 'M12345678!', displayName: '도우미02', role: 'helper' },
+  { id: 'admin03', pw: 'M12345678!', displayName: '도우미03', role: 'helper' },
 ]
 
 const SESSION_KEY = 'admin_session_v2'
