@@ -307,6 +307,37 @@
   border-color: color-mix(in srgb, #F59E0B 40%, transparent);
 }
 
+.statusNoticePreview {
+  background-color: color-mix(in srgb, #FB923C 14%, var(--color-surface));
+  color: #C2410C;
+  border-color: color-mix(in srgb, #FB923C 40%, transparent);
+}
+
+/* ──────────────── 미리보기 모드 배너 (페이지 상단) ──────────────── */
+.previewBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.667cqw;
+  margin: 0 0 3cqw;
+  padding: 3cqw 4cqw;
+  border-radius: var(--radius-md);
+  background-color: color-mix(in srgb, #FB923C 12%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, #FB923C 45%, transparent);
+  color: #9A3412;
+}
+
+.previewBannerTitle {
+  font-size: var(--text-cq-subtitle);
+  font-weight: 700;
+  color: #C2410C;
+  letter-spacing: -0.01em;
+}
+
+.previewBannerBody {
+  font-size: var(--text-cq-body);
+  line-height: 1.5;
+}
+
 /* ──────────────── 모달 ──────────────── */
 .modalBackdrop {
   position: fixed;

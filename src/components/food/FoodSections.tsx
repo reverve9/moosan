@@ -300,8 +300,24 @@ export default function FoodSections({ festival }: Props) {
     .layout_image_url
   const layoutUrl = getAssetUrl(layoutPath ?? null)
 
+  // is_ordering_open 은 43_festivals_is_ordering_open.sql 에서 추가된 신규 컬럼.
+  // false 면 미리보기 모드 — 매장/메뉴 둘러보기는 가능하되 "담기" 진입점 차단.
+  const isOrderingOpen =
+    (festival as Festival & { is_ordering_open?: boolean }).is_ordering_open !== false
+
   return (
     <>
+      {!isOrderingOpen && (
+        <div className={styles.previewBanner} role="status">
+          <strong className={styles.previewBannerTitle}>
+            5월 15일(목) 오픈 예정
+          </strong>
+          <span className={styles.previewBannerBody}>
+            매장과 메뉴를 미리 둘러보실 수 있어요. 주문은 오픈 시각부터 가능합니다.
+          </span>
+        </div>
+      )}
+
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>부스 위치도</h2>
         <div className={styles.layoutWrap}>
@@ -422,6 +438,7 @@ export default function FoodSections({ festival }: Props) {
               : ''
           }
           waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
+          isOrderingOpen={isOrderingOpen}
           onClose={() => setSelectedBooth(null)}
         />
       )}
@@ -435,12 +452,14 @@ function BoothModal({
   categoryLabel,
   categoryColorClass,
   waitingCount,
+  isOrderingOpen,
   onClose,
 }: {
   booth: FoodBoothWithMenus
   categoryLabel: string | null
   categoryColorClass: string
   waitingCount: number
+  isOrderingOpen: boolean
   onClose: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
@@ -493,7 +512,11 @@ function BoothModal({
         <div className={styles.modalDivider} />
 
         {/* ─── 영업 상태 안내 ─── */}
-        {!booth.is_open ? (
+        {!isOrderingOpen ? (
+          <div className={`${styles.statusNotice} ${styles.statusNoticePreview}`}>
+            5월 15일(목) 오픈 예정 — 메뉴는 미리 둘러보실 수 있어요.
+          </div>
+        ) : !booth.is_open ? (
           <div className={`${styles.statusNotice} ${styles.statusNoticeClosed}`}>
             오늘 영업이 종료되었습니다.
           </div>
@@ -531,7 +554,12 @@ function BoothModal({
           ) : (
             <ul className={styles.menuList}>
               {booth.menus.map((m) => (
-                <MenuItemRow key={m.id} booth={booth} menu={m} />
+                <MenuItemRow
+                  key={m.id}
+                  booth={booth}
+                  menu={m}
+                  isOrderingOpen={isOrderingOpen}
+                />
               ))}
             </ul>
           )}
@@ -547,9 +575,11 @@ type MenuItem = FoodBoothWithMenus['menus'][number]
 function MenuItemRow({
   booth,
   menu,
+  isOrderingOpen,
 }: {
   booth: FoodBoothWithMenus
   menu: MenuItem
+  isOrderingOpen: boolean
 }) {
   const { items, addItem } = useCart()
   const { showToast } = useToast()
@@ -559,7 +589,8 @@ function MenuItemRow({
   const inCart = items.find((i) => i.menuId === menu.id)
   const soldOut = menu.is_sold_out
   const boothUnavailable = !booth.is_open || booth.is_paused
-  const orderable = !soldOut && !boothUnavailable && menu.price != null && menu.price > 0
+  const orderable =
+    !soldOut && !boothUnavailable && isOrderingOpen && menu.price != null && menu.price > 0
 
   const handleAdd = () => {
     if (!orderable || menu.price == null) return
