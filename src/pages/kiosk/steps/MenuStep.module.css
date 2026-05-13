@@ -3,13 +3,17 @@
  * 상단 sticky 카트 바 + 카트 모달만 키오스크 전용으로 추가.
  */
 
-/* 키오스크는 사용자앱과 다른 와이드 환경 (스탠바이미고 1080×1920 세로 / 노트북
- * 확장 모니터 등) — 폭 제한 없이 디바이스 폭 전체 사용. container-type 으로
- * cqw 가 디바이스 폭 기준으로 계산되어 카드/모달/폰트가 비례 확대됨. */
+/* 키오스크 (스탠바이미고 1080×1920 세로 / 노트북 확장 모니터) — 사용자앱 600px
+ * 모바일 폭과 다른 와이드 환경. page max-width 와 --max-width 변수를 동시에
+ * override 해서 모든 cqw 기반 비례(부스 카드·모달·메뉴 행 등)가 일관되게
+ * 확대되도록. 모달의 max-width: calc(var(--max-width) - 8cqw) 도 자동 적용. */
 .page {
   display: flex;
   flex-direction: column;
   width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  --max-width: 900px;
   height: 100%;
   min-height: 0;
   background: var(--color-bg, #ffffff);
@@ -130,11 +134,13 @@
 .cartModal {
   position: relative;
   width: 100%;
+  max-width: 900px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   background: #ffffff;
   container-type: inline-size;
+  --max-width: 900px;
 }
 
 .cartHeader {
