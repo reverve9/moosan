@@ -253,7 +253,11 @@ export default function AdminOrders() {
             type="button"
             className={styles.refreshBtn}
             onClick={() =>
-              window.open('/display/pickup', '_blank', 'noopener,noreferrer')
+              window.open(
+                '/display/pickup',
+                'display-pickup',
+                'popup,width=1920,height=1080,noopener,noreferrer',
+              )
             }
           >
             <ExternalLink className={styles.refreshIcon} />

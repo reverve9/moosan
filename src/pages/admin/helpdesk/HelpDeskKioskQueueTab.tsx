@@ -7,6 +7,8 @@ import {
   sendKioskForceReset,
   type KioskQueueGroup,
 } from '@/lib/helpDesk'
+import { ALL_STATIONS, STATION_LABEL } from '@/lib/kioskStation'
+import type { KioskStationId } from '@/types/database'
 import { useToast } from '@/components/ui/Toast'
 import { formatPhoneDisplay } from '@/lib/phone'
 import styles from './HelpDeskKioskQueueTab.module.css'
@@ -23,6 +25,9 @@ function StationBadge({ stationId }: { stationId: string | null }) {
   }
   if (stationId === 'helpdesk-2') {
     return <span className={`${styles.stationBadge} ${styles.stationBadge2}`}>키오스크 #2</span>
+  }
+  if (stationId === 'helpdesk-3') {
+    return <span className={`${styles.stationBadge} ${styles.stationBadge3}`}>키오스크 #3</span>
   }
   return <span className={`${styles.stationBadge} ${styles.stationBadgeAdmin}`}>직원입력</span>
 }
@@ -120,11 +125,10 @@ export default function HelpDeskKioskQueueTab({ adminId }: Props) {
     }
   }
 
-  const handleForceReset = async (stationId: 'helpdesk-1' | 'helpdesk-2') => {
+  const handleForceReset = async (stationId: KioskStationId) => {
     try {
       await sendKioskForceReset(stationId)
-      const label = stationId === 'helpdesk-1' ? '#1' : '#2'
-      showToast(`키오스크 ${label} 초기화 요청 보냄`, { type: 'info' })
+      showToast(`키오스크 ${STATION_LABEL[stationId]} 초기화 요청 보냄`, { type: 'info' })
     } catch (e) {
       showToast(e instanceof Error ? e.message : '초기화 요청 실패', { type: 'error' })
     }
@@ -146,22 +150,17 @@ export default function HelpDeskKioskQueueTab({ adminId }: Props) {
             <RefreshCw strokeWidth={1.4} size={18} aria-hidden />
             <span>새로고침</span>
           </button>
-          <button
-            type="button"
-            className={styles.kioskResetButton}
-            onClick={() => void handleForceReset('helpdesk-1')}
-          >
-            <Power strokeWidth={1.4} size={18} aria-hidden />
-            <span>키오스크 #1 초기화</span>
-          </button>
-          <button
-            type="button"
-            className={styles.kioskResetButton}
-            onClick={() => void handleForceReset('helpdesk-2')}
-          >
-            <Power strokeWidth={1.4} size={18} aria-hidden />
-            <span>키오스크 #2 초기화</span>
-          </button>
+          {ALL_STATIONS.map((sid) => (
+            <button
+              key={sid}
+              type="button"
+              className={styles.kioskResetButton}
+              onClick={() => void handleForceReset(sid)}
+            >
+              <Power strokeWidth={1.4} size={18} aria-hidden />
+              <span>키오스크 {STATION_LABEL[sid]} 초기화</span>
+            </button>
+          ))}
         </div>
       </div>
 

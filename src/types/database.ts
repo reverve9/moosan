@@ -1187,7 +1187,7 @@ export type PaymentMethod = 'pg' | 'external_card' | 'cash' | 'voucher_only'
 export type OrderStatus = 'pending' | 'payment_pending' | 'paid' | 'confirmed' | 'completed' | 'cancelled'
 export type PaymentChannel = 'app' | 'helpdesk'
 export type KioskPaymentMethod = 'external_card' | 'cash'
-export type KioskStationId = 'helpdesk-1' | 'helpdesk-2'
+export type KioskStationId = 'helpdesk-1' | 'helpdesk-2' | 'helpdesk-3'
 
 // Awards JSONB structure
 export type AwardItem = { rank: string; prize: string }

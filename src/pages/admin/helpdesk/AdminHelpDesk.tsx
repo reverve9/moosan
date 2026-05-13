@@ -1,25 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { loadAdminSession } from '@/lib/adminAuth'
+import { getStationByAdminId } from '@/lib/kioskStation'
+import type { KioskStationId } from '@/types/database'
 import HelpDeskOrderTab from './HelpDeskOrderTab'
 import HelpDeskHistoryTab from './HelpDeskHistoryTab'
 import HelpDeskCashTab from './HelpDeskCashTab'
 import HelpDeskKioskQueueTab from './HelpDeskKioskQueueTab'
 import styles from './AdminHelpDesk.module.css'
 
-/**
- * 운영 구조(`docs/kiosk-operation.md` §1) 기반 로그인 계정 → station 매핑.
- * - admin02 → helpdesk-1
- * - admin03 → helpdesk-2
- * - 그 외(admin01·musanfesta 등) → helpdesk-1 (기본)
- */
-function pickKioskStation(adminId: string): 'helpdesk-1' | 'helpdesk-2' {
-  return adminId === 'admin03' ? 'helpdesk-2' : 'helpdesk-1'
-}
-
-function openKioskWindow(station: 'helpdesk-1' | 'helpdesk-2') {
+function openKioskWindow(station: KioskStationId) {
   const url = `${window.location.origin}/kiosk?station=${station}`
-  window.open(url, '_blank', 'noopener,noreferrer')
+  // popup feature + size 명시 → Chrome 이 새 탭 대신 새 창으로 처리 (HDMI 확장
+  // 모니터로 드래그·풀스크린 가능). named target 으로 같은 station 재호출 시
+  // 새 창 또 열지 않고 기존 창 focus.
+  window.open(
+    url,
+    `kiosk-${station}`,
+    'popup,width=1920,height=1080,noopener,noreferrer',
+  )
 }
 
 type Tab = 'order' | 'kiosk' | 'history' | 'cash'
@@ -48,8 +47,9 @@ export default function AdminHelpDesk() {
     return <HelpDeskCashTab adminId={adminId} />
   }, [tab, adminId])
 
-  const myStation = pickKioskStation(adminId)
-  const stationLabel = myStation === 'helpdesk-2' ? '#2' : '#1'
+  const myStation = getStationByAdminId(adminId)
+  // admin01 은 스탠바이미고(외부 URL) 전용 — 헬프데스크에서 키오스크 버튼 숨김.
+  const showKioskButton = adminId === 'admin02' || adminId === 'admin03'
 
   return (
     <div className={styles.page}>
@@ -58,15 +58,17 @@ export default function AdminHelpDesk() {
           <h1 className={styles.title}>결제 도우미</h1>
           <p className={styles.sub}>현금 / 직영카드 결제 대행 + 시재 관리</p>
         </div>
-        <button
-          type="button"
-          className={styles.kioskOpenButton}
-          onClick={() => openKioskWindow(myStation)}
-          disabled={!adminId}
-        >
-          <ExternalLink strokeWidth={1.4} size={16} aria-hidden />
-          <span>키오스크 {stationLabel} 열기</span>
-        </button>
+        {showKioskButton && (
+          <button
+            type="button"
+            className={styles.kioskOpenButton}
+            onClick={() => openKioskWindow(myStation)}
+            disabled={!adminId}
+          >
+            <ExternalLink strokeWidth={1.4} size={16} aria-hidden />
+            <span>키오스크 열기</span>
+          </button>
+        )}
       </header>
 
       <div className={styles.tabs} role="tablist">
