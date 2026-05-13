@@ -1,10 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { loadAdminSession } from '@/lib/adminAuth'
 import HelpDeskOrderTab from './HelpDeskOrderTab'
 import HelpDeskHistoryTab from './HelpDeskHistoryTab'
 import HelpDeskCashTab from './HelpDeskCashTab'
 import HelpDeskKioskQueueTab from './HelpDeskKioskQueueTab'
 import styles from './AdminHelpDesk.module.css'
+
+/**
+ * 운영 구조(`docs/kiosk-operation.md` §1) 기반 로그인 계정 → station 매핑.
+ * - admin02 → helpdesk-1
+ * - admin03 → helpdesk-2
+ * - 그 외(admin01·musanfesta 등) → helpdesk-1 (기본)
+ */
+function pickKioskStation(adminId: string): 'helpdesk-1' | 'helpdesk-2' {
+  return adminId === 'admin03' ? 'helpdesk-2' : 'helpdesk-1'
+}
+
+function openKioskWindow(station: 'helpdesk-1' | 'helpdesk-2') {
+  const url = `${window.location.origin}/kiosk?station=${station}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 type Tab = 'order' | 'kiosk' | 'history' | 'cash'
 
@@ -32,6 +48,9 @@ export default function AdminHelpDesk() {
     return <HelpDeskCashTab adminId={adminId} />
   }, [tab, adminId])
 
+  const myStation = pickKioskStation(adminId)
+  const stationLabel = myStation === 'helpdesk-2' ? '#2' : '#1'
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -39,6 +58,15 @@ export default function AdminHelpDesk() {
           <h1 className={styles.title}>결제 도우미</h1>
           <p className={styles.sub}>현금 / 직영카드 결제 대행 + 시재 관리</p>
         </div>
+        <button
+          type="button"
+          className={styles.kioskOpenButton}
+          onClick={() => openKioskWindow(myStation)}
+          disabled={!adminId}
+        >
+          <ExternalLink strokeWidth={1.4} size={16} aria-hidden />
+          <span>키오스크 {stationLabel} 열기</span>
+        </button>
       </header>
 
       <div className={styles.tabs} role="tablist">

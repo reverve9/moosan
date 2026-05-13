@@ -25,6 +25,29 @@
   margin: 0;
 }
 
+.kioskOpenButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kioskOpenButton:active:not(:disabled) {
+  background: #000000;
+}
+
+.kioskOpenButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ─── 탭 ─── */
 .tabs {
   display: flex;
