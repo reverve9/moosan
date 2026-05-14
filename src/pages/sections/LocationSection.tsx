@@ -11,14 +11,18 @@ import styles from './LocationSection.module.css'
  * 버튼으로 실제 내비게이션 동선 보존. 비즈앱 통과되면 추후 SDK 교체 가능.
  */
 
-// 청초호수공원 엑스포광장 — 추정 좌표. 정확한 핀 정해지면 여기 수정.
-const PIN_LAT = 38.20706
-const PIN_LNG = 128.59423
+// 청초호수공원 엑스포광장 — 강원도 속초시 조양동 1546-1
+// 좌표는 카카오/네이버 길찾기 deeplink 용 추정값. 구글맵 iframe 은 주소 텍스트
+// 자체를 geocoding 시키므로 핀 위치는 항상 정확.
 const PIN_NAME = '청초호수공원 엑스포광장'
-const ADDRESS = '강원도 속초시 청초호수공원 엑스포광장'
+const ADDRESS = '강원도 속초시 조양동 1546-1'
+const PIN_LAT = 38.199
+const PIN_LNG = 128.5965
 
-// 구글맵 iframe — 좌표 기반 핀 (q=lat,lng). 키 불필요, 즉시 작동.
-const GOOGLE_MAPS_EMBED = `https://www.google.com/maps?q=${PIN_LAT},${PIN_LNG}&hl=ko&z=16&output=embed`
+// 구글맵 iframe — 주소 텍스트 query 로 geocoding (정확한 핀)
+const GOOGLE_MAPS_EMBED = `https://www.google.com/maps?q=${encodeURIComponent(
+  ADDRESS,
+)}&hl=ko&z=16&output=embed`
 
 // 외부 지도/길찾기 deeplink — 모바일에선 앱 자동 호출, 데스크탑에선 웹.
 // 모두 키 불필요 (kakao link / naver v5 URL scheme).
