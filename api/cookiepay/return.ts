@@ -139,6 +139,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resultMsg = body.RESULTMSG
   const encData = body.ENC_DATA
 
+  // PG 가 어떤 필드들을 보내는지 진단용 로그 (필드명 변경/누락 케이스 대비)
+  console.log('[cookiepay/return] body keys', {
+    keys: Object.keys(body),
+    hasResultCode: !!resultCode,
+    hasEncData: !!encData,
+    resultCode,
+  })
+
   if (!resultCode) {
     return failRedirect(res, 'invalid_response')
   }
