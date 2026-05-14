@@ -37,6 +37,7 @@ import DisplayPickup from '@/pages/display/DisplayPickup'
 import BoothLoginPage from '@/pages/booth/BoothLoginPage'
 import BoothDashboardPage from '@/pages/booth/BoothDashboardPage'
 import FloatingInstallButton from '@/components/pwa/FloatingInstallButton'
+import PaidPaymentGuard from '@/components/payment/PaidPaymentGuard'
 import { CartProvider } from '@/store/cartStore'
 import { ToastProvider } from '@/components/ui/Toast'
 
@@ -110,33 +111,36 @@ function AdminRoutes() {
 
 function CustomerRoutes() {
   return (
-    <Routes>
-      {/* Home (standalone: hero + footer) */}
-      <Route path="/" element={<HomePage />} />
+    <>
+      <PaidPaymentGuard />
+      <Routes>
+        {/* Home (standalone: hero + footer) */}
+        <Route path="/" element={<HomePage />} />
 
-      {/* User */}
-      <Route element={<Layout />}>
-        <Route path="/schedule" element={<SchedulePage />} />
-        <Route path="/programs" element={<ProgramsPage />} />
-        <Route path="/apply" element={<ApplyPage />} />
-        <Route path="/apply/:slug" element={<ApplyPage />} />
-        {/* [비상 비활성 — 만족도조사] 원복 시 주석 해제 */}
-        {/* <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} /> */}
-        <Route path="/survey" element={<ComingSoonPage />} />
-        <Route path="/location" element={isDevMode ? <LocationPage /> : <ComingSoonPage />} />
-        <Route path="/notice" element={<NoticePage />} />
-        <Route path="/notice/:id" element={<NoticeDetailPage />} />
-        <Route path="/cart" element={isDevMode ? <CartPage /> : <ComingSoonPage />} />
-        <Route path="/checkout" element={isDevMode ? <CheckoutPage /> : <ComingSoonPage />} />
-        <Route path="/payment/cancel" element={isDevMode ? <PaymentCancelPage /> : <ComingSoonPage />} />
-        <Route path="/order/:id" element={isDevMode ? <OrderStatusPage /> : <ComingSoonPage />} />
-        {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
-        <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
-        <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
-        <Route path="/program/food" element={isDevMode ? <FestivalPage slug="food" /> : <ComingSoonPage />} />
-        <Route path="/program/:slug" element={<ProgramDetailPage />} />
-      </Route>
-    </Routes>
+        {/* User */}
+        <Route element={<Layout />}>
+          <Route path="/schedule" element={<SchedulePage />} />
+          <Route path="/programs" element={<ProgramsPage />} />
+          <Route path="/apply" element={<ApplyPage />} />
+          <Route path="/apply/:slug" element={<ApplyPage />} />
+          {/* [비상 비활성 — 만족도조사] 원복 시 주석 해제 */}
+          {/* <Route path="/survey" element={isDevMode ? <SurveyPage /> : <ComingSoonPage />} /> */}
+          <Route path="/survey" element={<ComingSoonPage />} />
+          <Route path="/location" element={isDevMode ? <LocationPage /> : <ComingSoonPage />} />
+          <Route path="/notice" element={<NoticePage />} />
+          <Route path="/notice/:id" element={<NoticeDetailPage />} />
+          <Route path="/cart" element={isDevMode ? <CartPage /> : <ComingSoonPage />} />
+          <Route path="/checkout" element={isDevMode ? <CheckoutPage /> : <ComingSoonPage />} />
+          <Route path="/payment/cancel" element={isDevMode ? <PaymentCancelPage /> : <ComingSoonPage />} />
+          <Route path="/order/:id" element={isDevMode ? <OrderStatusPage /> : <ComingSoonPage />} />
+          {/* Festival 페이지: musan / food / youth — 같은 컴포넌트 공유 */}
+          <Route path="/program/youth" element={<FestivalPage slug="youth" />} />
+          <Route path="/program/musan" element={<FestivalPage slug="musan" />} />
+          <Route path="/program/food" element={isDevMode ? <FestivalPage slug="food" /> : <ComingSoonPage />} />
+          <Route path="/program/:slug" element={<ProgramDetailPage />} />
+        </Route>
+      </Routes>
+    </>
   )
 }
 

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
 import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
 import { parseOrderNumber } from '@/lib/orderNumber'
+import { clearPendingPaymentId } from '@/lib/paymentPending'
 import { supabase } from '@/lib/supabase'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
@@ -115,7 +116,7 @@ export default function OrderStatusPage() {
   // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지 + visibilitychange fallback 정리
   useEffect(() => {
     if (searchParams.get('from') !== 'checkout') return
-    sessionStorage.removeItem('pending_payment_id')
+    clearPendingPaymentId()
     window.history.pushState(null, '', window.location.href)
     const handlePop = () => {
       navigate('/program/food', { replace: true })

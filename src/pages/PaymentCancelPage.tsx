@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { CircleX } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
+import { clearPendingPaymentId } from '@/lib/paymentPending'
 import styles from './CheckoutResult.module.css'
 
 const REASON_LABEL: Record<string, string> = {
@@ -27,7 +28,7 @@ export default function PaymentCancelPage() {
   // 돌아가지 않고 /cart 로 강제 이동. dummy pushState 후 popstate 가로채는 패턴.
   // 동시에 visibilitychange fallback 용 sessionStorage 정리 (잘못 redirect 방지).
   useEffect(() => {
-    sessionStorage.removeItem('pending_payment_id')
+    clearPendingPaymentId()
     window.history.pushState(null, '', window.location.href)
     const handler = () => navigate('/cart', { replace: true })
     window.addEventListener('popstate', handler)
