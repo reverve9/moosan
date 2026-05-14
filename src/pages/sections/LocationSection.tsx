@@ -9,23 +9,22 @@ import styles from './LocationSection.module.css'
  * 비즈앱 통과되면 추후 Kakao SDK 로 교체 가능.
  */
 
-// 청초호수공원 엑스포광장 — 강원도 속초시 조양동 1546-1
-const PIN_NAME = '청초호수공원 엑스포광장'
-const ADDRESS = '강원도 속초시 조양동 1546-1'
+// 엑스포잔디광장 — 강원 속초시 조양동 1546-1
+const PLACE_NAME = '강원 속초시 엑스포잔디광장'
 
-// 구글맵 iframe — 주소 텍스트 query 로 geocoding. z 작을수록 넓게.
+// 구글맵 iframe — 장소명을 query 로 넘겨 Google geocoder 가 핀 박음. z 작을수록 넓게.
 const GOOGLE_MAPS_EMBED = `https://www.google.com/maps?q=${encodeURIComponent(
-  ADDRESS,
+  PLACE_NAME,
 )}&hl=ko&z=14&output=embed`
 
 export default function LocationSection() {
   return (
     <section id="location" className={styles.location}>
-      <PageTitle title="오시는 길" description={ADDRESS} />
+      <PageTitle title="오시는 길" description={PLACE_NAME} />
       <div className={styles.container}>
         <div className={styles.mapWrap}>
           <iframe
-            title={`${PIN_NAME} 지도`}
+            title={`${PLACE_NAME} 지도`}
             src={GOOGLE_MAPS_EMBED}
             className={styles.map}
             loading="lazy"
