@@ -15,6 +15,7 @@ import {
   type AvailableCouponOption,
 } from '@/lib/coupons'
 import { formatPhone, isValidPhone, normalizePhone, saveLastPhone } from '@/lib/phone'
+import { setPendingPaymentId, clearPendingPaymentId, getPendingPaymentId } from '@/lib/paymentPending'
 import {
   fetchAllBoothWaitingCounts,
   getBoothBadge,
@@ -108,7 +109,7 @@ export default function CheckoutPage() {
   // visibilitychange + sessionStorage 는 시그널이 죄다 실패했을 때 최후 fallback.
   useEffect(() => {
     const goToReturnUrl = (rawUrl: string) => {
-      sessionStorage.removeItem('pending_payment_id')
+      clearPendingPaymentId()
       try {
         const u = new URL(rawUrl, window.location.origin)
         if (u.origin === window.location.origin) {
@@ -149,11 +150,12 @@ export default function CheckoutPage() {
     window.addEventListener('storage', storageHandler)
 
     // (F) visibilitychange + pageshow — 최후 fallback (PWA 복귀)
+    //     paid 여부 검증은 PaidPaymentGuard 가 하므로 여기선 단순 이동만.
     const visHandler = () => {
       if (document.visibilityState !== 'visible') return
-      const pid = sessionStorage.getItem('pending_payment_id')
+      const pid = getPendingPaymentId()
       if (!pid) return
-      sessionStorage.removeItem('pending_payment_id')
+      clearPendingPaymentId()
       navigate(`/order/${pid}?from=checkout`, { replace: true })
     }
     document.addEventListener('visibilitychange', visHandler)
@@ -166,84 +168,6 @@ export default function CheckoutPage() {
       window.removeEventListener('storage', storageHandler)
       document.removeEventListener('visibilitychange', visHandler)
       window.removeEventListener('pageshow', visHandler)
-    }
-  }, [navigate])
-
-  // ─── 서버 paid 전이 감지 안전망 (realtime + polling) ───
-  //
-  // 시그널 5경로(BC/storage/opener/top/self) 가 죄다 실패해도 동작하는 최종
-  // fallback. 안드로이드 Chrome 의 PG 결제완료 페이지 "확인" 버튼 먹통 등으로
-  // RETURNURL Form POST 자체가 일어나지 않는 케이스 대비.
-  //
-  // 동작:
-  //   1) mount 시 sessionStorage 의 pending_payment_id 확인 → 있으면 활성화
-  //   2) 즉시 1회 status 체크 (noti.ts 가 이미 paid 전이 시켰을 수 있음)
-  //   3) Supabase realtime subscribe (payments.id=eq.{pid} UPDATE)
-  //   4) 2.5초 간격 polling fallback (최대 60회 ≒ 150초)
-  //   5) status='paid' 감지 즉시 /order/:pid?from=checkout navigate
-  //
-  // noti.ts 가 server-to-server 로 paid 전이 보장하므로 클라이언트가 결제창
-  // 동선을 못 따라가도 사용자가 본 탭으로 돌아와 CheckoutPage 가 살아있는
-  // 동안엔 자동 이동.
-  useEffect(() => {
-    const pid = sessionStorage.getItem('pending_payment_id')
-    if (!pid) return
-
-    let stopped = false
-
-    const goToOrder = () => {
-      if (stopped) return
-      stopped = true
-      sessionStorage.removeItem('pending_payment_id')
-      navigate(`/order/${pid}?from=checkout`, { replace: true })
-    }
-
-    const checkOnce = async () => {
-      if (stopped) return
-      const { data, error } = await supabase
-        .from('payments')
-        .select('status')
-        .eq('id', pid)
-        .maybeSingle()
-      if (stopped || error) return
-      if (data?.status === 'paid') goToOrder()
-    }
-
-    void checkOnce()
-
-    const channel = supabase
-      .channel(`checkout-paid-${pid}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'payments',
-          filter: `id=eq.${pid}`,
-        },
-        (payload) => {
-          const row = payload.new as { status?: string } | null
-          if (row?.status === 'paid') goToOrder()
-        },
-      )
-      .subscribe()
-
-    let pollCount = 0
-    const POLL_MAX = 60
-    const intervalId = window.setInterval(() => {
-      if (stopped) return
-      pollCount += 1
-      if (pollCount > POLL_MAX) {
-        window.clearInterval(intervalId)
-        return
-      }
-      void checkOnce()
-    }, 2500)
-
-    return () => {
-      stopped = true
-      window.clearInterval(intervalId)
-      void supabase.removeChannel(channel)
     }
   }, [navigate])
 
@@ -504,8 +428,9 @@ export default function CheckoutPage() {
           ? firstItem.menuName
           : `${firstItem.menuName} 외 ${items.length - 1}건`
 
-      // visibilitychange fallback 용 — 결제창 복귀 시 OrderStatusPage 로 자동 이동
-      sessionStorage.setItem('pending_payment_id', payment.id)
+      // 사용자 복귀 시 PaidPaymentGuard / visibilitychange handler 가 읽어 자동 이동
+      // (sessionStorage = 같은 탭, localStorage = 새 탭/PWA 새 인스턴스 fallback)
+      setPendingPaymentId(payment.id)
 
       requestCookiePay({
         orderId: payment.id,
