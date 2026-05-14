@@ -48,10 +48,10 @@
   flex-shrink: 0;
 }
 
-/* overflow 시: 트랙 = max-content 폭 + 무한 좌측 스크롤 */
+/* overflow 시: 트랙 = max-content 폭 (translateX 는 JS RAF 가 직접 제어) */
 .trackScroll {
   width: max-content;
-  animation: scrollLeft var(--scroll-duration, 30s) linear infinite;
+  will-change: transform;
 }
 
 .cardSet {
@@ -125,15 +125,6 @@
   100% {
     transform: scale(0.5);
     opacity: 0;
-  }
-}
-
-@keyframes scrollLeft {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(-1 * var(--scroll-distance, 100%)));
   }
 }
 
