@@ -120,6 +120,74 @@
   cursor: not-allowed;
 }
 
+/* BoothModal body 가 남는 공간을 채워야 하단 카트 바가 모달 바닥에 고정.
+ * 사용자앱 modal 은 cart bar 없이 body 만 있어 영향 없음 (kiosk 전용 override). */
+.modalBodyFill {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ─── BoothModal 내부 하단 카트 바 (cqw — 모달 자기 폭 기준) ─── */
+.modalCartBar {
+  display: flex;
+  align-items: center;
+  gap: 2cqw;
+  padding: 2.667cqw 4cqw;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.modalCartSummary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.667cqw;
+  padding: 2cqw 2.667cqw;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 2cqw;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.modalCartSummary:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.modalCartCount {
+  font-size: 2.667cqw;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modalCartAmount {
+  margin-left: auto;
+  font-size: 2.833cqw;
+  font-weight: 800;
+  color: var(--color-primary, #1d4ed8);
+  font-variant-numeric: tabular-nums;
+}
+
+.modalPayButton {
+  height: 8.667cqw;
+  padding: 0 4.667cqw;
+  font-size: 2.833cqw;
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--color-primary, #1d4ed8);
+  border: none;
+  border-radius: 2cqw;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.modalPayButton:hover {
+  background: var(--color-primary-dark, #1e40af);
+}
+
 /* ─── 본문 (스크롤 영역) ─── */
 .body {
   flex: 1;

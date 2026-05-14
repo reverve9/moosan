@@ -279,34 +279,30 @@ export default function MenuStep({ onGoToPhone }: Props) {
 
   return (
     <div className={styles.page}>
-      {/* ─── 상단 sticky 카트 바 ─── */}
-      <div className={styles.stickyCartBar}>
-        <button
-          type="button"
-          className={styles.cartSummary}
-          onClick={() => setCartOpen(true)}
-          disabled={items.length === 0}
-          aria-label="장바구니 열기"
-        >
-          <ShoppingCart strokeWidth={1.4} size={24} aria-hidden />
-          <span className={styles.cartCount}>
-            {items.length === 0 ? '장바구니 비어있음' : `${totalCount}개`}
-          </span>
-          {items.length > 0 && (
+      {/* ─── 상단 sticky 카트 바 (담긴 게 있을 때만) ─── */}
+      {items.length > 0 && (
+        <div className={styles.stickyCartBar}>
+          <button
+            type="button"
+            className={styles.cartSummary}
+            onClick={() => setCartOpen(true)}
+            aria-label="장바구니 열기"
+          >
+            <ShoppingCart strokeWidth={1.4} size={24} aria-hidden />
+            <span className={styles.cartCount}>{totalCount}개</span>
             <span className={styles.cartAmount}>
               {totalAmount.toLocaleString()}원
             </span>
-          )}
-        </button>
-        <button
-          type="button"
-          className={styles.payButton}
-          onClick={onGoToPhone}
-          disabled={items.length === 0}
-        >
-          결제 요청
-        </button>
-      </div>
+          </button>
+          <button
+            type="button"
+            className={styles.payButton}
+            onClick={onGoToPhone}
+          >
+            결제 요청
+          </button>
+        </div>
+      )}
 
       {/* ─── 본문: 카테고리 탭 + 부스 그리드 ─── */}
       <div className={styles.body}>
@@ -437,6 +433,14 @@ export default function MenuStep({ onGoToPhone }: Props) {
               }
               waitingCount={waitingCounts.get(selectedBooth.id) ?? 0}
               onClose={() => setSelectedBooth(null)}
+              onOpenCart={() => {
+                setSelectedBooth(null)
+                setCartOpen(true)
+              }}
+              onPay={() => {
+                setSelectedBooth(null)
+                onGoToPhone()
+              }}
             />
           </div>,
           document.body,
@@ -458,15 +462,20 @@ function BoothModal({
   categoryColorClass,
   waitingCount,
   onClose,
+  onOpenCart,
+  onPay,
 }: {
   booth: FoodBoothWithMenus
   categoryLabel: string | null
   categoryColorClass: string
   waitingCount: number
   onClose: () => void
+  onOpenCart: () => void
+  onPay: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
   const badge = getBoothBadge(waitingCount)
+  const { items, totalAmount, totalCount } = useCart()
 
   return (
     <div
@@ -549,7 +558,7 @@ function BoothModal({
           </div>
         )}
 
-        <div className={foodStyles.modalBody}>
+        <div className={`${foodStyles.modalBody} ${styles.modalBodyFill}`}>
           <h4 className={foodStyles.modalSection}>메뉴</h4>
           {booth.menus.length === 0 ? (
             <p className={foodStyles.emptyMenu}>메뉴 정보가 곧 업데이트됩니다</p>
@@ -561,6 +570,31 @@ function BoothModal({
             </ul>
           )}
         </div>
+
+        {/* in-modal 카트 바 — 담긴 게 있을 때만 노출 (모달 닫고 결제 진행) */}
+        {items.length > 0 && (
+          <div className={styles.modalCartBar}>
+            <button
+              type="button"
+              className={styles.modalCartSummary}
+              onClick={onOpenCart}
+              aria-label="장바구니 열기"
+            >
+              <ShoppingCart strokeWidth={1.4} size={22} aria-hidden />
+              <span className={styles.modalCartCount}>{totalCount}개</span>
+              <span className={styles.modalCartAmount}>
+                {totalAmount.toLocaleString()}원
+              </span>
+            </button>
+            <button
+              type="button"
+              className={styles.modalPayButton}
+              onClick={onPay}
+            >
+              결제 요청
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
