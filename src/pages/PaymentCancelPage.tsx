@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { CircleX } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import PageTitle from '@/components/layout/PageTitle'
-import { clearPendingPaymentId } from '@/lib/paymentPending'
+import { clearPendingPaymentId, getPendingPaymentId } from '@/lib/paymentPending'
+import { supabase } from '@/lib/supabase'
 import styles from './CheckoutResult.module.css'
 
 const REASON_LABEL: Record<string, string> = {
@@ -24,16 +25,58 @@ export default function PaymentCancelPage() {
   const reason = params.get('reason') ?? ''
   const friendly = REASON_LABEL[reason] ?? (reason ? decodeURIComponent(reason) : '결제를 취소했어요')
 
-  // 결제창에서 push 된 history 흔적 차단 — 뒤로가기 누르면 결제 외부 SDK 페이지로
-  // 돌아가지 않고 /cart 로 강제 이동. dummy pushState 후 popstate 가로채는 패턴.
-  // 동시에 visibilitychange fallback 용 sessionStorage 정리 (잘못 redirect 방지).
+  // verify 가 끝나기 전 깜박임 방지용 — pending id 있으면 잠깐 verifying 상태로 시작
+  const [verifying, setVerifying] = useState<boolean>(() => !!getPendingPaymentId())
+
+  // 결제창에서 push 된 history 흔적 차단 + pending id 정리 + self-verify.
+  //
+  // self-verify: PG 가 RETURNURL Form POST 를 보냈지만 ENC_DATA 가 누락 등으로
+  // cancel 페이지로 분기됐어도 server-to-server noti 가 paid 전이 시켰을 수 있음.
+  // pending id 가 있고 실제 paid 면 cancel UI 거치지 않고 /order/:pid 로 자동 이동.
   useEffect(() => {
-    clearPendingPaymentId()
+    let cancelledFlag = false
+
+    const verify = async () => {
+      const pid = getPendingPaymentId()
+      if (!pid) {
+        setVerifying(false)
+        return
+      }
+      const { data, error } = await supabase
+        .from('payments')
+        .select('status')
+        .eq('id', pid)
+        .maybeSingle()
+      if (cancelledFlag) return
+      if (!error && data?.status === 'paid') {
+        clearPendingPaymentId()
+        navigate(`/order/${pid}?from=checkout`, { replace: true })
+        return
+      }
+      clearPendingPaymentId()
+      setVerifying(false)
+    }
+
+    void verify()
     window.history.pushState(null, '', window.location.href)
     const handler = () => navigate('/cart', { replace: true })
     window.addEventListener('popstate', handler)
-    return () => window.removeEventListener('popstate', handler)
+    return () => {
+      cancelledFlag = true
+      window.removeEventListener('popstate', handler)
+    }
   }, [navigate])
+
+  if (verifying) {
+    return (
+      <section className={styles.page}>
+        <PageTitle title="결제 확인 중" />
+        <div className={styles.center}>
+          <p className={styles.message}>결제 결과 확인 중이에요…</p>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={styles.page}>
