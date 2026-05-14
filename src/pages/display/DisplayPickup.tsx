@@ -36,6 +36,7 @@ interface DisplaySettings {
   bgColor: string     // 송출 영역 배경 색상
   bgOpacity: number   // 0~100 (송출 영역 배경 투명도, 기본 0 = OBS 투명)
   bgImage: string     // 송출 영역 배경 이미지 URL (빈 문자열이면 미적용)
+  scrollSpeed: number // overflow 자동 스크롤 속도 (px/s)
 }
 
 const STORAGE_KEY = 'display_pickup_settings_v1'
@@ -50,10 +51,8 @@ const DEFAULT_SETTINGS: DisplaySettings = {
   bgColor: '#000000',
   bgOpacity: 0,
   bgImage: '',
+  scrollSpeed: 80,
 }
-
-/** overflow 자동 스크롤 속도 (px/s). 한 set 가 다 흘러가는 시간 = setWidth / 이 값. */
-const SCROLL_SPEED_PX_PER_SEC = 80
 
 function loadSettings(): DisplaySettings {
   try {
@@ -93,6 +92,8 @@ export default function DisplayPickup() {
   // 스크롤 overflow 측정용 refs
   const containerRef = useRef<HTMLDivElement | null>(null)
   const setRef = useRef<HTMLDivElement | null>(null)
+  const trackRef = useRef<HTMLDivElement | null>(null)
+  const offsetRef = useRef(0)
   const [overflowing, setOverflowing] = useState(false)
   const [setWidth, setSetWidth] = useState(0)
 
@@ -264,10 +265,34 @@ export default function DisplayPickup() {
     setCards((prev) => prev.filter((c) => !c.orderId.startsWith('test-')))
   }
 
-  // 스크롤 거리 = 한 set 의 폭 + 마지막 card 다음의 gap (seamless loop)
-  const scrollDistance = setWidth + settings.cardGap
-  const scrollDuration =
-    scrollDistance > 0 ? scrollDistance / SCROLL_SPEED_PX_PER_SEC : 30
+  // RAF 기반 무한 스크롤 — translateX 를 직접 제어해 끝→처음 wrap 을 한 frame 에 처리.
+  // wrap 폭 = set 1개 폭 + track gap (set1 끝 → set2 첫 카드 거리). 이 만큼 흐른 뒤
+  // 그 값을 빼면 화면상 set1 첫 카드 위치 = set2 첫 카드 위치라 시각적 점프가 없다.
+  useEffect(() => {
+    const node = trackRef.current
+    if (!node) return
+    if (!overflowing || setWidth <= 0) {
+      offsetRef.current = 0
+      node.style.transform = 'translateX(0px)'
+      return
+    }
+    const wrap = setWidth + settings.cardGap
+    // 카드 수/폭이 줄어 현재 offset 이 wrap 을 넘는 경우 정규화
+    if (offsetRef.current >= wrap) offsetRef.current %= wrap
+    let last = performance.now()
+    let rafId = 0
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000
+      last = now
+      let next = offsetRef.current + settings.scrollSpeed * dt
+      if (next >= wrap) next -= wrap
+      offsetRef.current = next
+      node.style.transform = `translateX(-${next}px)`
+      rafId = requestAnimationFrame(tick)
+    }
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [overflowing, setWidth, settings.cardGap, settings.scrollSpeed])
 
   const renderCard = (card: PickupCard, dup = false) => {
     const { counter } = parseOrderNumber(card.orderNumber)
@@ -316,14 +341,9 @@ export default function DisplayPickup() {
           aria-hidden
         />
         <div
+          ref={trackRef}
           className={`${styles.track} ${overflowing ? styles.trackScroll : ''}`}
-          style={
-            {
-              gap: `${settings.cardGap}px`,
-              '--scroll-distance': `${scrollDistance}px`,
-              '--scroll-duration': `${scrollDuration}s`,
-            } as React.CSSProperties
-          }
+          style={{ gap: `${settings.cardGap}px` }}
         >
           <div
             ref={setRef}
@@ -437,6 +457,22 @@ export default function DisplayPickup() {
               value={settings.nameGap}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, nameGap: Number(e.target.value) }))
+              }
+            />
+          </label>
+
+          <label className={styles.control}>
+            <span className={styles.controlLabel}>
+              스크롤 속도 · {settings.scrollSpeed}px/s
+            </span>
+            <input
+              type="range"
+              min={20}
+              max={300}
+              step={10}
+              value={settings.scrollSpeed}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, scrollSpeed: Number(e.target.value) }))
               }
             />
           </label>
