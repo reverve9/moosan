@@ -1,4 +1,12 @@
 {
+  "redirects": [
+    {
+      "source": "/((?!admin|booth|api).*)",
+      "has": [{ "type": "host", "value": "dev.musanfesta.com" }],
+      "destination": "https://musanfesta.com/$1",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     { "source": "/((?!api/|src/|node_modules/|@|.*\\.).*)", "destination": "/index.html" }
   ]

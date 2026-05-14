@@ -12,7 +12,7 @@ interface CookiePaymentsRequest {
   BUYERPHONE?: string
   BUYEREMAIL?: string
   PAYMETHOD?: CookiePayMethod
-  RETURNURL: string
+  RETURNURL?: string
   HOMEURL?: string
   CANCELURL?: string
   MTYPE?: 'M' | 'P'

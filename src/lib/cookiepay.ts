@@ -67,7 +67,7 @@ export function requestCookiePay(params: CookiePayRequestParams) {
   // 결제 완료 후 Form POST 자체가 발동되지 않음. 모바일은 RETURNURL 빼고 HOMEURL 만 보내라.
   // → 모바일은 HOMEURL(=결제 완료 redirect 도착지) 로 보내고, OrderStatusPage 의 paid 안전망이 처리.
   // → server-to-server noti(/api/cookiepay/noti) 가 paid 전이 보장하므로 사용자 redirect 만 핸들.
-  const payload: Record<string, unknown> = {
+  const payload: CookiePaymentsRequest = {
     ORDERNO: params.orderNo,
     PRODUCTNAME: params.productName,
     AMOUNT: params.amount,
@@ -87,5 +87,5 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     payload.RETURNURL = `${baseUrl}/api/cookiepay/return`
   }
 
-  cookiepayments.payrequest(payload as Parameters<typeof cookiepayments.payrequest>[0])
+  cookiepayments.payrequest(payload)
 }
