@@ -6,6 +6,7 @@ import { fetchPaymentWithOrders, type PaymentWithOrders } from '@/lib/orders'
 import { parseOrderNumber } from '@/lib/orderNumber'
 import { clearPendingPaymentId } from '@/lib/paymentPending'
 import { supabase } from '@/lib/supabase'
+import { useCart } from '@/store/cartStore'
 import type { Order } from '@/types/database'
 import styles from './OrderStatusPage.module.css'
 
@@ -112,18 +113,21 @@ export default function OrderStatusPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dismissedBooths, setDismissedBooths] = useState<Set<string>>(() => loadDismissed(id ?? ''))
+  const { clear: clearCart } = useCart()
 
-  // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지 + visibilitychange fallback 정리
+  // 결제 직후 진입 시 뒤로가기(토스 페이지) 방지 + pending id 정리 + 카트 비우기
+  // (return.ts 가 ?from=checkout 마킹으로 위임)
   useEffect(() => {
     if (searchParams.get('from') !== 'checkout') return
     clearPendingPaymentId()
+    clearCart()
     window.history.pushState(null, '', window.location.href)
     const handlePop = () => {
       navigate('/program/food', { replace: true })
     }
     window.addEventListener('popstate', handlePop)
     return () => window.removeEventListener('popstate', handlePop)
-  }, [searchParams, navigate])
+  }, [searchParams, navigate, clearCart])
 
   useEffect(() => {
     if (!id) return
