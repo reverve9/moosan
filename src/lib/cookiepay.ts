@@ -65,8 +65,9 @@ export function requestCookiePay(params: CookiePayRequestParams) {
 
   // PG 안내(2026-05-14 2차 답변): MTYPE='M' 일 때 RETURNURL 을 함께 보내면
   // 결제 완료 후 Form POST 자체가 발동되지 않음. 모바일은 RETURNURL 빼고 HOMEURL 만 보내라.
-  // → 모바일은 HOMEURL(=결제 완료 redirect 도착지) 로 보내고, OrderStatusPage 의 paid 안전망이 처리.
-  // → server-to-server noti(/api/cookiepay/noti) 가 paid 전이 보장하므로 사용자 redirect 만 핸들.
+  // → 모바일은 HOMEURL 이 RETURNURL 역할 겸함 (PG 가 form POST 발송지로 사용).
+  //   따라서 HOMEURL = server endpoint(/api/cookiepay/return) 로. SPA 라우트는 POST 못 받아 405.
+  // → PC(='P') 는 기존대로 RETURNURL + HOMEURL=/cart.
   const payload: CookiePaymentsRequest = {
     ORDERNO: params.orderNo,
     PRODUCTNAME: params.productName,
@@ -77,7 +78,7 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     PAYMETHOD: params.payMethod ?? 'CARD',
     HOMEURL:
       mtype === 'M'
-        ? `${baseUrl}/order/${params.orderId}?from=checkout`
+        ? `${baseUrl}/api/cookiepay/return`
         : `${baseUrl}/cart`,
     CANCELURL: `${baseUrl}/payment/cancel`,
     MTYPE: mtype,
