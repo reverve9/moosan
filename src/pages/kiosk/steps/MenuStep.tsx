@@ -524,27 +524,30 @@ function BoothModal({
           </div>
         ) : booth.is_paused ? (
           <div className={`${foodStyles.statusNotice} ${foodStyles.statusNoticePaused}`}>
-            지금은 준비 중이라 잠시 주문을 받지 않아요.
+            지금은 준비 중이라 주문을 받지 않아요.
           </div>
         ) : null}
 
-        <div className={foodStyles.waitingStatus}>
-          {waitingCount === 0 ? (
-            <p className={foodStyles.waitingFreeMsg}>
-              지금은 여유로워요. 바로 주문하세요!
-            </p>
-          ) : (
-            <>
-              <h4 className={foodStyles.waitingStatusTitle}>현재 대기 현황</h4>
-              <div className={foodStyles.waitingStatusGrid}>
-                <div className={foodStyles.waitingStatusRow}>
-                  <span className={foodStyles.waitingStatusLabel}>대기 주문</span>
-                  <span className={foodStyles.waitingStatusValue}>{badge.label}</span>
+        {/* 영업종료/준비중 상태에선 "바로 주문하세요" 가 모순이라 표시 안 함. */}
+        {booth.is_open && !booth.is_paused && (
+          <div className={foodStyles.waitingStatus}>
+            {waitingCount === 0 ? (
+              <p className={foodStyles.waitingFreeMsg}>
+                지금은 여유로워요. 바로 주문하세요!
+              </p>
+            ) : (
+              <>
+                <h4 className={foodStyles.waitingStatusTitle}>현재 대기 현황</h4>
+                <div className={foodStyles.waitingStatusGrid}>
+                  <div className={foodStyles.waitingStatusRow}>
+                    <span className={foodStyles.waitingStatusLabel}>대기 주문</span>
+                    <span className={foodStyles.waitingStatusValue}>{badge.label}</span>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-        </div>
+              </>
+            )}
+          </div>
+        )}
 
         <div className={foodStyles.modalBody}>
           <h4 className={foodStyles.modalSection}>메뉴</h4>
