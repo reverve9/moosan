@@ -153,30 +153,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (resultCode !== '0000') {
     return failRedirect(res, resultMsg || `error_${resultCode}`)
   }
-  if (!encData) {
-    return failRedirect(res, 'no_enc_data')
-  }
 
-  // ── 1) 복호화 ──
-  let decrypted
-  try {
-    const decryptRes = await decryptEdi(encData)
-    if (decryptRes.RESULTCODE !== '0000' || !decryptRes.decryptData) {
-      console.error('[cookiepay/return] decrypt failed', decryptRes)
-      return failRedirect(res, 'decrypt_failed')
+  // ── 1) 결제 결과 추출 ──
+  //   ENC_DATA 모드 : decryptEdi 로 복호화 (보안 옵션 가맹점)
+  //   평문 모드     : Form POST body 직접 사용 (PG sample examples/result.html 흐름)
+  //                  우리 가맹점은 평문 응답 환경 — ENC_DATA 가 안 도착함.
+  let orderNo: string | undefined
+  let amountRaw: string | number | undefined
+  let tid: string | undefined
+  let acceptNo: string | undefined
+  let payMethod: string | undefined
+  let paymentIdFromEtc1: string | undefined
+
+  if (encData) {
+    try {
+      const decryptRes = await decryptEdi(encData)
+      if (decryptRes.RESULTCODE !== '0000' || !decryptRes.decryptData) {
+        console.error('[cookiepay/return] decrypt failed', decryptRes)
+        return failRedirect(res, 'decrypt_failed')
+      }
+      const d = decryptRes.decryptData
+      orderNo = d.ORDERNO
+      amountRaw = d.AMOUNT
+      tid = d.TID
+      acceptNo = d.ACCEPT_NO
+      payMethod = d.PAY_METHOD
+      paymentIdFromEtc1 = d.ETC1
+    } catch (err) {
+      console.error('[cookiepay/return] decrypt threw', err)
+      return failRedirect(res, 'decrypt_error')
     }
-    decrypted = decryptRes.decryptData
-  } catch (err) {
-    console.error('[cookiepay/return] decrypt threw', err)
-    return failRedirect(res, 'decrypt_error')
+  } else {
+    // 평문 모드 — sample result.html 키명 (underscore 없음)
+    orderNo = body.ORDERNO
+    amountRaw = body.AMOUNT
+    tid = body.TID
+    acceptNo = body.ACCEPTNO
+    payMethod = body.PAY_METHOD // 평문 명확치 않음 — 없으면 normalizePayMethod 가 'other'/default 처리
+    paymentIdFromEtc1 = body.ETC1
   }
-
-  const orderNo = decrypted.ORDERNO
-  const amountRaw = decrypted.AMOUNT
-  const tid = decrypted.TID
-  const acceptNo = decrypted.ACCEPT_NO
-  const payMethod = decrypted.PAY_METHOD
-  const paymentIdFromEtc1 = decrypted.ETC1
 
   if (!orderNo || !tid || amountRaw === undefined) {
     console.error('[cookiepay/return] missing required fields', { orderNo, tid, amountRaw })

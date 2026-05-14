@@ -67,6 +67,7 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     PRODUCTNAME: params.productName,
     AMOUNT: params.amount,
     BUYERNAME: params.buyerPhone,
+    BUYEREMAIL: 'noreply@musanfesta.com', // PG sample 상 필수. 영수증 발송 대상은 알림톡으로 별도 처리
     BUYERPHONE: params.buyerPhone,
     PAYMETHOD: params.payMethod ?? 'CARD',
     RETURNURL: `${baseUrl}/api/cookiepay/return`,
