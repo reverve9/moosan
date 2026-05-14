@@ -70,11 +70,6 @@ export type VoucherSource =
   | 'voucher_vip'
   | 'voucher_other'
 
-export type CouponSource =
-  | 'auto_survey'
-  | DiscountSource
-  | VoucherSource
-
 // ─── 설문 자동 발급 만료일 ──────────────────────────────────
 // 축제 종료 시점 — 2026-05-17 23:59:59 KST 로 하드코딩. 활성 festival
 // 조회 lib 가 들어오면 이 상수를 동적으로 교체.
@@ -92,33 +87,6 @@ export class DuplicateSurveyCouponError extends Error {
     super('이미 쿠폰이 발급된 번호입니다')
     this.name = 'DuplicateSurveyCouponError'
   }
-}
-
-// ─── 전화번호 기반 조회 (체크아웃 자동 적용) ────────────────
-
-/**
- * 전화번호로 지금 사용 가능한 쿠폰 1장 조회.
- *  - status='active'
- *  - expires_at > now()
- *  - 가장 최근 생성된 1장
- * 수동 발급 쿠폰이 여러 장 있을 수 있으므로 최신 1장만 반환.
- */
-export async function fetchAvailableCouponByPhone(
-  phone: string,
-): Promise<Coupon | null> {
-  if (!phone) return null
-  const { data, error } = await supabase
-    .from('coupons')
-    .select()
-    .eq('phone', normalizePhone(phone))
-    .eq('type', 'discount')
-    .eq('status', 'active')
-    .gt('expires_at', new Date().toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw error
-  return data ?? null
 }
 
 // ─── 보유 쿠폰 복수 조회 (체크아웃 라디오 리스트) ────────────
@@ -288,45 +256,6 @@ export async function issueSurveyCoupon(phone: string): Promise<Coupon> {
     }
     throw new Error(`설문 쿠폰 발급 실패: ${error?.message ?? 'unknown'}`)
   }
-  return data
-}
-
-// ─── 수동 발급 — 할인쿠폰 (어드민) ─────────────────────────
-
-export interface CreateCouponManualInput {
-  discountAmount: number
-  minOrderAmount?: number
-  expiresAt: string // ISO
-  source: DiscountSource
-  note?: string
-  memo?: string
-  issuedPhone?: string
-  festivalId?: string | null
-}
-
-export async function createCouponManually(
-  input: CreateCouponManualInput,
-): Promise<Coupon> {
-  const code = await generateUniqueCouponCode()
-  const { data, error } = await supabase
-    .from('coupons')
-    .insert({
-      code,
-      type: 'discount',
-      source: input.source,
-      discount_amount: input.discountAmount,
-      min_order_amount: input.minOrderAmount ?? 10000,
-      status: 'active',
-      issued_source: 'manual',
-      expires_at: input.expiresAt,
-      note: input.note ?? null,
-      memo: input.memo ?? null,
-      issued_phone: input.issuedPhone ? normalizePhone(input.issuedPhone) : null,
-      festival_id: input.festivalId ?? null,
-    })
-    .select()
-    .single()
-  if (error || !data) throw new Error(`쿠폰 생성 실패: ${error?.message ?? 'unknown'}`)
   return data
 }
 

@@ -9,7 +9,7 @@
  *
  * 두 포맷 모두 끝 4자리가 카운터. 손님/부스 호출용 큰 표시는 카운터만 사용.
  */
-export interface ParsedOrderNumber {
+interface ParsedOrderNumber {
   /** 풀코드 (DB 원문) */
   full: string
   /** 카운터 — 손님/부스에서 크게 보여주는 호출 번호 (예: '0001') */
