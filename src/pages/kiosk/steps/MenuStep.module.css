@@ -120,6 +120,28 @@
   cursor: not-allowed;
 }
 
+/* 부모 sticky 카트 바 — 비우기 (trash) 버튼 */
+.cartClearBtn {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  flex-shrink: 0;
+}
+
+.cartClearBtn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
 /* BoothModal body 가 남는 공간을 채워야 하단 카트 바가 모달 바닥에 고정.
  * 사용자앱 modal 은 cart bar 없이 body 만 있어 영향 없음 (kiosk 전용 override). */
 .modalBodyFill {
@@ -186,6 +208,27 @@
 
 .modalPayButton:hover {
   background: var(--color-primary-dark, #1e40af);
+}
+
+.modalCartClearBtn {
+  width: 8.667cqw;
+  height: 8.667cqw;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 2cqw;
+  color: #6b7280;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  flex-shrink: 0;
+}
+
+.modalCartClearBtn:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
 }
 
 /* ─── 본문 (스크롤 영역) ─── */

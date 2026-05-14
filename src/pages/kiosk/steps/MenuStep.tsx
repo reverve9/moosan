@@ -17,6 +17,7 @@ import { useCart, type CartItem } from '@/store/cartStore'
 import { useToast } from '@/components/ui/Toast'
 import type { FoodBoothWithMenus } from '@/types/festival_extras'
 import foodStyles from '@/components/food/FoodSections.module.css'
+import ResetConfirmModal from '../ResetConfirmModal'
 import styles from './MenuStep.module.css'
 
 interface Props {
@@ -83,9 +84,10 @@ export default function MenuStep({ onGoToPhone }: Props) {
     () => new Map(),
   )
   const [cartOpen, setCartOpen] = useState(false)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const { items, totalAmount, totalCount } = useCart()
+  const { items, totalAmount, totalCount, clear } = useCart()
 
   // festival_id → 부스 + 메뉴 fetch
   useEffect(() => {
@@ -284,6 +286,14 @@ export default function MenuStep({ onGoToPhone }: Props) {
         <div className={styles.stickyCartBar}>
           <button
             type="button"
+            className={styles.cartClearBtn}
+            onClick={() => setClearConfirmOpen(true)}
+            aria-label="장바구니 비우기"
+          >
+            <Trash2 strokeWidth={1.4} size={22} aria-hidden />
+          </button>
+          <button
+            type="button"
             className={styles.cartSummary}
             onClick={() => setCartOpen(true)}
             aria-label="장바구니 열기"
@@ -441,6 +451,7 @@ export default function MenuStep({ onGoToPhone }: Props) {
                 setSelectedBooth(null)
                 onGoToPhone()
               }}
+              onClearRequest={() => setClearConfirmOpen(true)}
             />
           </div>,
           document.body,
@@ -451,6 +462,18 @@ export default function MenuStep({ onGoToPhone }: Props) {
           <CartModal onClose={() => setCartOpen(false)} onPay={onGoToPhone} />,
           document.body,
         )}
+
+      <ResetConfirmModal
+        open={clearConfirmOpen}
+        onCancel={() => setClearConfirmOpen(false)}
+        onConfirm={() => {
+          clear()
+          setClearConfirmOpen(false)
+        }}
+        title="장바구니를 비울까요?"
+        body="담은 메뉴를 모두 비웁니다. 진행 단계는 그대로 유지돼요."
+        confirmLabel="비우기"
+      />
     </div>
   )
 }
@@ -464,6 +487,7 @@ function BoothModal({
   onClose,
   onOpenCart,
   onPay,
+  onClearRequest,
 }: {
   booth: FoodBoothWithMenus
   categoryLabel: string | null
@@ -472,6 +496,7 @@ function BoothModal({
   onClose: () => void
   onOpenCart: () => void
   onPay: () => void
+  onClearRequest: () => void
 }) {
   const thumb = getAssetUrl(booth.thumbnail_url)
   const badge = getBoothBadge(waitingCount)
@@ -574,6 +599,14 @@ function BoothModal({
         {/* in-modal 카트 바 — 담긴 게 있을 때만 노출 (모달 닫고 결제 진행) */}
         {items.length > 0 && (
           <div className={styles.modalCartBar}>
+            <button
+              type="button"
+              className={styles.modalCartClearBtn}
+              onClick={onClearRequest}
+              aria-label="장바구니 비우기"
+            >
+              <Trash2 strokeWidth={1.4} size={22} aria-hidden />
+            </button>
             <button
               type="button"
               className={styles.modalCartSummary}
