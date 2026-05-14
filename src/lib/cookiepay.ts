@@ -61,8 +61,13 @@ function buildPayBaseUrl(): string {
 export function requestCookiePay(params: CookiePayRequestParams) {
   ensureInit()
   const baseUrl = buildPayBaseUrl()
+  const mtype = detectMtype()
 
-  cookiepayments.payrequest({
+  // PG 안내(2026-05-14 2차 답변): MTYPE='M' 일 때 RETURNURL 을 함께 보내면
+  // 결제 완료 후 Form POST 자체가 발동되지 않음. 모바일은 RETURNURL 빼고 HOMEURL 만 보내라.
+  // → 모바일은 HOMEURL(=결제 완료 redirect 도착지) 로 보내고, OrderStatusPage 의 paid 안전망이 처리.
+  // → server-to-server noti(/api/cookiepay/noti) 가 paid 전이 보장하므로 사용자 redirect 만 핸들.
+  const payload: Record<string, unknown> = {
     ORDERNO: params.orderNo,
     PRODUCTNAME: params.productName,
     AMOUNT: params.amount,
@@ -70,10 +75,17 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     BUYEREMAIL: 'noreply@musanfesta.com', // PG sample 상 필수. 영수증 발송 대상은 알림톡으로 별도 처리
     BUYERPHONE: params.buyerPhone,
     PAYMETHOD: params.payMethod ?? 'CARD',
-    RETURNURL: `${baseUrl}/api/cookiepay/return`,
-    HOMEURL: `${baseUrl}/cart`,
+    HOMEURL:
+      mtype === 'M'
+        ? `${baseUrl}/order/${params.orderId}?from=checkout`
+        : `${baseUrl}/cart`,
     CANCELURL: `${baseUrl}/payment/cancel`,
-    MTYPE: detectMtype(),
+    MTYPE: mtype,
     ETC1: params.orderId,
-  })
+  }
+  if (mtype === 'P') {
+    payload.RETURNURL = `${baseUrl}/api/cookiepay/return`
+  }
+
+  cookiepayments.payrequest(payload as Parameters<typeof cookiepayments.payrequest>[0])
 }
