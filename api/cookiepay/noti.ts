@@ -273,7 +273,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     payment.meta && typeof payment.meta === 'object' && !Array.isArray(payment.meta)
       ? { ...(payment.meta as Record<string, unknown>) }
       : {}
-  meta.cancel_reason = 'external_cancel_via_noti'
+  // cancel.ts 가 이미 부스 입력 사유로 설정한 경우 보존. 비어있을 때만 한글 fallback.
+  if (!meta.cancel_reason) {
+    meta.cancel_reason = '부스 거절로 자동 환불'
+  }
   meta.cancelled_via = 'cookiepay_noti'
 
   const { error: updPErr } = await supabase

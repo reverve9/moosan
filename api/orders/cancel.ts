@@ -292,6 +292,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (reachedFull) {
     updatePayload.status = 'cancelled'
     updatePayload.cancelled_at = now
+    // 마지막 부스 거절 = payment 전체 cancel — 어드민 상단 cancel_reason 표시에
+    // 사용자 입력 사유 반영. 이후 PG 환불 noti 가 도착해도 noti.ts 가 보존.
+    const pMeta =
+      payment.meta && typeof payment.meta === 'object' && !Array.isArray(payment.meta)
+        ? { ...(payment.meta as Record<string, unknown>) }
+        : {}
+    pMeta.cancel_reason = reason.trim()
+    updatePayload.meta = pMeta
   }
 
   const { error: updPErr } = await supabase
