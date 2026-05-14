@@ -5,17 +5,72 @@
 
 .container {
   padding: 0 var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.mapPlaceholder {
+/* ─── 지도 iframe ─── */
+.mapWrap {
   width: 100%;
-  height: 240px;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* ─── 외부 길찾기 버튼 ─── */
+.actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.action {
+  flex: 1 1 160px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  padding: 14px 18px;
+  font-family: var(--font-base);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-text);
   background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 2px dashed var(--color-border);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.action:hover {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-text-muted);
+}
+
+.action:active {
+  background-color: var(--color-bg-secondary);
+}
+
+.actionPrimary {
+  color: var(--color-text-inverse);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.actionPrimary:hover {
+  background-color: var(--color-primary-light, var(--color-primary));
+  border-color: var(--color-primary-light, var(--color-primary));
+  color: var(--color-text-inverse);
 }
