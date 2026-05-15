@@ -63,11 +63,23 @@ export function requestCookiePay(params: CookiePayRequestParams) {
   const baseUrl = buildPayBaseUrl()
   const mtype = detectMtype()
 
-  // PG 안내(2026-05-14 2차 답변): MTYPE='M' 일 때 RETURNURL 을 함께 보내면
-  // 결제 완료 후 Form POST 자체가 발동되지 않음. 모바일은 RETURNURL 빼고 HOMEURL 만 보내라.
-  // → 모바일은 HOMEURL 이 RETURNURL 역할 겸함 (PG 가 form POST 발송지로 사용).
-  //   따라서 HOMEURL = server endpoint(/api/cookiepay/return) 로. SPA 라우트는 POST 못 받아 405.
-  // → PC(='P') 는 기존대로 RETURNURL + HOMEURL=/cart.
+  // URL 전략 — payMethod / MTYPE 조합별 분기.
+  //
+  // CARD 모바일 (PG 2차 답변 2026-05-14):
+  //   RETURNURL 보내면 form POST 자체 발동 안 함. 빼고 HOMEURL 을 server endpoint
+  //   (/api/cookiepay/return) 로 두면 PG 가 거기로 form POST → 정상 동작.
+  //
+  // KAKAOPAY / NAVERPAY 모바일:
+  //   카카오/네이버 앱 deeplink 흐름. HOMEURL 은 사용자 랜딩 페이지여야 함
+  //   (/api/... 서버 endpoint 면 PG validation 에서 E004 'HOMEURL 을 입력하시오').
+  //   → HOMEURL=/cart, RETURNURL=/api/cookiepay/return (앱 복귀 후 PG 콜백).
+  //
+  // PC (모든 결제수단):
+  //   HOMEURL=/cart, RETURNURL=/api/cookiepay/return.
+  const payMethod: CookiePayMethod = params.payMethod ?? 'CARD'
+  const returnEndpoint = `${baseUrl}/api/cookiepay/return`
+  const userHome = `${baseUrl}/cart`
+
   const payload: CookiePaymentsRequest = {
     ORDERNO: params.orderNo,
     PRODUCTNAME: params.productName,
@@ -75,17 +87,19 @@ export function requestCookiePay(params: CookiePayRequestParams) {
     BUYERNAME: params.buyerPhone,
     BUYEREMAIL: 'noreply@musanfesta.com', // PG sample 상 필수. 영수증 발송 대상은 알림톡으로 별도 처리
     BUYERPHONE: params.buyerPhone,
-    PAYMETHOD: params.payMethod ?? 'CARD',
-    HOMEURL:
-      mtype === 'M'
-        ? `${baseUrl}/api/cookiepay/return`
-        : `${baseUrl}/cart`,
+    PAYMETHOD: payMethod,
+    HOMEURL: userHome,
     CANCELURL: `${baseUrl}/payment/cancel`,
     MTYPE: mtype,
     ETC1: params.orderId,
   }
-  if (mtype === 'P') {
-    payload.RETURNURL = `${baseUrl}/api/cookiepay/return`
+
+  if (mtype === 'M' && payMethod === 'CARD') {
+    // 모바일 CARD — RETURNURL 빼고 HOMEURL 만 server endpoint (form POST 수신용)
+    payload.HOMEURL = returnEndpoint
+  } else {
+    // 모바일 간편결제 + PC 전체 — RETURNURL 명시
+    payload.RETURNURL = returnEndpoint
   }
 
   cookiepayments.payrequest(payload)
