@@ -37,6 +37,7 @@ interface DisplaySettings {
   bgOpacity: number   // 0~100 (송출 영역 배경 투명도, 기본 0 = OBS 투명)
   bgImage: string     // 송출 영역 배경 이미지 URL (빈 문자열이면 미적용)
   scrollSpeed: number // overflow 자동 스크롤 속도 (px/s)
+  blinkSpeed: number  // 신규 카드 깜빡임 1회 cycle (ms). 총 5회 반복
 }
 
 const STORAGE_KEY = 'display_pickup_settings_v1'
@@ -52,7 +53,10 @@ const DEFAULT_SETTINGS: DisplaySettings = {
   bgOpacity: 0,
   bgImage: '',
   scrollSpeed: 80,
+  blinkSpeed: 400,
 }
+
+const BLINK_CYCLES = 5
 
 function loadSettings(): DisplaySettings {
   try {
@@ -86,8 +90,31 @@ function shouldDisplay(o: OrderRow): boolean {
 export default function DisplayPickup() {
   const [cards, setCards] = useState<PickupCard[]>([])
   const [removingIds, setRemovingIds] = useState<Set<string>>(() => new Set())
+  const [blinkingIds, setBlinkingIds] = useState<Set<string>>(() => new Set())
   const [settings, setSettings] = useState<DisplaySettings>(loadSettings)
   const testSeqRef = useRef(0)
+  // 깜빡임 종료 setTimeout 의 closure 가 항상 최신 속도 반영하도록 ref 사용
+  const blinkSpeedRef = useRef(settings.blinkSpeed)
+  useEffect(() => {
+    blinkSpeedRef.current = settings.blinkSpeed
+  }, [settings.blinkSpeed])
+
+  // 신규 카드 깜빡임 시작 — BLINK_CYCLES 회 끝나면 자동 해제
+  const startBlink = useCallback((orderId: string) => {
+    setBlinkingIds((prev) => {
+      if (prev.has(orderId)) return prev
+      return new Set([...prev, orderId])
+    })
+    const speed = blinkSpeedRef.current
+    window.setTimeout(() => {
+      setBlinkingIds((prev) => {
+        if (!prev.has(orderId)) return prev
+        const next = new Set(prev)
+        next.delete(orderId)
+        return next
+      })
+    }, BLINK_CYCLES * speed + 80)
+  }, [])
 
   // 스크롤 overflow 측정용 refs
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -197,6 +224,7 @@ export default function DisplayPickup() {
           return
         }
 
+        let isNewCard = false
         setCards((prev) => {
           const existing = prev.find((c) => c.orderId === id)
           if (existing) {
@@ -214,6 +242,7 @@ export default function DisplayPickup() {
                 : c,
             )
           }
+          isNewCard = true
           return [
             {
               orderId: id,
@@ -224,6 +253,8 @@ export default function DisplayPickup() {
             ...prev,
           ]
         })
+        // realtime 으로 새로 들어온 카드만 깜빡임 (초기 fetch 는 깜빡임 X — 별도 경로)
+        if (isNewCard) startBlink(id)
       })()
     }
 
@@ -260,7 +291,7 @@ export default function DisplayPickup() {
       window.clearInterval(interval)
       void supabase.removeChannel(channel)
     }
-  }, [removeCard, fetchInitial])
+  }, [removeCard, fetchInitial, startBlink])
 
   // 카드 개수·폭 변동 시 overflow 측정 — 자동 스크롤 on/off 결정
   useLayoutEffect(() => {
@@ -285,22 +316,24 @@ export default function DisplayPickup() {
     settings.boothFontSize,
   ])
 
-  // 테스트 카드 (로컬 가짜 데이터 — DB 영향 없음)
+  // 테스트 카드 (로컬 가짜 데이터 — DB 영향 없음). 깜빡임도 함께 발동해 미리보기 용도.
   const addTestCard = () => {
     testSeqRef.current += 1
     const seq = testSeqRef.current
     const fake = `T${String(seq).padStart(2, '0')}-${String(
       Math.floor(Math.random() * 9000) + 1000,
     )}`
+    const testId = `test-${seq}`
     setCards((prev) => [
       {
-        orderId: `test-${seq}`,
+        orderId: testId,
         orderNumber: fake,
         boothName: `테스트 매장 ${seq}`,
         readyAt: new Date().toISOString(),
       },
       ...prev,
     ])
+    startBlink(testId)
   }
 
   const clearTestCards = () => {
@@ -339,11 +372,15 @@ export default function DisplayPickup() {
   const renderCard = (card: PickupCard, dup = false) => {
     const { counter } = parseOrderNumber(card.orderNumber)
     const removing = removingIds.has(card.orderId)
+    const blinking = blinkingIds.has(card.orderId)
     return (
       <article
         key={dup ? `${card.orderId}-dup` : card.orderId}
-        className={`${styles.card} ${removing ? styles.cardRemoving : ''}`}
-        style={{ gap: `${settings.nameGap}px` } as React.CSSProperties}
+        className={`${styles.card} ${removing ? styles.cardRemoving : ''} ${blinking ? styles.cardBlinking : ''}`}
+        style={{
+          gap: `${settings.nameGap}px`,
+          ['--blink-duration' as string]: `${settings.blinkSpeed}ms`,
+        } as React.CSSProperties}
         aria-hidden={dup || undefined}
       >
         <div
@@ -424,7 +461,7 @@ export default function DisplayPickup() {
             <input
               type="range"
               min={40}
-              max={120}
+              max={240}
               step={4}
               value={settings.orderFontSize}
               onChange={(e) =>
@@ -451,7 +488,7 @@ export default function DisplayPickup() {
             <input
               type="range"
               min={14}
-              max={36}
+              max={80}
               step={1}
               value={settings.boothFontSize}
               onChange={(e) =>
@@ -515,6 +552,22 @@ export default function DisplayPickup() {
               value={settings.scrollSpeed}
               onChange={(e) =>
                 setSettings((s) => ({ ...s, scrollSpeed: Number(e.target.value) }))
+              }
+            />
+          </label>
+
+          <label className={styles.control}>
+            <span className={styles.controlLabel}>
+              깜빡임 속도 · {settings.blinkSpeed}ms · {BLINK_CYCLES}회
+            </span>
+            <input
+              type="range"
+              min={100}
+              max={800}
+              step={50}
+              value={settings.blinkSpeed}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, blinkSpeed: Number(e.target.value) }))
               }
             />
           </label>

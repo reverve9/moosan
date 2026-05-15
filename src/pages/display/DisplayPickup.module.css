@@ -79,13 +79,19 @@
   pointer-events: none;
 }
 
+/* 신규 등장 카드 — pickup-blink 5회 후 정상 표시로 복귀.
+ * --blink-duration 은 inline style 로 주입됨 (settings.blinkSpeed). */
+.cardBlinking {
+  animation: pickup-blink var(--blink-duration, 400ms) ease-in-out 5;
+}
+
 .booth {
   font-weight: 600;
   letter-spacing: -0.02em;
   text-align: center;
   line-height: 1.2;
   word-break: keep-all;
-  max-width: 280px;
+  max-width: 480px;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -126,6 +132,11 @@
     transform: scale(0.5);
     opacity: 0;
   }
+}
+
+@keyframes pickup-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.15; }
 }
 
 /* ── 컨트롤 패널 (OBS 크롭 밖) ── */
