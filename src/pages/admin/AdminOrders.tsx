@@ -266,9 +266,9 @@ export default function AdminOrders() {
           </div>
           <div className={styles.statBox}>
             <div className={styles.statValue}>
-              -{totals.discountAmount.toLocaleString()}
+              {totals.discountAmount.toLocaleString()}
             </div>
-            <div className={styles.statLabel}>쿠폰 할인(원)</div>
+            <div className={styles.statLabel}>쿠폰 사용액(원)</div>
           </div>
           <div className={styles.statBox}>
             <div className={styles.statValue}>
