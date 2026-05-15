@@ -99,6 +99,13 @@
   overflow: hidden;
 }
 
+/* 부스번호 prefix — 부스명 앞에 볼드체 강조 */
+.boothNo {
+  font-weight: 900;
+  margin-right: 0.45em;
+  letter-spacing: -0.01em;
+}
+
 .order {
   font-weight: 900;
   letter-spacing: -0.04em;
