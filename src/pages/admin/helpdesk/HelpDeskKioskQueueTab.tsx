@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CreditCard, Wallet, Power, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
+  cancelKioskPending,
   confirmKioskPayment,
   fetchKioskPendingQueue,
   sendKioskForceReset,
@@ -120,6 +121,38 @@ export default function HelpDeskKioskQueueTab({ adminId }: Props) {
       await refetch()
     } catch (e) {
       setError(e instanceof Error ? e.message : '결제 완료 처리 실패')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleCancelRequest = async () => {
+    if (!selected || submitting) return
+    const input = window.prompt(
+      '결제 요청을 취소합니다. 사유를 입력하세요.',
+      '관리자 취소',
+    )
+    if (input === null) return // 사용자가 prompt 자체를 cancel
+    const trimmed = input.trim()
+    if (!trimmed) {
+      showToast('취소 사유는 필수입니다', { type: 'error' })
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await cancelKioskPending({
+        paymentId: selected.paymentId,
+        adminId,
+        reason: trimmed,
+        kioskStationId: selected.kioskStationId,
+      })
+      showToast('결제 요청을 취소했습니다', { type: 'success' })
+      setSelectedPaymentId(null)
+      setChosenMethod(null)
+      await refetch()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '취소 처리 실패')
     } finally {
       setSubmitting(false)
     }
@@ -298,11 +331,19 @@ export default function HelpDeskKioskQueueTab({ adminId }: Props) {
             <div className={styles.modalActions}>
               <button
                 type="button"
+                className={styles.dangerButton}
+                onClick={() => void handleCancelRequest()}
+                disabled={submitting}
+              >
+                결제 요청 취소
+              </button>
+              <button
+                type="button"
                 className={styles.cancelButton}
                 onClick={closeModal}
                 disabled={submitting}
               >
-                취소
+                닫기
               </button>
               <button
                 type="button"

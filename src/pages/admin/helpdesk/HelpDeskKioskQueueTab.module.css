@@ -376,7 +376,8 @@
 }
 
 .cancelButton,
-.confirmButton {
+.confirmButton,
+.dangerButton {
   flex: 1;
   min-height: 56px;
   border-radius: 12px;
@@ -405,8 +406,19 @@
   background: #000000;
 }
 
+.dangerButton {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.dangerButton:active:not(:disabled) {
+  background: #fecaca;
+}
+
 .confirmButton:disabled,
-.cancelButton:disabled {
+.cancelButton:disabled,
+.dangerButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
