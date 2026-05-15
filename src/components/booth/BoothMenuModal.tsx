@@ -237,13 +237,21 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                           className={`${styles.menuCard} ${soldOut ? styles.menuCardSoldOut : ''}`}
                         >
                           <div className={styles.thumb}>
-                            {getAssetUrl(menu.image_url) ? (
-                              <img src={getAssetUrl(menu.image_url)!} alt={menu.name} />
-                            ) : (
-                              <div className={styles.thumbPlaceholder}>
-                                <ImageIcon />
-                              </div>
-                            )}
+                            {(() => {
+                              const menuImg = getAssetUrl(menu.image_url, { width: 320 })
+                              return menuImg ? (
+                                <img
+                                  src={menuImg}
+                                  alt={menu.name}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                              ) : (
+                                <div className={styles.thumbPlaceholder}>
+                                  <ImageIcon />
+                                </div>
+                              )
+                            })()}
                             {soldOut && <div className={styles.soldOutBadge}>품절</div>}
                           </div>
                           <div className={styles.info}>
