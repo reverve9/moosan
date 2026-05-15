@@ -197,6 +197,7 @@ export default function KioskPage() {
             paymentId={paymentId}
             orderNumbers={orderNumbers}
             onPaid={() => setStep('done')}
+            onCancelled={resetToMenu}
           />
         )}
         {step === 'done' && <DoneStep onAutoReset={resetToMenu} />}
