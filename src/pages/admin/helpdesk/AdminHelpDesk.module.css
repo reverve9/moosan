@@ -845,6 +845,55 @@
   color: #DC2626;
 }
 
+/* 본인 처리분 강조 — 파란 좌측 액센트 + 살짝 강한 배경 */
+.historyCardMine {
+  border-left: 3px solid #2563EB;
+  background-color: #EFF6FF;
+}
+
+/* 처리자 라벨 — 시간 옆 */
+.historyProcessor {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7280;
+  background-color: #F3F4F6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.historyCardMine .historyProcessor {
+  color: #1E40AF;
+  background-color: #DBEAFE;
+}
+
+.historyBottomRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.historyCancelBtn {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #B91C1C;
+  background-color: #FEE2E2;
+  border: 1px solid #FECACA;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.historyCancelBtn:hover:not(:disabled) {
+  background-color: #FECACA;
+}
+
+.historyCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ─── 시재 관리 탭 ─── */
 .cashCard {
   display: flex;
