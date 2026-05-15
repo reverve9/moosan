@@ -368,3 +368,78 @@ export async function sendKioskForceReset(
   await channel.send({ type: 'broadcast', event: 'force-reset', payload: {} })
   await supabase.removeChannel(channel)
 }
+
+/**
+ * 헬프데스크 결제 대기 큐 항목 취소.
+ *
+ * 조건: payments.status='pending' AND 하위 orders 가 모두 status='payment_pending'.
+ *   결제 아직 발생 전 (PG 미진행) 상태만 취소 — 이미 paid 면 별도 환불 API 사용.
+ *
+ * 흐름:
+ *   1) payments → status='cancelled', cancelled_at, meta.cancel_reason
+ *   2) orders (payment_pending only) → status='cancelled', cancelled_at, cancel_reason, cancelled_by='admin'
+ *   3) kioskStationId 있으면 force-reset broadcast → 손님 키오스크 즉시 메인 복귀
+ *
+ * 쿠폰은 payment_pending 단계에선 아직 'used' 가 아님 (markPaymentPaid 시점 전이)
+ * → 복원 불필요.
+ */
+export async function cancelKioskPending(input: {
+  paymentId: string
+  adminId: string
+  reason: string
+  kioskStationId: string | null
+}): Promise<void> {
+  const trimmedReason = input.reason.trim()
+  if (!trimmedReason) throw new Error('취소 사유는 필수입니다')
+
+  const { data: payment, error: pErr } = await supabase
+    .from('payments')
+    .select('id, status, meta')
+    .eq('id', input.paymentId)
+    .maybeSingle()
+  if (pErr) throw new Error(`결제 조회 실패: ${pErr.message}`)
+  if (!payment) throw new Error('결제 정보를 찾을 수 없습니다')
+  if (payment.status !== 'pending') {
+    throw new Error(`이미 처리된 결제입니다 (현재 상태: ${payment.status})`)
+  }
+
+  const now = new Date().toISOString()
+  const baseMeta =
+    payment.meta && typeof payment.meta === 'object' && !Array.isArray(payment.meta)
+      ? { ...(payment.meta as Record<string, unknown>) }
+      : {}
+  baseMeta.cancel_reason = trimmedReason
+  baseMeta.cancelled_via = 'admin'
+  baseMeta.cancelled_by_admin = input.adminId
+
+  const { error: updPErr } = await supabase
+    .from('payments')
+    .update({ status: 'cancelled', cancelled_at: now, meta: baseMeta })
+    .eq('id', input.paymentId)
+  if (updPErr) throw new Error(`결제 취소 실패: ${updPErr.message}`)
+
+  const { error: updOErr } = await supabase
+    .from('orders')
+    .update({
+      status: 'cancelled',
+      cancelled_at: now,
+      cancel_reason: trimmedReason,
+      cancelled_by: 'admin',
+    })
+    .eq('payment_id', input.paymentId)
+    .eq('status', 'payment_pending')
+  if (updOErr) throw new Error(`주문 취소 실패: ${updOErr.message}`)
+
+  if (
+    input.kioskStationId === 'helpdesk-1' ||
+    input.kioskStationId === 'helpdesk-2' ||
+    input.kioskStationId === 'helpdesk-3'
+  ) {
+    try {
+      await sendKioskForceReset(input.kioskStationId)
+    } catch (e) {
+      console.error('[cancelKioskPending] force-reset broadcast failed', e)
+      // broadcast 실패해도 DB 취소는 성공 — 운영진이 수동 리셋 가능
+    }
+  }
+}
