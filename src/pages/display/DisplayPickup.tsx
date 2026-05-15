@@ -22,6 +22,7 @@ import styles from './DisplayPickup.module.css'
 interface PickupCard {
   orderId: string
   orderNumber: string
+  boothNo: string
   boothName: string
   readyAt: string
 }
@@ -150,7 +151,7 @@ export default function DisplayPickup() {
   const fetchInitial = useCallback(async () => {
     const { data, error } = await supabase
       .from('orders')
-      .select('id, order_number, booth_name, ready_at')
+      .select('id, order_number, booth_no, booth_name, ready_at')
       .not('ready_at', 'is', null)
       .is('picked_up_at', null)
       .neq('status', 'cancelled')
@@ -166,6 +167,7 @@ export default function DisplayPickup() {
         .map((o) => ({
           orderId: o.id,
           orderNumber: o.order_number,
+          boothNo: o.booth_no ?? '',
           boothName: o.booth_name,
           readyAt: o.ready_at as string,
         })),
@@ -202,7 +204,7 @@ export default function DisplayPickup() {
       void (async () => {
         const { data, error } = await supabase
           .from('orders')
-          .select('id, order_number, booth_name, ready_at, picked_up_at, status')
+          .select('id, order_number, booth_no, booth_name, ready_at, picked_up_at, status')
           .eq('id', id)
           .maybeSingle()
 
@@ -229,16 +231,18 @@ export default function DisplayPickup() {
           const existing = prev.find((c) => c.orderId === id)
           if (existing) {
             const newBoothName = data.booth_name ?? existing.boothName
+            const newBoothNo = data.booth_no ?? existing.boothNo
             const newOrderNumber = data.order_number ?? existing.orderNumber
             if (
               existing.boothName === newBoothName &&
+              existing.boothNo === newBoothNo &&
               existing.orderNumber === newOrderNumber
             ) {
               return prev
             }
             return prev.map((c) =>
               c.orderId === id
-                ? { ...c, boothName: newBoothName, orderNumber: newOrderNumber }
+                ? { ...c, boothName: newBoothName, boothNo: newBoothNo, orderNumber: newOrderNumber }
                 : c,
             )
           }
@@ -247,6 +251,7 @@ export default function DisplayPickup() {
             {
               orderId: id,
               orderNumber: data.order_number ?? '',
+              boothNo: data.booth_no ?? '',
               boothName: data.booth_name ?? '',
               readyAt: (data.ready_at as string) ?? new Date().toISOString(),
             },
@@ -328,6 +333,7 @@ export default function DisplayPickup() {
       {
         orderId: testId,
         orderNumber: fake,
+        boothNo: String(seq),
         boothName: `테스트 매장 ${seq}`,
         readyAt: new Date().toISOString(),
       },
@@ -390,6 +396,7 @@ export default function DisplayPickup() {
             color: settings.boothColor,
           }}
         >
+          {card.boothNo && <span className={styles.boothNo}>{card.boothNo}</span>}
           {card.boothName}
         </div>
         <div
