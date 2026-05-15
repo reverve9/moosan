@@ -158,12 +158,18 @@ export default function DisplayPickup() {
   // 방어하기 위해, 변경된 row id 만 빼서 supabase 에서 풀 row 재조회.
   useEffect(() => {
     const handlePayload = (payload: {
+      eventType?: string
       new: Record<string, unknown> | null
       old: Record<string, unknown> | null
     }) => {
       const newRow = payload.new as { id?: string } | null
       const oldRow = payload.old as { id?: string } | null
       const id = newRow?.id ?? oldRow?.id
+      console.log('[DisplayPickup] payload', payload.eventType, id, {
+        ready_at: (newRow as { ready_at?: unknown })?.ready_at,
+        picked_up_at: (newRow as { picked_up_at?: unknown })?.picked_up_at,
+        status: (newRow as { status?: unknown })?.status,
+      })
       if (!id) return
 
       void (async () => {
@@ -173,12 +179,20 @@ export default function DisplayPickup() {
           .eq('id', id)
           .maybeSingle()
 
+        console.log('[DisplayPickup] refetch', id, {
+          err: error?.message,
+          ready_at: data?.ready_at,
+          picked_up_at: data?.picked_up_at,
+          status: data?.status,
+        })
+
         if (error || !data) {
           removeCard(id)
           return
         }
 
         if (!shouldDisplay(data)) {
+          console.log('[DisplayPickup] skip — not display target', id)
           removeCard(id)
           return
         }
