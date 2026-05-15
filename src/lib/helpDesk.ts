@@ -1,6 +1,13 @@
 import { supabase } from './supabase'
 import { markPaymentPaid, startOfTodayKstAsUtc, todayKstString } from './orders'
-import type { CashSession, Payment, Order, OrderItem, PaymentMethod } from '@/types/database'
+import type {
+  CashSession,
+  Json,
+  Payment,
+  Order,
+  OrderItem,
+  PaymentMethod,
+} from '@/types/database'
 
 /**
  * 결제 도우미 부스 — 시재 관리 + 오늘 처리 내역 헬퍼.
@@ -375,19 +382,27 @@ export async function sendKioskForceReset(
  * 조건: payments.status='pending' AND 하위 orders 가 모두 status='payment_pending'.
  *   결제 아직 발생 전 (PG 미진행) 상태만 취소 — 이미 paid 면 별도 환불 API 사용.
  *
+ * 호출처 두 가지:
+ *   (a) 어드민 헬프데스크 큐 — adminId 전달 (기록용)
+ *   (b) 키오스크 손님 자가 취소 — adminId=null, broadcastForceReset=false
+ *       (자기 자신이 호출 → 호출 측에서 직접 reset 처리하므로 broadcast 불필요)
+ *
  * 흐름:
  *   1) payments → status='cancelled', cancelled_at, meta.cancel_reason
- *   2) orders (payment_pending only) → status='cancelled', cancelled_at, cancel_reason, cancelled_by='admin'
- *   3) kioskStationId 있으면 force-reset broadcast → 손님 키오스크 즉시 메인 복귀
+ *   2) orders (payment_pending only) → status='cancelled', cancelled_at, cancel_reason, cancelled_by
+ *      · adminId 있으면 cancelled_by='admin'
+ *      · 없으면 NULL + meta.cancelled_via='customer'
+ *   3) broadcastForceReset && kioskStationId → force-reset broadcast 송신
  *
  * 쿠폰은 payment_pending 단계에선 아직 'used' 가 아님 (markPaymentPaid 시점 전이)
  * → 복원 불필요.
  */
 export async function cancelKioskPending(input: {
   paymentId: string
-  adminId: string
+  adminId: string | null
   reason: string
   kioskStationId: string | null
+  broadcastForceReset?: boolean
 }): Promise<void> {
   const trimmedReason = input.reason.trim()
   if (!trimmedReason) throw new Error('취소 사유는 필수입니다')
@@ -404,13 +419,13 @@ export async function cancelKioskPending(input: {
   }
 
   const now = new Date().toISOString()
-  const baseMeta =
+  const baseMeta: Record<string, Json> =
     payment.meta && typeof payment.meta === 'object' && !Array.isArray(payment.meta)
-      ? { ...(payment.meta as Record<string, unknown>) }
+      ? { ...(payment.meta as Record<string, Json>) }
       : {}
   baseMeta.cancel_reason = trimmedReason
-  baseMeta.cancelled_via = 'admin'
-  baseMeta.cancelled_by_admin = input.adminId
+  baseMeta.cancelled_via = input.adminId ? 'admin' : 'customer'
+  if (input.adminId) baseMeta.cancelled_by_admin = input.adminId
 
   const { error: updPErr } = await supabase
     .from('payments')
@@ -424,16 +439,17 @@ export async function cancelKioskPending(input: {
       status: 'cancelled',
       cancelled_at: now,
       cancel_reason: trimmedReason,
-      cancelled_by: 'admin',
+      cancelled_by: input.adminId ? 'admin' : null,
     })
     .eq('payment_id', input.paymentId)
     .eq('status', 'payment_pending')
   if (updOErr) throw new Error(`주문 취소 실패: ${updOErr.message}`)
 
   if (
-    input.kioskStationId === 'helpdesk-1' ||
-    input.kioskStationId === 'helpdesk-2' ||
-    input.kioskStationId === 'helpdesk-3'
+    input.broadcastForceReset !== false &&
+    (input.kioskStationId === 'helpdesk-1' ||
+      input.kioskStationId === 'helpdesk-2' ||
+      input.kioskStationId === 'helpdesk-3')
   ) {
     try {
       await sendKioskForceReset(input.kioskStationId)
