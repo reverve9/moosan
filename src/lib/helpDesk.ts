@@ -147,22 +147,31 @@ export interface HelpDeskHistoryItem {
 }
 
 /**
- * 오늘 KST 기준 특정 도우미가 처리한 결제 내역 (assisted_by 매칭).
- * 본인 처리분만 시간 역순으로 반환.
+ * 오늘 KST 기준 도우미 처리분 결제 내역 (assisted_by IS NOT NULL).
+ * 인자가 비어 있으면 전체 도우미 — 도우미간 인계·취소를 위해 본인 외 처리분도 노출.
+ * 인자가 있으면 해당 도우미 처리분만 (legacy 호환).
+ *
+ * 시간 역순. payments.assisted_by 는 항상 ADMIN_ACCOUNTS.id 와 매칭.
  */
 export async function fetchTodayHelpDeskHistory(
-  assistedBy: string,
+  assistedBy?: string | null,
 ): Promise<HelpDeskHistoryItem[]> {
   const start = startOfTodayKstAsUtc()
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
 
-  const { data: payments, error } = await supabase
+  let q = supabase
     .from('payments')
     .select()
-    .eq('assisted_by', assistedBy)
     .gte('created_at', start.toISOString())
     .lt('created_at', end.toISOString())
     .order('created_at', { ascending: false })
+  if (assistedBy) {
+    q = q.eq('assisted_by', assistedBy)
+  } else {
+    q = q.not('assisted_by', 'is', null)
+  }
+
+  const { data: payments, error } = await q
   if (error) throw error
   if (!payments || payments.length === 0) return []
 
@@ -363,6 +372,44 @@ export async function confirmKioskPayment(
  * 키오스크 강제 리셋 broadcast 전송 — `kiosk:{stationId}` 채널에만 송신.
  * DB 거치지 않고 broadcast 만으로 키오스크 측에 force-reset 이벤트 송신.
  */
+/**
+ * 헬프데스크에서 결제 전액 취소 — /api/payments/cancel 호출.
+ *
+ * 적용 가능 상태:
+ *   - payments.status='paid'
+ *   - 하위 orders 가 모두 booth confirmed_at=NULL AND ready_at=NULL
+ *
+ * 부스가 이미 확인/조리 시작한 결제는 서버에서 409 반환 → 운영본부 (super)
+ * 가 AdminOrders 에서 부분 환불 처리.
+ *
+ * 결제수단(external_card/cash/voucher_only) 별 분기는 서버측에서 처리:
+ *   PG 호출 없이 DB 만 cancelled 로 전이.
+ */
+export async function cancelHelpdeskPayment(
+  paymentId: string,
+  reason: string,
+): Promise<void> {
+  const trimmed = reason.trim()
+  if (!trimmed) throw new Error('취소 사유는 필수입니다')
+  const response = await fetch('/api/payments/cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentId, reason: trimmed }),
+  })
+  const json = (await response.json().catch(() => ({}))) as {
+    error?: string
+    code?: string
+  }
+  if (!response.ok) {
+    if (json.code === 'ORDER_ALREADY_CONFIRMED') {
+      throw new Error(
+        json.error ?? '이미 부스에서 처리한 주문이 포함돼 헬프데스크 단위로는 취소 불가 (운영본부 환불)',
+      )
+    }
+    throw new Error(json.error ?? `취소 실패 (HTTP ${response.status})`)
+  }
+}
+
 export async function sendKioskForceReset(
   stationId: 'helpdesk-1' | 'helpdesk-2' | 'helpdesk-3',
 ): Promise<void> {
