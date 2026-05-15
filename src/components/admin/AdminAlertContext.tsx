@@ -9,6 +9,7 @@ import {
 } from 'react'
 import {
   fetchMonitorSummary,
+  type BoothStatusSummary,
   type MonitorBoothSummary,
   type MonitorConfirmedRow,
   subscribeMonitor,
@@ -40,6 +41,8 @@ export function elapsedSeconds(iso: string, nowMs: number): number {
 export interface AdminAlertValue {
   summaries: MonitorBoothSummary[]
   confirmedOrders: MonitorConfirmedRow[]
+  /** 부스별 종합 운영 상태 — 매장 모니터 페이지 메인 카드용 */
+  boothStatuses: BoothStatusSummary[]
   now: number
   /** 2분 초과 주문 수 (빨강 경보) */
   alertCount: number
@@ -61,16 +64,25 @@ const AdminAlertContext = createContext<AdminAlertValue | null>(null)
 export function AdminAlertProvider({ children }: { children: ReactNode }) {
   const [summaries, setSummaries] = useState<MonitorBoothSummary[]>([])
   const [confirmedOrders, setConfirmedOrders] = useState<MonitorConfirmedRow[]>([])
+  const [boothStatuses, setBoothStatuses] = useState<BoothStatusSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [now, setNow] = useState(() => Date.now())
 
-  const applyData = useCallback((data: { summaries: MonitorBoothSummary[]; confirmedOrders: MonitorConfirmedRow[] }) => {
-    setSummaries(data.summaries)
-    setConfirmedOrders(data.confirmedOrders)
-    setError(null)
-  }, [])
+  const applyData = useCallback(
+    (data: {
+      summaries: MonitorBoothSummary[]
+      confirmedOrders: MonitorConfirmedRow[]
+      boothStatuses: BoothStatusSummary[]
+    }) => {
+      setSummaries(data.summaries)
+      setConfirmedOrders(data.confirmedOrders)
+      setBoothStatuses(data.boothStatuses)
+      setError(null)
+    },
+    [],
+  )
 
   const refetch = useCallback(async () => {
     setRefreshing(true)
@@ -155,6 +167,7 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
     () => ({
       summaries,
       confirmedOrders,
+      boothStatuses,
       now,
       alertCount,
       warnCount,
@@ -165,7 +178,20 @@ export function AdminAlertProvider({ children }: { children: ReactNode }) {
       refreshing,
       refetch,
     }),
-    [summaries, confirmedOrders, now, alertCount, warnCount, totalPending, overdueCount, loading, error, refreshing, refetch],
+    [
+      summaries,
+      confirmedOrders,
+      boothStatuses,
+      now,
+      alertCount,
+      warnCount,
+      totalPending,
+      overdueCount,
+      loading,
+      error,
+      refreshing,
+      refetch,
+    ],
   )
 
   return <AdminAlertContext.Provider value={value}>{children}</AdminAlertContext.Provider>
