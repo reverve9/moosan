@@ -149,76 +149,104 @@ export default function DisplayPickup() {
     void fetchInitial()
   }, [fetchInitial])
 
-  // Realtime — orders UPDATE 만 구독.
+  // Realtime — orders UPDATE 구독 + 현장 송출 안전망.
+  // 안전망 3종 (블랙매직 슈퍼소스/OBS 등 장시간 송출 환경 대비):
+  //   1) .subscribe(status) — CHANNEL_ERROR/TIMED_OUT/CLOSED 콘솔 진단
+  //   2) visibilitychange 시 채널 재구독 + 즉시 refetch — stale websocket 복구
+  //   3) 30s 주기 fallback fetchInitial — 이벤트 단발 누락 시 자가복구
   // payload.new 가 replica identity DEFAULT 환경에서 변경된 컬럼만 담고 오는 케이스를
   // 방어하기 위해, 변경된 row id 만 빼서 supabase 에서 풀 row 재조회.
   useEffect(() => {
-    const channel = supabase
-      .channel('display-pickup-orders')
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders' },
-        (payload) => {
-          const newRow = payload.new as { id?: string } | null
-          const oldRow = payload.old as { id?: string } | null
-          const id = newRow?.id ?? oldRow?.id
-          if (!id) return
+    const handlePayload = (payload: {
+      new: Record<string, unknown> | null
+      old: Record<string, unknown> | null
+    }) => {
+      const newRow = payload.new as { id?: string } | null
+      const oldRow = payload.old as { id?: string } | null
+      const id = newRow?.id ?? oldRow?.id
+      if (!id) return
 
-          void (async () => {
-            const { data, error } = await supabase
-              .from('orders')
-              .select('id, order_number, booth_name, ready_at, picked_up_at, status')
-              .eq('id', id)
-              .maybeSingle()
+      void (async () => {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('id, order_number, booth_name, ready_at, picked_up_at, status')
+          .eq('id', id)
+          .maybeSingle()
 
-            // row 가 없거나 오류 — 표시중이면 제거
-            if (error || !data) {
-              removeCard(id)
-              return
+        if (error || !data) {
+          removeCard(id)
+          return
+        }
+
+        if (!shouldDisplay(data)) {
+          removeCard(id)
+          return
+        }
+
+        setCards((prev) => {
+          const existing = prev.find((c) => c.orderId === id)
+          if (existing) {
+            const newBoothName = data.booth_name ?? existing.boothName
+            const newOrderNumber = data.order_number ?? existing.orderNumber
+            if (
+              existing.boothName === newBoothName &&
+              existing.orderNumber === newOrderNumber
+            ) {
+              return prev
             }
+            return prev.map((c) =>
+              c.orderId === id
+                ? { ...c, boothName: newBoothName, orderNumber: newOrderNumber }
+                : c,
+            )
+          }
+          return [
+            {
+              orderId: id,
+              orderNumber: data.order_number ?? '',
+              boothName: data.booth_name ?? '',
+              readyAt: (data.ready_at as string) ?? new Date().toISOString(),
+            },
+            ...prev,
+          ]
+        })
+      })()
+    }
 
-            if (!shouldDisplay(data)) {
-              removeCard(id)
-              return
-            }
+    const buildChannel = (tag: string) =>
+      supabase
+        .channel('display-pickup-orders')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders' },
+          handlePayload,
+        )
+        .subscribe((status, err) => {
+          console.log(`[DisplayPickup] realtime ${tag}`, status, err ?? '')
+        })
 
-            // 표시 대상 — 카드 추가 또는 메타 업데이트
-            setCards((prev) => {
-              const existing = prev.find((c) => c.orderId === id)
-              if (existing) {
-                const newBoothName = data.booth_name ?? existing.boothName
-                const newOrderNumber = data.order_number ?? existing.orderNumber
-                if (
-                  existing.boothName === newBoothName &&
-                  existing.orderNumber === newOrderNumber
-                ) {
-                  return prev
-                }
-                return prev.map((c) =>
-                  c.orderId === id
-                    ? { ...c, boothName: newBoothName, orderNumber: newOrderNumber }
-                    : c,
-                )
-              }
-              return [
-                {
-                  orderId: id,
-                  orderNumber: data.order_number ?? '',
-                  boothName: data.booth_name ?? '',
-                  readyAt: (data.ready_at as string) ?? new Date().toISOString(),
-                },
-                ...prev,
-              ]
-            })
-          })()
-        },
-      )
-      .subscribe()
+    let channel = buildChannel('init')
+
+    // 30s fallback — realtime 누락 시 최대 30s 지연으로 자가복구
+    const interval = window.setInterval(() => {
+      void fetchInitial()
+    }, 30_000)
+
+    // 탭/창 복귀 시 — 끊겼을 수 있는 socket 재구독 + 즉시 refetch
+    const onVisibility = () => {
+      if (document.visibilityState !== 'visible') return
+      void fetchInitial()
+      void supabase.removeChannel(channel)
+      channel = buildChannel('revisit')
+    }
+    document.addEventListener('visibilitychange', onVisibility)
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.clearInterval(interval)
       void supabase.removeChannel(channel)
     }
-  }, [removeCard])
+  }, [removeCard, fetchInitial])
 
   // 카드 개수·폭 변동 시 overflow 측정 — 자동 스크롤 on/off 결정
   useLayoutEffect(() => {
