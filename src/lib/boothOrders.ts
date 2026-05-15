@@ -130,9 +130,19 @@ export async function cancelBoothOrder(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ orderId, reason }),
   })
-  const json = await response.json().catch(() => ({}))
+  const json = (await response.json().catch(() => ({}))) as {
+    error?: string
+    detail?: string
+    refundAmount?: number
+    paymentFullyCancelled?: boolean
+  }
   if (!response.ok) {
-    const msg = typeof json?.error === 'string' ? json.error : '주문 거절 실패'
+    const base = typeof json?.error === 'string' ? json.error : '주문 거절 실패'
+    // 서버에서 PG 응답을 detail 로 전달 — 부스 화면에 노출돼야 운영진 즉시 진단 가능.
+    const msg =
+      typeof json?.detail === 'string' && json.detail.length > 0
+        ? `${base}: ${json.detail}`
+        : base
     throw new Error(msg)
   }
   return {
