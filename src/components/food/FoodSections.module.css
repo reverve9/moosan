@@ -541,6 +541,96 @@
 .modalBody {
   padding: 3.333cqw 4cqw 4cqw; /* 20px 24px 24px @ 600 */
   overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ─── 모달 하단 미니카트 (메인창 sticky cart 미러) ───
+ * 모달이 flex column 이고 modalBody 가 flex: 1 자체 스크롤이라 본 바는 항상 하단 고정.
+ * 키오스크 MenuStep.stickyCartBar 와 동일 컨셉. 결제버튼만 "장바구니 가기" 로 교체. */
+.modalCartBar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 1.667cqw; /* 10px @ 600 */
+  padding: 2cqw 3.333cqw; /* 12px 20px */
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.modalCartClear {
+  width: 7cqw;          /* 42px @ 600 */
+  height: 7cqw;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+  flex-shrink: 0;
+}
+
+.modalCartClear:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.modalCartSummary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.333cqw; /* 8px */
+  padding: 1.667cqw 2.333cqw; /* 10px 14px */
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.modalCartCount {
+  font-size: var(--text-cq-label);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.modalCartAmount {
+  margin-left: auto;
+  font-size: var(--text-cq-label);
+  font-weight: 800;
+  color: var(--color-primary, #1d4ed8);
+  font-variant-numeric: tabular-nums;
+}
+
+.modalCartGoBtn {
+  height: 7cqw;       /* 42px @ 600 */
+  min-height: 40px;
+  padding: 0 3cqw;    /* 0 18px @ 600 */
+  font-size: var(--text-cq-label);
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--color-primary, #1d4ed8);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color 120ms ease, transform 80ms ease;
+}
+
+.modalCartGoBtn:hover {
+  background: var(--color-primary-dark, #1e40af);
+}
+
+.modalCartGoBtn:active {
+  transform: scale(0.97);
 }
 
 .modalSection {

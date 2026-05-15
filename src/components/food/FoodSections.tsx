@@ -1,6 +1,6 @@
-import { Minus, Plus, X, Image as ImageIcon } from 'lucide-react'
+import { Minus, Plus, X, Image as ImageIcon, ShoppingCart, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchFoodBooths, getAssetUrl } from '@/lib/festival'
 import { supabase } from '@/lib/supabase'
 import {
@@ -472,6 +472,19 @@ function BoothModal({
     resize: 'cover',
   })
   const badge = getBoothBadge(waitingCount)
+  // 모바일 환경에서 모달 열린 상태로는 메인창 장바구니 UI 가 가려져서 보이지 않음.
+  // 키오스크 stickyCartBar 패턴을 모달 하단에 미러링해 담은 수량/비우기/카트이동 노출.
+  const { totalCount, totalAmount, clear } = useCart()
+  const navigate = useNavigate()
+  const goToCart = () => {
+    onClose()
+    navigate('/cart')
+  }
+  const handleClearCart = () => {
+    if (window.confirm('장바구니를 비울까요?')) {
+      clear()
+    }
+  }
 
   return (
     <div
@@ -575,6 +588,33 @@ function BoothModal({
             </ul>
           )}
         </div>
+
+        {totalCount > 0 && (
+          <div className={styles.modalCartBar}>
+            <button
+              type="button"
+              className={styles.modalCartClear}
+              onClick={handleClearCart}
+              aria-label="장바구니 비우기"
+            >
+              <Trash2 strokeWidth={1.4} size={20} aria-hidden />
+            </button>
+            <div className={styles.modalCartSummary} aria-live="polite">
+              <ShoppingCart strokeWidth={1.4} size={20} aria-hidden />
+              <span className={styles.modalCartCount}>{totalCount}개</span>
+              <span className={styles.modalCartAmount}>
+                {totalAmount.toLocaleString()}원
+              </span>
+            </div>
+            <button
+              type="button"
+              className={styles.modalCartGoBtn}
+              onClick={goToCart}
+            >
+              장바구니 가기
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
