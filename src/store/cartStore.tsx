@@ -193,6 +193,12 @@ export function CartProvider({ children }: CartProviderProps) {
   }, [])
 
   const clear = useCallback(() => {
+    // localStorage 도 즉시 비움. 결제 직후 페이지 풀 리로드 (/order/:id?from=checkout)
+    // 시나리오에서, OrderStatusPage 자식 effect 가 dispatch CLEAR 를 호출해도
+    // CartProvider 부모 effect 의 HYDRATE 가 stored items 로 덮어써서 카트가
+    // 다시 채워지는 버그 방어. saveToStorage 의 자동 persist 는 HYDRATE 가
+    // 완료된 후에만 작동하기 때문에 동기 쓰기로 우회.
+    saveToStorage([])
     dispatch({ type: 'CLEAR' })
   }, [])
 
