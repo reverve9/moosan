@@ -44,6 +44,12 @@ export interface BoothOrderRow {
     voucher_consumed: number
     /** 식권 소멸액 (액면가 - 사용액). 첫 부스에만 기록. */
     voucher_burned: number
+    /** 부스 확인 시각 (paid → confirmed). null = 아직 미확인. */
+    confirmed_at: string | null
+    /** 조리완료 시각. null = 아직 조리중. */
+    ready_at: string | null
+    /** 손님 픽업 완료 시각. null = 아직 미수령. */
+    picked_up_at: string | null
   }
   /** 해당 부스 주문의 메뉴 라인 */
   menuLines: { name: string; quantity: number }[]
@@ -96,7 +102,7 @@ export async function fetchPaymentsList(
   const { data: orders, error: oErr } = await supabase
     .from('orders')
     .select(
-      'id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout, voucher_consumed, voucher_burned',
+      'id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout, voucher_consumed, voucher_burned, confirmed_at, ready_at, picked_up_at',
     )
     .in('payment_id', paymentIds)
     .order('booth_no', { ascending: true })
@@ -148,6 +154,9 @@ export async function fetchPaymentsList(
           is_takeout: o.is_takeout,
           voucher_consumed: o.voucher_consumed ?? 0,
           voucher_burned: o.voucher_burned ?? 0,
+          confirmed_at: o.confirmed_at ?? null,
+          ready_at: o.ready_at ?? null,
+          picked_up_at: o.picked_up_at ?? null,
         },
         menuLines: itemsByOrder.get(o.id) ?? [],
         siblingCount: list.length,

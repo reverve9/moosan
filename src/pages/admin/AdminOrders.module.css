@@ -403,6 +403,11 @@
   color: #1E40AF;
 }
 
+.badge_order_ready {
+  background-color: #FCE7F3;
+  color: #9F1239;
+}
+
 .badge_order_completed {
   background-color: #DCFCE7;
   color: #166534;

@@ -93,6 +93,42 @@ const ORDER_STATUS_LABEL: Record<
   cancelled: '취소',
 }
 
+// 부스 운영 흐름상 행 진행 상태 — 결제완료 후 부스 처리 단계.
+// order.status + ready_at + picked_up_at 조합으로 도출.
+//   paid: 부스 미확인 (status=paid 직후)
+//   confirmed: 부스가 확인했지만 조리 미완료 (status=confirmed, ready_at=null)
+//   ready: 조리완료 (ready_at set, picked_up_at=null)
+//   pickedup: 손님 픽업완료 (status=completed 또는 picked_up_at set)
+//   cancelled: 취소 (payment 또는 order 단위 모두 포함)
+type ProgressKey = 'paid' | 'confirmed' | 'ready' | 'pickedup' | 'cancelled' | 'other'
+
+function rowProgressKey(r: BoothOrderRow): ProgressKey {
+  if (r.payment.status === 'cancelled' || r.order.status === 'cancelled') return 'cancelled'
+  if (r.order.status === 'completed' || r.order.picked_up_at) return 'pickedup'
+  if (r.order.ready_at) return 'ready'
+  if (r.order.status === 'confirmed') return 'confirmed'
+  if (r.order.status === 'paid') return 'paid'
+  return 'other'
+}
+
+const PROGRESS_LABEL: Record<ProgressKey, string> = {
+  paid: '미확인',
+  confirmed: '조리중',
+  ready: '조리완료',
+  pickedup: '픽업완료',
+  cancelled: '취소',
+  other: '-',
+}
+
+const PROGRESS_BADGE_CLASS: Record<ProgressKey, string> = {
+  paid: 'badge_order_paid',
+  confirmed: 'badge_order_confirmed',
+  ready: 'badge_order_ready',
+  pickedup: 'badge_order_completed',
+  cancelled: 'badge_order_cancelled',
+  other: 'badge_order_pending',
+}
+
 export default function AdminOrders() {
   const [filters, setFilters] = useState<PaymentsListFilters>(() => ({
     status: 'all',
@@ -102,6 +138,7 @@ export default function AdminOrders() {
     paymentMethod: 'all',
   }))
   const [boothQuery, setBoothQuery] = useState('')
+  const [progressFilter, setProgressFilter] = useState<ProgressKey | 'all'>('all')
   const [rows, setRows] = useState<BoothOrderRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -139,6 +176,7 @@ export default function AdminOrders() {
       { key: 'sibling', label: '동시결제 매장수' },
       { key: 'payment_method', label: '결제수단' },
       { key: 'status', label: '상태' },
+      { key: 'progress', label: '진행' },
       { key: 'toss_order_id', label: '결제번호' },
     ]
     const data = visibleRows.map((r) => ({
@@ -153,22 +191,26 @@ export default function AdminOrders() {
       sibling: r.siblingCount,
       payment_method: methodLabel(r.payment.payment_method),
       status: rowStatusLabel(r),
+      progress: PROGRESS_LABEL[rowProgressKey(r)],
       toss_order_id: r.payment.toss_order_id ?? '',
     }))
     await exportToExcel(data, cols, '주문_결제_관리')
   }
 
-  // 매장 검색 — 실시간 client-side 필터 (서버 재호출 X)
+  // 매장 검색 + 진행상태 — 실시간 client-side 필터 (서버 재호출 X)
   const visibleRows = useMemo(() => {
     const q = boothQuery.trim().toLowerCase()
-    if (q.length === 0) return rows
-    return rows.filter((r) => r.order.booth_name.toLowerCase().includes(q))
-  }, [rows, boothQuery])
+    return rows.filter((r) => {
+      if (q.length > 0 && !r.order.booth_name.toLowerCase().includes(q)) return false
+      if (progressFilter !== 'all' && rowProgressKey(r) !== progressFilter) return false
+      return true
+    })
+  }, [rows, boothQuery, progressFilter])
 
   // 필터/검색 변경 시 첫 페이지로
   useEffect(() => {
     setPage(1)
-  }, [filters, boothQuery])
+  }, [filters, boothQuery, progressFilter])
 
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -282,6 +324,21 @@ export default function AdminOrders() {
           </select>
         </label>
         <label className={styles.filterItem}>
+          <span className={styles.filterLabel}>진행</span>
+          <select
+            value={progressFilter}
+            onChange={(e) => setProgressFilter(e.target.value as ProgressKey | 'all')}
+            className={styles.select}
+          >
+            <option value="all">전체</option>
+            <option value="paid">미확인</option>
+            <option value="confirmed">조리중</option>
+            <option value="ready">조리완료</option>
+            <option value="pickedup">픽업완료</option>
+            <option value="cancelled">취소</option>
+          </select>
+        </label>
+        <label className={styles.filterItem}>
           <span className={styles.filterLabel}>시작일</span>
           <input
             type="date"
@@ -364,19 +421,20 @@ export default function AdminOrders() {
               <th className={styles.alignRight}>금액</th>
               <th>결제수단</th>
               <th>상태</th>
+              <th>진행</th>
               <th>결제번호</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} className={styles.tablePlaceholder}>
+                <td colSpan={11} className={styles.tablePlaceholder}>
                   불러오는 중...
                 </td>
               </tr>
             ) : visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={10} className={styles.tablePlaceholder}>
+                <td colSpan={11} className={styles.tablePlaceholder}>
                   {rows.length === 0
                     ? '조회된 결제가 없습니다.'
                     : '검색어와 일치하는 매장이 없습니다.'}
@@ -463,6 +521,18 @@ export default function AdminOrders() {
                           매장거절
                         </span>
                       )}
+                    </td>
+                    <td>
+                      {(() => {
+                        const pk = rowProgressKey(r)
+                        return (
+                          <span
+                            className={`${styles.badge} ${styles[PROGRESS_BADGE_CLASS[pk]]}`}
+                          >
+                            {PROGRESS_LABEL[pk]}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className={`${styles.mono} ${styles.dim}`}>{r.payment.toss_order_id}</td>
                   </tr>
