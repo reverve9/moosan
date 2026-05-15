@@ -1,10 +1,8 @@
-import { RotateCw, TriangleAlert, X } from 'lucide-react'
+import { RotateCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { confirmBoothOrder } from '@/lib/boothOrders'
 import { formatPhoneDisplay } from '@/lib/phone'
 import {
-  ALERT_SECONDS,
-  WARN_SECONDS,
   elapsedSeconds,
   useAdminAlert,
 } from '@/components/admin/AdminAlertContext'
@@ -29,15 +27,35 @@ function formatHm(iso: string): string {
   }).format(new Date(iso))
 }
 
+type OperatingState = 'open' | 'paused' | 'closed'
+
+function operatingState(s: { isOpen: boolean; isPaused: boolean }): OperatingState {
+  if (!s.isOpen) return 'closed'
+  if (s.isPaused) return 'paused'
+  return 'open'
+}
+
+const OPERATING_LABEL: Record<OperatingState, string> = {
+  open: '영업중',
+  paused: '일시중지',
+  closed: '마감',
+}
+
+/**
+ * 어드민 실시간 매장 모니터.
+ *
+ * 매장별 운영 상태 (영업중/일시중지/마감) + 단계별 진행 건수 (미확인/조리중/조리완료)
+ * + 누적 (픽업완료/매출/취소) + 대기시간 indicator. 카드 클릭 시 미확인 주문 상세
+ * 모달.
+ *
+ * 헤더는 운영 상태 카운트 + 진행중 합계 + 매출/픽업. 1분/2분 초과 알람은 사이드바
+ * 배지로만 노출하고 본 페이지에선 표시 생략 (사용자 피드백: 시간 초과 강조 무의미).
+ */
 export default function AdminMonitor() {
   const {
     summaries,
-    confirmedOrders,
+    boothStatuses,
     now,
-    alertCount,
-    warnCount,
-    totalPending,
-    overdueCount,
     loading,
     error: ctxError,
     refreshing,
@@ -49,7 +67,6 @@ export default function AdminMonitor() {
 
   const error = localError ?? ctxError
 
-  // ESC 로 모달 닫기
   useEffect(() => {
     if (!selectedBoothId) return
     const handler = (e: KeyboardEvent) => {
@@ -80,16 +97,25 @@ export default function AdminMonitor() {
     [refetch],
   )
 
-  // 조리시간 초과 부스 ID Set
-  const overdueBoothIds = useMemo(() => {
-    const ids = new Set<string>()
-    for (const o of confirmedOrders) {
-      const confirmedMs = new Date(o.confirmed_at).getTime()
-      const deadline = confirmedMs + (o.estimated_minutes + 1) * 60 * 1000
-      if (now > deadline) ids.add(o.booth_id)
+  // 헤더 통계 — 영업 상태별 매장 수 + 진행중 총합 + 매출/픽업
+  const headerStats = useMemo(() => {
+    let open = 0
+    let paused = 0
+    let closed = 0
+    let inProgress = 0
+    let pickedUp = 0
+    let gross = 0
+    for (const s of boothStatuses) {
+      const st = operatingState(s)
+      if (st === 'open') open += 1
+      else if (st === 'paused') paused += 1
+      else closed += 1
+      inProgress += s.unconfirmedCount + s.confirmedCount + s.readyCount
+      pickedUp += s.pickedUpCount
+      gross += s.grossAmount
     }
-    return ids
-  }, [confirmedOrders, now])
+    return { open, paused, closed, inProgress, pickedUp, gross }
+  }, [boothStatuses])
 
   const selectedBooth = useMemo(
     () => summaries.find((s) => s.boothId === selectedBoothId) ?? null,
@@ -100,27 +126,35 @@ export default function AdminMonitor() {
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div className={styles.headerLeft}>
-          <h1 className={styles.title}>실시간 모니터</h1>
-          <p className={styles.sub}>
-            1분 초과 주황, 2분 초과 빨강 + 경보 — 부스에서 처리되지 않은 주문입니다.
-          </p>
+          <h1 className={styles.title}>실시간 매장 모니터</h1>
+          <p className={styles.sub}>매장별 운영 상태 + 단계별 진행 + 오늘 누적</p>
         </div>
         <div className={styles.headerRight}>
-          <div className={`${styles.statBox} ${alertCount > 0 ? styles.statBoxAlert2 : ''}`}>
-            <div className={styles.statValue}>{alertCount}</div>
-            <div className={styles.statLabel}>2분 초과</div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>{headerStats.open}</div>
+            <div className={styles.statLabel}>영업중</div>
           </div>
-          <div className={`${styles.statBox} ${warnCount > 0 ? styles.statBoxAlert : ''}`}>
-            <div className={styles.statValue}>{warnCount}</div>
-            <div className={styles.statLabel}>1분 초과</div>
+          <div className={`${styles.statBox} ${headerStats.paused > 0 ? styles.statBoxPaused : ''}`}>
+            <div className={styles.statValue}>{headerStats.paused}</div>
+            <div className={styles.statLabel}>일시중지</div>
           </div>
           <div className={styles.statBox}>
-            <div className={styles.statValue}>{totalPending}</div>
-            <div className={styles.statLabel}>총 미확인</div>
+            <div className={styles.statValue}>{headerStats.closed}</div>
+            <div className={styles.statLabel}>마감</div>
           </div>
-          <div className={`${styles.statBox} ${overdueCount > 0 ? styles.statBoxOverdue : ''}`}>
-            <div className={styles.statValue}>{overdueCount}</div>
-            <div className={styles.statLabel}>조리 초과</div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>{headerStats.inProgress}</div>
+            <div className={styles.statLabel}>진행중</div>
+          </div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>{headerStats.pickedUp}</div>
+            <div className={styles.statLabel}>오늘 픽업</div>
+          </div>
+          <div className={styles.statBox}>
+            <div className={styles.statValue}>
+              {headerStats.gross.toLocaleString()}
+            </div>
+            <div className={styles.statLabel}>오늘 매출(원)</div>
           </div>
           <button
             type="button"
@@ -136,66 +170,103 @@ export default function AdminMonitor() {
         </div>
       </header>
 
-      {alertCount > 0 && (
-        <div className={styles.alertBanner}>
-          <TriangleAlert className={styles.alertBannerIcon} />
-          <div className={styles.alertBannerText}>
-            <strong>2분 이상 지연된 주문 {alertCount}건</strong>
-            <span> — 부스에서 처리되지 않았습니다. 해당 매장에 즉시 확인하세요.</span>
-          </div>
-        </div>
-      )}
-
-      {overdueCount > 0 && (
-        <div className={styles.overdueBanner}>
-          <TriangleAlert className={styles.overdueBannerIcon} />
-          <div className={styles.overdueBannerText}>
-            <strong>조리시간 초과 {overdueCount}건</strong>
-            <span> — 예상 시간이 지났습니다. 해당 매장에 확인하세요.</span>
-          </div>
-        </div>
-      )}
-
       {error && <div className={styles.errorBanner}>{error}</div>}
 
       {loading ? (
         <div className={styles.placeholder}>모니터 데이터를 불러오는 중...</div>
       ) : (
         <div className={styles.boothGrid}>
-          {summaries.map((s) => {
-            const elapsed = s.oldestPaidAt ? elapsedSeconds(s.oldestPaidAt, now) : 0
-            let levelClass = ''
-            if (s.count > 0) {
-              if (elapsed >= ALERT_SECONDS) {
-                // 2분 초과 — alert 스타일 위에 alert2 덮어쓰기 (더 강한 pulse)
-                levelClass = `${styles.level_alert} ${styles.level_alert2}`
-              } else if (elapsed >= WARN_SECONDS) {
-                levelClass = styles.level_alert
-              } else {
-                levelClass = styles.level_pending
-              }
-            } else {
-              levelClass = styles.level_idle
-            }
+          {boothStatuses.map((s) => {
+            const state = operatingState(s)
+            const hasInProgress =
+              s.unconfirmedCount + s.confirmedCount + s.readyCount > 0
+            const oldestUnconfirmedSec = s.oldestUnconfirmedAt
+              ? elapsedSeconds(s.oldestUnconfirmedAt, now)
+              : 0
+            const oldestReadySec = s.oldestReadyAt
+              ? elapsedSeconds(s.oldestReadyAt, now)
+              : 0
             return (
               <button
                 key={s.boothId}
                 type="button"
-                className={`${styles.boothCard} ${levelClass}`}
-                onClick={() => s.count > 0 && setSelectedBoothId(s.boothId)}
-                disabled={s.count === 0}
+                className={`${styles.boothCard} ${styles[`state_${state}`]} ${
+                  hasInProgress ? styles.boothCardActive : ''
+                }`}
+                onClick={() => s.unconfirmedCount > 0 && setSelectedBoothId(s.boothId)}
+                disabled={s.unconfirmedCount === 0}
+                title={
+                  s.unconfirmedCount === 0
+                    ? '미확인 주문 없음 (클릭 비활성)'
+                    : '클릭 → 미확인 주문 상세'
+                }
               >
-                {s.boothNo && <div className={styles.boothNo}>{s.boothNo}번</div>}
-                <div className={styles.boothName}>{s.boothName}</div>
-                <div className={styles.countRow}>
-                  <span className={styles.countValue}>{s.count}</span>
-                  <span className={styles.countUnit}>건</span>
+                <div className={styles.boothHead}>
+                  <div className={styles.boothNameWrap}>
+                    {s.boothNo && <span className={styles.boothNo}>{s.boothNo}</span>}
+                    <span className={styles.boothName}>{s.boothName}</span>
+                  </div>
+                  <span
+                    className={`${styles.opBadge} ${styles[`opBadge_${state}`]}`}
+                  >
+                    {OPERATING_LABEL[state]}
+                  </span>
                 </div>
-                <div className={styles.elapsedRow}>
-                  {s.oldestPaidAt ? formatElapsed(elapsed) : '—'}
+
+                <div className={styles.stageGrid}>
+                  <div
+                    className={`${styles.stageCell} ${
+                      s.unconfirmedCount > 0 ? styles.stageCellUnconfirmedActive : ''
+                    }`}
+                  >
+                    <div className={styles.stageValue}>{s.unconfirmedCount}</div>
+                    <div className={styles.stageLabel}>미확인</div>
+                  </div>
+                  <div
+                    className={`${styles.stageCell} ${
+                      s.confirmedCount > 0 ? styles.stageCellConfirmedActive : ''
+                    }`}
+                  >
+                    <div className={styles.stageValue}>{s.confirmedCount}</div>
+                    <div className={styles.stageLabel}>조리중</div>
+                  </div>
+                  <div
+                    className={`${styles.stageCell} ${
+                      s.readyCount > 0 ? styles.stageCellReadyActive : ''
+                    }`}
+                  >
+                    <div className={styles.stageValue}>{s.readyCount}</div>
+                    <div className={styles.stageLabel}>조리완료</div>
+                  </div>
                 </div>
-                {overdueBoothIds.has(s.boothId) && (
-                  <div className={styles.overdueBadge}>⏰ 조리시간 초과</div>
+
+                <div className={styles.metricsRow}>
+                  <span className={styles.metric}>
+                    픽업 <strong>{s.pickedUpCount}</strong>
+                  </span>
+                  <span className={styles.metric}>
+                    매출 <strong>{s.grossAmount.toLocaleString()}</strong>원
+                  </span>
+                  {s.cancelledCount > 0 && (
+                    <span className={`${styles.metric} ${styles.metricCancelled}`}>
+                      취소 <strong>{s.cancelledCount}</strong>
+                    </span>
+                  )}
+                </div>
+
+                {(s.oldestUnconfirmedAt || s.oldestReadyAt) && (
+                  <div className={styles.waitRow}>
+                    {s.oldestUnconfirmedAt && (
+                      <span className={styles.waitLine}>
+                        미확인 가장 오래 · {formatElapsed(oldestUnconfirmedSec)}
+                      </span>
+                    )}
+                    {s.oldestReadyAt && (
+                      <span className={styles.waitLine}>
+                        조리완료 미픽업 · {formatElapsed(oldestReadySec)}
+                      </span>
+                    )}
+                  </div>
                 )}
               </button>
             )
@@ -223,22 +294,11 @@ export default function AdminMonitor() {
             <ul className={styles.modalList}>
               {selectedBooth.orders.map((order) => {
                 const elapsed = elapsedSeconds(order.paid_at, now)
-                const isAlert2 = elapsed >= ALERT_SECONDS
-                const isAlert = elapsed >= WARN_SECONDS
                 const menuSummary = order.items
                   .map((it) => `${it.menu_name} × ${it.quantity}`)
                   .join(', ')
                 return (
-                  <li
-                    key={order.id}
-                    className={`${styles.modalItem} ${
-                      isAlert2
-                        ? styles.modalItemAlert2
-                        : isAlert
-                        ? styles.modalItemAlert
-                        : ''
-                    }`}
-                  >
+                  <li key={order.id} className={styles.modalItem}>
                     <div className={styles.modalItemLeft}>
                       <div className={styles.modalItemTime}>{formatHm(order.paid_at)}</div>
                       <div className={styles.modalItemOrderNo}>{order.order_number}</div>
