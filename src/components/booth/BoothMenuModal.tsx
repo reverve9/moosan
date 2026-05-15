@@ -238,7 +238,11 @@ export default function BoothMenuModal({ boothId, onClose }: BoothMenuModalProps
                         >
                           <div className={styles.thumb}>
                             {(() => {
-                              const menuImg = getAssetUrl(menu.image_url, { width: 320 })
+                              const menuImg = getAssetUrl(menu.image_url, {
+                                width: 160,
+                                height: 160,
+                                resize: 'cover',
+                              })
                               return menuImg ? (
                                 <img
                                   src={menuImg}
