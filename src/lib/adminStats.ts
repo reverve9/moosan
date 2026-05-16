@@ -512,8 +512,11 @@ export interface PaymentChannelStats {
   app: ChannelRow
   helpdesk: ChannelRow
   helpdeskCard: ChannelRow
-  /** 헬프데스크 현금/쿠폰 — 현장 처리(현금 + voucher_only) 합산. 쿠폰은 현금과 동일 카테고리. */
-  helpdeskCashVoucher: ChannelRow
+  /** 헬프데스크 현금/쿠폰 — 현장 처리(현금 + voucher_only) 합산. 쿠폰은 현금과 동일 카테고리.
+   *  breakdown 으로 현금/쿠폰만 카운트 세부 노출 (사용자 운영 직관 보조). */
+  helpdeskCashVoucher: ChannelRow & {
+    breakdown: { cashCount: number; voucherOnlyCount: number }
+  }
   total: ChannelRow
 }
 
@@ -540,7 +543,11 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
   const app = make()
   const helpdesk = make()
   const helpdeskCard = make()
-  const helpdeskCashVoucher = make()
+  const helpdeskCashVoucher = {
+    revenue: 0,
+    count: 0,
+    breakdown: { cashCount: 0, voucherOnlyCount: 0 },
+  }
 
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
@@ -562,6 +569,11 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
         // cash / voucher_only / null — 현장 수기 처리 묶음
         helpdeskCashVoucher.revenue += revenue
         helpdeskCashVoucher.count += 1
+        if (p.payment_method === 'voucher_only') {
+          helpdeskCashVoucher.breakdown.voucherOnlyCount += 1
+        } else {
+          helpdeskCashVoucher.breakdown.cashCount += 1
+        }
       }
     }
   }
