@@ -51,28 +51,52 @@ export async function fetchStatsData(filters: StatsFilters): Promise<StatsRawDat
 
   const paymentIds = payments.map((p) => p.id)
 
-  const [ordersRes, menusRes] = await Promise.all([
-    supabase.from('orders').select().in('payment_id', paymentIds),
-    supabase.from('food_menus').select(),
+  // PostgREST `.in(...)` URL 길이 한계(~8KB) 회피 — UUID 36자×150 ≈ 5.5KB 안전 마진.
+  // 운영중 일별 300+건 결제 누적 시 단일 .in 으로 400 발생 → 청크 분할.
+  const [orders, allMenus] = await Promise.all([
+    fetchOrdersByPaymentIdsChunked(paymentIds),
+    supabase.from('food_menus').select().then((r) => {
+      if (r.error) throw r.error
+      return r.data ?? []
+    }),
   ])
-  if (ordersRes.error) throw ordersRes.error
-  if (menusRes.error) throw menusRes.error
-
-  const orders = ordersRes.data ?? []
-  const allMenus = menusRes.data ?? []
 
   let orderItems: OrderItem[] = []
   if (orders.length > 0) {
     const orderIds = orders.map((o) => o.id)
-    const { data: items, error: iErr } = await supabase
-      .from('order_items')
-      .select()
-      .in('order_id', orderIds)
-    if (iErr) throw iErr
-    orderItems = items ?? []
+    orderItems = await fetchOrderItemsByOrderIdsChunked(orderIds)
   }
 
   return { payments, orders, orderItems, allMenus }
+}
+
+const IN_CHUNK_SIZE = 150
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (arr.length === 0) return []
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
+async function fetchOrdersByPaymentIdsChunked(paymentIds: string[]): Promise<Order[]> {
+  const all: Order[] = []
+  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
+    const { data, error } = await supabase.from('orders').select().in('payment_id', chunk)
+    if (error) throw error
+    if (data) all.push(...data)
+  }
+  return all
+}
+
+async function fetchOrderItemsByOrderIdsChunked(orderIds: string[]): Promise<OrderItem[]> {
+  const all: OrderItem[] = []
+  for (const chunk of chunkArray(orderIds, IN_CHUNK_SIZE)) {
+    const { data, error } = await supabase.from('order_items').select().in('order_id', chunk)
+    if (error) throw error
+    if (data) all.push(...data)
+  }
+  return all
 }
 
 // ─── 1. KPI ──────────────────────────────────────
