@@ -99,6 +99,28 @@ async function fetchOrderItemsByOrderIdsChunked(orderIds: string[]): Promise<Ord
   return all
 }
 
+/**
+ * 매출 정의 = 메뉴 정가 합 (= 정산관리/주문결제관리 기준).
+ *  - p.total_amount 는 손님 실지불액 (PG/카드/현금, 쿠폰 차감 후) 이라
+ *    그대로 쓰면 쿠폰 사용액이 빠진다.
+ *  - 정가 합 = p.total_amount - refunded + 그 payment 의 live orders voucher_consumed 합
+ */
+function buildVoucherByPayment(data: StatsRawData): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const o of data.orders) {
+    if (o.status === 'cancelled') continue
+    m.set(o.payment_id, (m.get(o.payment_id) ?? 0) + (o.voucher_consumed ?? 0))
+  }
+  return m
+}
+
+function paymentGross(
+  p: { total_amount: number; refunded_amount?: number | null; id: string },
+  voucherByPayment: Map<string, number>,
+): number {
+  return p.total_amount - (p.refunded_amount ?? 0) + (voucherByPayment.get(p.id) ?? 0)
+}
+
 // ─── 1. KPI ──────────────────────────────────────
 
 export interface KpiStats {
@@ -113,6 +135,7 @@ export interface KpiStats {
 }
 
 export function calcKpi(data: StatsRawData): KpiStats {
+  const voucherByPayment = buildVoucherByPayment(data)
   let totalRevenue = 0
   let paidCount = 0
   let cancelledCount = 0
@@ -120,8 +143,7 @@ export function calcKpi(data: StatsRawData): KpiStats {
   let pendingCount = 0
   for (const p of data.payments) {
     if (p.status === 'paid') {
-      // 부분환불(부스 거절) 차감
-      totalRevenue += p.total_amount - (p.refunded_amount ?? 0)
+      totalRevenue += paymentGross(p, voucherByPayment)
       paidCount += 1
     } else if (p.status === 'cancelled') {
       cancelledCount += 1
@@ -138,12 +160,6 @@ export function calcKpi(data: StatsRawData): KpiStats {
     (o) => paidPaymentIds.has(o.payment_id) && o.status !== 'cancelled',
   )
   const totalBoothOrders = paidOrders.length
-  // 매출 정의: p.total_amount 는 손님 실지불액(PG/카드/현금)이라 쿠폰 차감 후 금액.
-  // 정산관리/주문결제관리의 매장 매출(=SUM(order.subtotal), 정가 합)과 일치시키려면
-  // paid+live orders 의 voucher_consumed 를 더해야 함. (= 메뉴 정가 = 실지불 + 쿠폰)
-  for (const o of paidOrders) {
-    totalRevenue += o.voucher_consumed ?? 0
-  }
   return {
     totalRevenue,
     paidCount,
@@ -187,9 +203,10 @@ function kstDate(iso: string): string {
 export function calcTimeStats(data: StatsRawData): TimeStats {
   const hourlyMap = new Map<number, { revenue: number; count: number }>()
   const dailyMap = new Map<string, { revenue: number; count: number }>()
+  const voucherByPayment = buildVoucherByPayment(data)
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
-    const netRevenue = p.total_amount - (p.refunded_amount ?? 0)
+    const netRevenue = paymentGross(p, voucherByPayment)
     const hour = kstHour(p.created_at)
     const date = kstDate(p.created_at)
     const h = hourlyMap.get(hour) ?? { revenue: 0, count: 0 }
@@ -389,6 +406,7 @@ function maskPhone(phone: string): string {
 }
 
 export function calcCustomerStats(data: StatsRawData): CustomerStats {
+  const voucherByPayment = buildVoucherByPayment(data)
   const byPhone = new Map<string, { visits: number; totalAmount: number }>()
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
@@ -396,7 +414,7 @@ export function calcCustomerStats(data: StatsRawData): CustomerStats {
     const key = p.phone.replace(/\D/g, '')
     const row = byPhone.get(key) ?? { visits: 0, totalAmount: 0 }
     row.visits += 1
-    row.totalAmount += p.total_amount - (p.refunded_amount ?? 0)
+    row.totalAmount += paymentGross(p, voucherByPayment)
     byPhone.set(key, row)
   }
 
@@ -447,11 +465,12 @@ export interface PaymentBehaviorStats {
 }
 
 export function calcPaymentBehaviorStats(data: StatsRawData): PaymentBehaviorStats {
-  // 객단가 분포 (paid 만, 부분환불 차감)
+  // 객단가 분포 (paid 만) — 매출 정의 = 메뉴 정가 합 (쿠폰 사용액 포함)
+  const voucherByPayment = buildVoucherByPayment(data)
   const buckets = { b10: 0, b20: 0, b30: 0, b30plus: 0 }
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
-    const net = p.total_amount - (p.refunded_amount ?? 0)
+    const net = paymentGross(p, voucherByPayment)
     if (net < 10_000) buckets.b10 += 1
     else if (net < 20_000) buckets.b20 += 1
     else if (net < 30_000) buckets.b30 += 1
@@ -509,18 +528,11 @@ export interface PaymentChannelStats {
  * (`external_card` / `cash` / `voucher_only`).
  */
 export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats {
+  const voucherByPayment = buildVoucherByPayment(data)
   const channelByPayment = new Map<string, string>()
-  // payment 별 voucher_consumed 합 (live orders 만) — 매출에 합산해서 정가 합과 일치시킴
-  const voucherByPayment = new Map<string, number>()
   for (const o of data.orders) {
     if (!channelByPayment.has(o.payment_id)) {
       channelByPayment.set(o.payment_id, o.payment_channel)
-    }
-    if (o.status !== 'cancelled') {
-      voucherByPayment.set(
-        o.payment_id,
-        (voucherByPayment.get(o.payment_id) ?? 0) + (o.voucher_consumed ?? 0),
-      )
     }
   }
 
@@ -535,8 +547,7 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
     if (p.status !== 'paid') continue
     const channel = channelByPayment.get(p.id)
     if (!channel) continue
-    const revenue =
-      p.total_amount - (p.refunded_amount ?? 0) + (voucherByPayment.get(p.id) ?? 0)
+    const revenue = paymentGross(p, voucherByPayment)
     if (channel === 'app') {
       app.revenue += revenue
       app.count += 1
