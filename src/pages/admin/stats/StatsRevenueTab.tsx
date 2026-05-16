@@ -277,7 +277,7 @@ function ChannelSection({
         />
         <Kpi
           label="헬프데스크 — 현금/쿠폰"
-          value={`${fmtWon(channel.helpdeskCashVoucher.revenue)} · ${channel.helpdeskCashVoucher.count}건`}
+          value={`${fmtWon(channel.helpdeskCashVoucher.revenue)} · ${channel.helpdeskCashVoucher.count}건 (현금 ${channel.helpdeskCashVoucher.breakdown.cashCount} · 쿠폰만 ${channel.helpdeskCashVoucher.breakdown.voucherOnlyCount})`}
         />
         <Kpi
           label="합계"
