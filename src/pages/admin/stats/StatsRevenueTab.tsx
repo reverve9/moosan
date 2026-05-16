@@ -331,8 +331,8 @@ function PaymentMethodSection({
 // ─── 2. 시간 섹션 ────────────────────────────────
 
 // 축제 운영 시간대 고정 (KST). 이 범위 밖 데이터(테스트/이탈)는 통계에서 제외.
-const OPERATING_START = 10 // 오전 10시
-const OPERATING_END = 18 // 마지막 슬롯 = 18:00-19:00 → 19시(오후 7시) 종료
+const OPERATING_START = 11 // 오전 11시
+const OPERATING_END = 20 // 마지막 슬롯 = 20:00-21:00 → 21시(오후 9시) 종료
 
 interface HourPoint {
   hour: number
@@ -454,7 +454,7 @@ function HourLineChart({
 }
 
 function TimeSection({ time }: { time: ReturnType<typeof calcTimeStats> }) {
-  // 운영 시간대 (10~18시) 만 잘라 표시. 그 외 시간은 전부 무시.
+  // 운영 시간대 (11~21시) 만 잘라 표시. 그 외 시간은 전부 무시.
   const visibleHours = time.hourly.slice(OPERATING_START, OPERATING_END + 1)
   const maxRevenue = Math.max(1, ...visibleHours.map((h) => h.revenue))
   // Top 시간대도 운영 시간대 내에서만 재계산
