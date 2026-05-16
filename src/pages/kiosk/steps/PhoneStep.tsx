@@ -1,8 +1,14 @@
-import { useState } from 'react'
-import { ArrowLeft, ArrowRight, Delete } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { ArrowLeft, ArrowRight, Delete, Ticket } from 'lucide-react'
 import { useCart } from '@/store/cartStore'
 import { formatPhone, normalizePhone, isValidPhone } from '@/lib/phone'
 import { createKioskPaymentPending } from '@/lib/orders'
+import {
+  type AvailableCouponOption,
+  type BoothVoucherDistribution,
+  calcVoucherSettlement,
+  fetchAvailableCouponsByPhone,
+} from '@/lib/coupons'
 import type { KioskStationId } from '@/types/database'
 import styles from './PhoneStep.module.css'
 
@@ -25,12 +31,13 @@ const KEYPAD_KEYS: (string | 'back' | 'space')[] = [
 /**
  * 키오스크 phone step — 큰 숫자 키패드로 전번 입력 후 결제 요청.
  *
- * 쿠폰: 키오스크에서는 쿠폰 적용/입력 UI 가 없음. 손님은 전화번호만 입력하고
- * 헬프데스크 직원이 결제 처리 모달에서 그 번호로 발급된 보유 쿠폰을 자동
- * 조회·선택·적용한다 (HelpDeskKioskQueueTab).
+ * 쿠폰 흐름 (전화번호 자동 매칭):
+ *  - 11자리 정확히 입력 → fetchAvailableCouponsByPhone 로 보유 쿠폰 자동 표시
+ *  - 손님이 직접 라디오 선택 (사용 안 함 / 보유 쿠폰 단일 선택)
+ *  - 선택 시 calcVoucherSettlement 으로 부스 분배 + 추가 결제 금액 자동 계산
+ *  - 결제요청 시 createKioskPaymentPending 에 couponId + voucherDistributions 전달
  *
- * 검증 통과 시 createKioskPaymentPending 호출 → orders insert (status=payment_pending)
- * → waiting step 으로 전환.
+ * 운영 정책: 발급된 모든 쿠폰은 type='meal_voucher'. discount 쿠폰은 필터링하여 표시 X.
  */
 export default function PhoneStep({
   phone,
@@ -43,10 +50,73 @@ export default function PhoneStep({
   const { items, totalAmount: cartSubtotal } = useCart()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [availableCoupons, setAvailableCoupons] = useState<AvailableCouponOption[]>([])
+  const [selectedCouponId, setSelectedCouponId] = useState<string>('none')
+  const [couponsLoading, setCouponsLoading] = useState(false)
 
   const digits = normalizePhone(phone)
   const display = formatPhone(digits)
   const phoneValid = isValidPhone(display)
+
+  // 전번 11자리 입력 완료 시 보유 쿠폰 자동 조회
+  useEffect(() => {
+    if (!phoneValid) {
+      setAvailableCoupons([])
+      setSelectedCouponId('none')
+      setCouponsLoading(false)
+      return
+    }
+    let cancelled = false
+    setCouponsLoading(true)
+    fetchAvailableCouponsByPhone(digits)
+      .then((opts) => {
+        if (cancelled) return
+        // 운영 정책: 쿠폰(meal_voucher) 만 키오스크에서 적용 가능
+        setAvailableCoupons(opts.filter((c) => c.kind === 'voucher'))
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableCoupons([])
+      })
+      .finally(() => {
+        if (!cancelled) setCouponsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [digits, phoneValid])
+
+  // 부스별 정가 합 그룹 (calcVoucherSettlement 인자)
+  const boothGroups = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const it of items) {
+      m.set(it.boothId, (m.get(it.boothId) ?? 0) + it.price * it.quantity)
+    }
+    return Array.from(m.entries()).map(([boothId, subtotal]) => ({ boothId, subtotal }))
+  }, [items])
+
+  const selectedCoupon = useMemo(
+    () => availableCoupons.find((c) => c.couponId === selectedCouponId) ?? null,
+    [availableCoupons, selectedCouponId],
+  )
+
+  const calc = useMemo(() => {
+    const base = {
+      voucherConsumed: 0,
+      voucherBurned: 0,
+      userPaid: cartSubtotal,
+      distributions: [] as BoothVoucherDistribution[],
+    }
+    if (!selectedCoupon || selectedCoupon.kind !== 'voucher') return base
+    const s = calcVoucherSettlement(boothGroups, selectedCoupon.amount)
+    return {
+      voucherConsumed: s.consumed,
+      voucherBurned: s.burned,
+      userPaid: s.userPaid,
+      distributions: s.distributions,
+    }
+  }, [selectedCoupon, boothGroups, cartSubtotal])
+
+  const userPaid = calc.userPaid
 
   const handleKey = (key: string | 'back' | 'space') => {
     setError(null)
@@ -65,11 +135,19 @@ export default function PhoneStep({
     setError(null)
     try {
       const result = await createKioskPaymentPending({
-        phone: normalizePhone(display),
-        totalAmount: cartSubtotal,
+        phone: digits,
+        totalAmount: userPaid,
         items,
         kioskStationId: stationId,
         alcoholConsentAt,
+        couponId: selectedCoupon?.couponId ?? null,
+        voucherDistributions: selectedCoupon
+          ? calc.distributions.map((d) => ({
+              boothId: d.boothId,
+              voucherConsumed: d.voucherConsumed,
+              voucherBurned: d.voucherBurned,
+            }))
+          : undefined,
       })
       onSubmit(
         result.payment.id,
@@ -133,10 +211,77 @@ export default function PhoneStep({
           </div>
         </div>
 
+        {/* ─── 보유 쿠폰 (전번 매칭, 있을 때만) ─── */}
+        {phoneValid && !couponsLoading && availableCoupons.length > 0 && (
+          <div className={styles.couponSection}>
+            <div className={styles.couponSectionTitle}>
+              <Ticket strokeWidth={1.4} size={20} aria-hidden />
+              <span>보유 쿠폰 — 사용하시겠습니까?</span>
+            </div>
+            <div className={styles.couponList}>
+              <button
+                type="button"
+                className={`${styles.couponCard} ${styles.couponCardNone} ${
+                  selectedCouponId === 'none' ? styles.couponCardActive : ''
+                }`}
+                onClick={() => setSelectedCouponId('none')}
+                disabled={submitting}
+              >
+                <span>쿠폰 사용 안 함</span>
+              </button>
+              {availableCoupons.map((c) => {
+                if (c.kind !== 'voucher') return null
+                const active = selectedCouponId === c.couponId
+                return (
+                  <button
+                    key={c.couponId}
+                    type="button"
+                    className={`${styles.couponCard} ${active ? styles.couponCardActive : ''}`}
+                    onClick={() => setSelectedCouponId(c.couponId)}
+                    disabled={submitting}
+                  >
+                    <span className={styles.couponCardPrimary}>
+                      {c.amount.toLocaleString()}원 쿠폰
+                    </span>
+                    <span className={styles.couponCardSub}>{c.remainingCount}장 보유</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ─── 쿠폰 적용 요약 ─── */}
+        {selectedCoupon && calc.voucherConsumed > 0 && (
+          <div className={styles.couponSummary}>
+            <div className={styles.couponSummaryRow}>
+              <span>메뉴 합계</span>
+              <span>{cartSubtotal.toLocaleString()}원</span>
+            </div>
+            <div className={styles.couponSummaryRow}>
+              <span>쿠폰 차감</span>
+              <span className={styles.couponSummaryStrong}>
+                -{calc.voucherConsumed.toLocaleString()}원
+              </span>
+            </div>
+            {calc.voucherBurned > 0 && (
+              <div className={styles.couponSummaryRow}>
+                <span>쿠폰 잔액 소멸</span>
+                <span>-{calc.voucherBurned.toLocaleString()}원</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className={styles.totalRow}>
-          <span>총 결제 금액</span>
-          <span className={styles.totalAmount}>{cartSubtotal.toLocaleString()}원</span>
+          <span>{selectedCoupon ? '추가 결제 금액' : '총 결제 금액'}</span>
+          <span className={styles.totalAmount}>{userPaid.toLocaleString()}원</span>
         </div>
+        {selectedCoupon && userPaid === 0 && (
+          <div className={styles.voucherFullCover}>
+            쿠폰으로 전액 결제 — 직원은 별도 카드/현금 받지 않습니다.
+          </div>
+        )}
 
         {error && <div className={styles.error}>{error}</div>}
 
