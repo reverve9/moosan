@@ -2,6 +2,16 @@ import { supabase } from './supabase'
 import { normalizePhone } from './phone'
 import type { Order, OrderItem, Payment } from '@/types/database'
 
+// PostgREST `.in(...)` URL 길이 한계(~8KB) 회피 — UUID 36자×150 ≈ 5.5KB.
+const IN_CHUNK_SIZE = 150
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (arr.length === 0) return []
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
+}
+
 /**
  * 어드민 결제/주문 관리용 쿼리 모음.
  *  - 목록: payments 단위 (부스 주문 단위가 아님). status/일자/전화 필터.
@@ -94,31 +104,40 @@ export async function fetchPaymentsList(
     q = q.eq('payment_method', filters.paymentMethod)
   }
 
-  const { data: payments, error } = await q.limit(300)
+  const { data: payments, error } = await q
   if (error) throw error
   if (!payments || payments.length === 0) return []
 
   const paymentIds = payments.map((p) => p.id)
-  const { data: orders, error: oErr } = await supabase
-    .from('orders')
-    .select(
-      'id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout, voucher_consumed, voucher_burned, confirmed_at, ready_at, picked_up_at',
-    )
-    .in('payment_id', paymentIds)
-    .order('booth_no', { ascending: true })
-  if (oErr) throw oErr
+  // PostgREST `.in(...)` URL 길이 한계(~8KB) 회피 — UUID 36자×150 ≈ 5.5KB 안전 마진.
+  // 운영중 일별 300+ 결제 누적 시 단일 .in 으로 일부 orders 응답 누락 → 매출 누락 발생.
+  type OrderRow = BoothOrderRow['order']
+  const orders: OrderRow[] = []
+  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
+    const { data, error: oErr } = await supabase
+      .from('orders')
+      .select(
+        'id, payment_id, status, booth_name, booth_no, order_number, subtotal, is_takeout, voucher_consumed, voucher_burned, confirmed_at, ready_at, picked_up_at',
+      )
+      .in('payment_id', chunk)
+      .order('booth_no', { ascending: true })
+    if (oErr) throw oErr
+    if (data) orders.push(...(data as unknown as OrderRow[]))
+  }
 
-  const orderIds = (orders ?? []).map((o) => o.id)
-  let items: { order_id: string; menu_name: string; quantity: number; created_at: string }[] =
+  const orderIds = orders.map((o) => o.id)
+  const items: { order_id: string; menu_name: string; quantity: number; created_at: string }[] =
     []
   if (orderIds.length > 0) {
-    const { data: itemsData, error: iErr } = await supabase
-      .from('order_items')
-      .select('order_id, menu_name, quantity, created_at')
-      .in('order_id', orderIds)
-      .order('created_at', { ascending: true })
-    if (iErr) throw iErr
-    items = itemsData ?? []
+    for (const chunk of chunkArray(orderIds, IN_CHUNK_SIZE)) {
+      const { data: itemsData, error: iErr } = await supabase
+        .from('order_items')
+        .select('order_id, menu_name, quantity, created_at')
+        .in('order_id', chunk)
+        .order('created_at', { ascending: true })
+      if (iErr) throw iErr
+      if (itemsData) items.push(...itemsData)
+    }
   }
 
   const itemsByOrder = new Map<string, { name: string; quantity: number }[]>()
@@ -129,8 +148,8 @@ export async function fetchPaymentsList(
   }
 
   // 결제별로 그룹핑해서, 결제 최신순 + 결제 내 booth_no 오름차순으로 펼침
-  const ordersByPayment = new Map<string, NonNullable<typeof orders>>()
-  for (const o of orders ?? []) {
+  const ordersByPayment = new Map<string, OrderRow[]>()
+  for (const o of orders) {
     const list = ordersByPayment.get(o.payment_id) ?? []
     list.push(o)
     ordersByPayment.set(o.payment_id, list)
