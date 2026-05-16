@@ -138,6 +138,12 @@ export function calcKpi(data: StatsRawData): KpiStats {
     (o) => paidPaymentIds.has(o.payment_id) && o.status !== 'cancelled',
   )
   const totalBoothOrders = paidOrders.length
+  // 매출 정의: p.total_amount 는 손님 실지불액(PG/카드/현금)이라 쿠폰 차감 후 금액.
+  // 정산관리/주문결제관리의 매장 매출(=SUM(order.subtotal), 정가 합)과 일치시키려면
+  // paid+live orders 의 voucher_consumed 를 더해야 함. (= 메뉴 정가 = 실지불 + 쿠폰)
+  for (const o of paidOrders) {
+    totalRevenue += o.voucher_consumed ?? 0
+  }
   return {
     totalRevenue,
     paidCount,
@@ -504,9 +510,18 @@ export interface PaymentChannelStats {
  */
 export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats {
   const channelByPayment = new Map<string, string>()
+  // payment 별 voucher_consumed 합 (live orders 만) — 매출에 합산해서 정가 합과 일치시킴
+  const voucherByPayment = new Map<string, number>()
   for (const o of data.orders) {
-    if (channelByPayment.has(o.payment_id)) continue
-    channelByPayment.set(o.payment_id, o.payment_channel)
+    if (!channelByPayment.has(o.payment_id)) {
+      channelByPayment.set(o.payment_id, o.payment_channel)
+    }
+    if (o.status !== 'cancelled') {
+      voucherByPayment.set(
+        o.payment_id,
+        (voucherByPayment.get(o.payment_id) ?? 0) + (o.voucher_consumed ?? 0),
+      )
+    }
   }
 
   const make = (): ChannelRow => ({ revenue: 0, count: 0 })
@@ -520,7 +535,8 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
     if (p.status !== 'paid') continue
     const channel = channelByPayment.get(p.id)
     if (!channel) continue
-    const revenue = p.total_amount - (p.refunded_amount ?? 0)
+    const revenue =
+      p.total_amount - (p.refunded_amount ?? 0) + (voucherByPayment.get(p.id) ?? 0)
     if (channel === 'app') {
       app.revenue += revenue
       app.count += 1
