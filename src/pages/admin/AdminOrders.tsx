@@ -15,8 +15,7 @@ import { formatPhoneDisplay } from '@/lib/phone'
 import { exportToExcel, fmtDateKst } from '@/lib/excel'
 import { ExportButton } from '@/components/admin/ExcelButtons'
 import { todayKstString } from '@/lib/orders'
-import { PAYMENT_METHOD_SHORT } from '@/lib/helpDesk'
-import type { PaymentMethod } from '@/types/database'
+import { formatPaymentMethodCompound } from '@/lib/helpDesk'
 import styles from './AdminOrders.module.css'
 
 function methodBadgeClass(method: string): string {
@@ -24,11 +23,6 @@ function methodBadgeClass(method: string): string {
   if (method === 'external_card') return styles.methodExternal
   if (method === 'voucher_only') return styles.methodVoucher
   return styles.methodPg
-}
-
-function methodLabel(method: string | null | undefined): string {
-  const m = (method ?? 'pg') as PaymentMethod
-  return PAYMENT_METHOD_SHORT[m] ?? m
 }
 
 function formatDateTime(iso: string): string {
@@ -172,7 +166,7 @@ export default function AdminOrders() {
       { key: 'phone', label: '연락처' },
       { key: 'menu', label: '메뉴' },
       { key: 'subtotal', label: '매장 금액' },
-      { key: 'voucher_consumed', label: '식권 사용' },
+      { key: 'voucher_consumed', label: '쿠폰 사용' },
       { key: 'sibling', label: '동시결제 매장수' },
       { key: 'payment_method', label: '결제수단' },
       { key: 'status', label: '상태' },
@@ -189,7 +183,11 @@ export default function AdminOrders() {
       subtotal: r.order.subtotal,
       voucher_consumed: r.order.voucher_consumed,
       sibling: r.siblingCount,
-      payment_method: methodLabel(r.payment.payment_method),
+      payment_method: formatPaymentMethodCompound({
+        paymentMethod: r.payment.payment_method,
+        discountAmount: r.payment.discount_amount,
+        voucherConsumed: r.order.voucher_consumed,
+      }),
       status: rowStatusLabel(r),
       progress: PROGRESS_LABEL[rowProgressKey(r)],
       toss_order_id: r.payment.toss_order_id ?? '',
@@ -383,7 +381,7 @@ export default function AdminOrders() {
             <option value="pg">PG</option>
             <option value="external_card">직영카드</option>
             <option value="cash">현금</option>
-            <option value="voucher_only">식권</option>
+            <option value="voucher_only">쿠폰</option>
           </select>
         </label>
         <label className={`${styles.filterItem} ${styles.filterItemGrow}`}>
@@ -493,9 +491,9 @@ export default function AdminOrders() {
                       {hasVoucher && (
                         <span
                           className={styles.voucherBadge}
-                          title={`식권 사용 ${r.order.voucher_consumed.toLocaleString()}원 (이 부스 분배)`}
+                          title={`쿠폰 사용 ${r.order.voucher_consumed.toLocaleString()}원 (이 부스 분배)`}
                         >
-                          식권
+                          쿠폰
                         </span>
                       )}
                       {r.order.subtotal.toLocaleString()}원
@@ -504,7 +502,11 @@ export default function AdminOrders() {
                       <span
                         className={`${styles.methodBadge} ${methodBadgeClass(r.payment.payment_method ?? 'pg')}`}
                       >
-                        {methodLabel(r.payment.payment_method)}
+                        {formatPaymentMethodCompound({
+                          paymentMethod: r.payment.payment_method,
+                          discountAmount: r.payment.discount_amount,
+                          voucherConsumed: r.order.voucher_consumed,
+                        })}
                       </span>
                     </td>
                     <td>
@@ -840,8 +842,8 @@ function DetailModal({ paymentId, onClose, onCancelled }: DetailModalProps) {
                   if (m === 'voucher_only') {
                     return (
                       <div className={styles.methodNoticeVoucher}>
-                        ⚠ 식권 100% 결제
-                        <div>환불 처리해도 식권은 복구되지 않습니다. 필요 시 식권 재발급은 별도 진행하세요.</div>
+                        ⚠ 쿠폰 100% 결제
+                        <div>환불 처리해도 쿠폰은 복구되지 않습니다. 필요 시 쿠폰 재발급은 별도 진행하세요.</div>
                       </div>
                     )
                   }

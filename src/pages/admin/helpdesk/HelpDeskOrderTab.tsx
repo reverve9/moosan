@@ -507,7 +507,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
                       </span>
                     ) : (
                       <span>
-                        식권 {c.amount.toLocaleString()}원 [{VOUCHER_SOURCE_LABEL[c.source]}] · {c.remainingCount}장
+                        쿠폰 {c.amount.toLocaleString()}원 [{VOUCHER_SOURCE_LABEL[c.source]}] · {c.remainingCount}장
                       </span>
                     )}
                   </li>
@@ -528,7 +528,7 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
             </ul>
             {selectedCoupon?.kind === 'voucher' && calc.voucherBurned > 0 && (
               <span style={{ fontSize: 11, color: '#B45309', fontWeight: 600 }}>
-                ※ 식권 잔액 {calc.voucherBurned.toLocaleString()}원 소멸
+                ※ 쿠폰 잔액 {calc.voucherBurned.toLocaleString()}원 소멸
               </span>
             )}
           </div>

@@ -698,7 +698,7 @@ function VoucherSection({ stats }: { stats: VoucherStats }) {
       : 0
   return (
     <section className={styles.section}>
-      <h2 className={styles.sectionTitle}>식권 운영 현황</h2>
+      <h2 className={styles.sectionTitle}>쿠폰 운영 현황</h2>
       <div className={styles.kpiGrid}>
         <Kpi
           label="총 발급"
@@ -713,9 +713,9 @@ function VoucherSection({ stats }: { stats: VoucherStats }) {
           label="미사용"
           value={`${stats.unusedCount.toLocaleString()}장 / ${fmtWon(stats.unusedFaceValue)}`}
         />
-        <Kpi label="운영자 식권 부담" value={fmtWon(stats.organizerCost)} />
+        <Kpi label="운영자 쿠폰 부담" value={fmtWon(stats.organizerCost)} />
         <Kpi label="잔액 소멸" value={fmtWon(stats.burned)} />
-        <Kpi label="식권당 평균 사용액" value={fmtWon(avgUsed)} />
+        <Kpi label="쿠폰당 평균 사용액" value={fmtWon(avgUsed)} />
       </div>
       <div className={styles.subTitle}>대상별 분리</div>
       <table className={styles.simpleTable}>
