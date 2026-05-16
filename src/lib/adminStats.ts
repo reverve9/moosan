@@ -512,8 +512,8 @@ export interface PaymentChannelStats {
   app: ChannelRow
   helpdesk: ChannelRow
   helpdeskCard: ChannelRow
-  helpdeskCash: ChannelRow
-  helpdeskOther: ChannelRow
+  /** 헬프데스크 현금/쿠폰 — 현장 처리(현금 + voucher_only) 합산. 쿠폰은 현금과 동일 카테고리. */
+  helpdeskCashVoucher: ChannelRow
   total: ChannelRow
 }
 
@@ -524,8 +524,8 @@ export interface PaymentChannelStats {
  * 동일 채널. 따라서 payment_id 별로 첫 orders 의 payment_channel 을 추론
  * 하여 payment 단위로 매출(=payment.total_amount - refunded_amount) 합산.
  *
- * 헬프데스크 내 카드/현금 분리는 `payments.payment_method` 컬럼 기준
- * (`external_card` / `cash` / `voucher_only`).
+ * 헬프데스크 내 분리 = 카드 / (현금+쿠폰) — `payments.payment_method` 컬럼 기준.
+ * `external_card` 외(`cash`/`voucher_only`/NULL 등) 는 모두 현장 수기 처리라 한 묶음.
  */
 export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats {
   const voucherByPayment = buildVoucherByPayment(data)
@@ -540,8 +540,7 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
   const app = make()
   const helpdesk = make()
   const helpdeskCard = make()
-  const helpdeskCash = make()
-  const helpdeskOther = make()
+  const helpdeskCashVoucher = make()
 
   for (const p of data.payments) {
     if (p.status !== 'paid') continue
@@ -559,13 +558,10 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
       if (p.payment_method === 'external_card') {
         helpdeskCard.revenue += revenue
         helpdeskCard.count += 1
-      } else if (p.payment_method === 'cash') {
-        helpdeskCash.revenue += revenue
-        helpdeskCash.count += 1
       } else {
-        // voucher_only / null / pg 등
-        helpdeskOther.revenue += revenue
-        helpdeskOther.count += 1
+        // cash / voucher_only / null — 현장 수기 처리 묶음
+        helpdeskCashVoucher.revenue += revenue
+        helpdeskCashVoucher.count += 1
       }
     }
   }
@@ -574,11 +570,73 @@ export function calcPaymentChannelStats(data: StatsRawData): PaymentChannelStats
     app,
     helpdesk,
     helpdeskCard,
-    helpdeskCash,
-    helpdeskOther,
+    helpdeskCashVoucher,
     total: {
       revenue: app.revenue + helpdesk.revenue,
       count: app.count + helpdesk.count,
+    },
+  }
+}
+
+// ─── 5-2. 결제수단별 매출 (PG / 카드 / 현금 / 쿠폰) ─────────
+
+export interface PaymentMethodStats {
+  /** 키오스크 PG (= payment.total_amount - refunded 중 payment_method='pg' 분) */
+  pg: ChannelRow
+  /** 헬프데스크 카드 (external_card) */
+  card: ChannelRow
+  /** 헬프데스크 현금 (cash) + 미설정(null) */
+  cash: ChannelRow
+  /** 쿠폰 사용액 — 모든 채널 통합 (voucher_consumed 합) */
+  voucher: ChannelRow
+  total: ChannelRow
+}
+
+/**
+ * 결제수단별 매출 — 한 결제 내에서 쿠폰 분과 실지불 분(PG/카드/현금)을 쪼개서 합산.
+ * 채널과 별개의 분류축. 카운트는 "그 결제수단이 0보다 사용된 결제 수".
+ */
+export function calcPaymentMethodStats(data: StatsRawData): PaymentMethodStats {
+  const voucherByPayment = buildVoucherByPayment(data)
+
+  const make = (): ChannelRow => ({ revenue: 0, count: 0 })
+  const pg = make()
+  const card = make()
+  const cash = make()
+  const voucher = make()
+
+  for (const p of data.payments) {
+    if (p.status !== 'paid') continue
+    const cashPart = p.total_amount - (p.refunded_amount ?? 0)
+    const voucherPart = voucherByPayment.get(p.id) ?? 0
+
+    if (voucherPart > 0) {
+      voucher.revenue += voucherPart
+      voucher.count += 1
+    }
+    if (cashPart > 0) {
+      if (p.payment_method === 'external_card') {
+        card.revenue += cashPart
+        card.count += 1
+      } else if (p.payment_method === 'pg') {
+        pg.revenue += cashPart
+        pg.count += 1
+      } else {
+        // cash / voucher_only / null — 현금 항목으로 (voucher_only 인데 cashPart>0 이면 데이터 이상)
+        cash.revenue += cashPart
+        cash.count += 1
+      }
+    }
+  }
+
+  return {
+    pg,
+    card,
+    cash,
+    voucher,
+    total: {
+      revenue: pg.revenue + card.revenue + cash.revenue + voucher.revenue,
+      count: pg.count + card.count + cash.count + voucher.count,
     },
   }
 }

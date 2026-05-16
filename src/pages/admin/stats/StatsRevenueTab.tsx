@@ -7,6 +7,7 @@ import {
   calcMenuStats,
   calcPaymentBehaviorStats,
   calcPaymentChannelStats,
+  calcPaymentMethodStats,
   calcTimeStats,
   fetchStatsData,
   type StatsFilters,
@@ -121,6 +122,10 @@ export default function StatsRevenueTab() {
     () => (raw ? calcPaymentChannelStats(raw) : null),
     [raw],
   )
+  const paymentMethod = useMemo(
+    () => (raw ? calcPaymentMethodStats(raw) : null),
+    [raw],
+  )
 
   return (
     <div className={styles.tab}>
@@ -171,6 +176,9 @@ export default function StatsRevenueTab() {
 
           {/* 1-2. 채널별 매출 (앱 vs 헬프데스크) */}
           {channel && <ChannelSection channel={channel} />}
+
+          {/* 1-3. 결제수단별 매출 (PG / 카드 / 현금 / 쿠폰) */}
+          {paymentMethod && <PaymentMethodSection pm={paymentMethod} />}
 
           {/* 2. 시간 분석 */}
           {time && <TimeSection time={time} />}
@@ -268,15 +276,48 @@ function ChannelSection({
           value={`${fmtWon(channel.helpdeskCard.revenue)} · ${channel.helpdeskCard.count}건`}
         />
         <Kpi
-          label="헬프데스크 — 현금"
-          value={`${fmtWon(channel.helpdeskCash.revenue)} · ${channel.helpdeskCash.count}건`}
+          label="헬프데스크 — 현금/쿠폰"
+          value={`${fmtWon(channel.helpdeskCashVoucher.revenue)} · ${channel.helpdeskCashVoucher.count}건`}
         />
-        {channel.helpdeskOther.count > 0 && (
-          <Kpi
-            label="헬프데스크 — 기타"
-            value={`${fmtWon(channel.helpdeskOther.revenue)} · ${channel.helpdeskOther.count}건`}
-          />
-        )}
+        <Kpi
+          label="합계"
+          value={`${fmtWon(total.revenue)} · ${total.count}건`}
+          emphasis
+        />
+      </div>
+    </section>
+  )
+}
+
+// ─── 1-3. 결제수단별 매출 섹션 ─────────────────────
+
+function PaymentMethodSection({
+  pm,
+}: {
+  pm: ReturnType<typeof calcPaymentMethodStats>
+}) {
+  const total = pm.total
+  const share = (v: number) => (total.revenue > 0 ? v / total.revenue : 0)
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>결제수단별 매출 (쿠폰 분리)</h2>
+      <div className={styles.kpiGrid}>
+        <Kpi
+          label="PG (앱)"
+          value={`${fmtWon(pm.pg.revenue)} · ${pm.pg.count}건 · ${fmtPct(share(pm.pg.revenue))}`}
+        />
+        <Kpi
+          label="카드 (헬프데스크)"
+          value={`${fmtWon(pm.card.revenue)} · ${pm.card.count}건 · ${fmtPct(share(pm.card.revenue))}`}
+        />
+        <Kpi
+          label="현금 (헬프데스크)"
+          value={`${fmtWon(pm.cash.revenue)} · ${pm.cash.count}건 · ${fmtPct(share(pm.cash.revenue))}`}
+        />
+        <Kpi
+          label="쿠폰 (전 채널)"
+          value={`${fmtWon(pm.voucher.revenue)} · ${pm.voucher.count}건 · ${fmtPct(share(pm.voucher.revenue))}`}
+        />
         <Kpi
           label="합계"
           value={`${fmtWon(total.revenue)} · ${total.count}건`}
