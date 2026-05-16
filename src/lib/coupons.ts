@@ -506,15 +506,21 @@ export async function fetchVoucherStats(filters: {
   let organizerCost = 0
   let burned = 0
   if (usedPaymentIds.length > 0) {
-    const { data: orderRows, error: oErr } = await supabase
-      .from('orders')
-      .select('payment_id, voucher_consumed, voucher_burned')
-      .in('payment_id', usedPaymentIds)
-      .neq('status', 'cancelled')
-    if (oErr) throw oErr
-    for (const o of orderRows ?? []) {
-      organizerCost += o.voucher_consumed
-      burned += o.voucher_burned
+    // PostgREST `.in(...)` URL 길이 한계(~8KB) — UUID 36자×150 ≈ 5.5KB 안전 마진.
+    // 운영중 일별 300+ 결제 누적 시 400 발생 → 청크 분할.
+    const CHUNK = 150
+    for (let i = 0; i < usedPaymentIds.length; i += CHUNK) {
+      const chunk = usedPaymentIds.slice(i, i + CHUNK)
+      const { data: orderRows, error: oErr } = await supabase
+        .from('orders')
+        .select('payment_id, voucher_consumed, voucher_burned')
+        .in('payment_id', chunk)
+        .neq('status', 'cancelled')
+      if (oErr) throw oErr
+      for (const o of orderRows ?? []) {
+        organizerCost += o.voucher_consumed
+        burned += o.voucher_burned
+      }
     }
   }
 
