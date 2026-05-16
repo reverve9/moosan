@@ -311,6 +311,112 @@
   color: #374151;
 }
 
+/* ─── 쿠폰 선택 ──────────────────────────────────────────── */
+
+.couponSection {
+  margin-bottom: 20px;
+}
+
+.couponSectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 10px;
+}
+
+.couponEmpty {
+  padding: 12px 14px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  color: #6b7280;
+  font-size: 14px;
+  text-align: center;
+}
+
+.couponList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.couponItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.1s ease, background 0.1s ease;
+}
+
+.couponItem:active:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.couponItemActive {
+  border-color: #047857;
+  background: #ecfdf5;
+}
+
+.couponItemNone {
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.couponItemActive.couponItemNone {
+  border-color: #111827;
+  background: #f3f4f6;
+  color: #111827;
+  font-weight: 700;
+}
+
+.couponPrimary {
+  font-size: 16px;
+  font-weight: 800;
+  color: #047857;
+}
+
+.couponItemActive .couponPrimary {
+  color: #065f46;
+}
+
+.couponSub {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.breakdownDiscount {
+  color: #047857;
+  font-weight: 700;
+}
+
 .modalTotalAmount {
   font-size: 26px;
   font-weight: 800;

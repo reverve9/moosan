@@ -451,7 +451,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
 
     // ─── 식권 ───
     if (voucherAmount <= 0) {
-      setError('식권 액면가를 입력해주세요')
+      setError('쿠폰 액면가를 입력해주세요')
       return
     }
 
@@ -486,7 +486,7 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
           },
         ])
       } catch (e) {
-        setError(e instanceof Error ? e.message : '식권 발급 실패')
+        setError(e instanceof Error ? e.message : '쿠폰 발급 실패')
       } finally {
         setSubmitting(false)
       }

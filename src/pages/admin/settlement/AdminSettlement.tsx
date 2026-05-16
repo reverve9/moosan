@@ -15,7 +15,6 @@ import {
   type SettlementRawData,
   type SettlementRow,
 } from '@/lib/settlement'
-import { PAYMENT_METHOD_SHORT } from '@/lib/helpDesk'
 import dashStyles from '../AdminDashboard.module.css'
 import styles from './AdminSettlement.module.css'
 
@@ -415,8 +414,8 @@ function BoothPreviewModal({
           <div className={styles.previewSummary}>
             <PreviewKpi label="주문 건수" value={booth.orderCount.toLocaleString()} />
             <PreviewKpi label="매장 매출" value={fmtMoney(booth.menuSales)} />
-            <PreviewKpi label="식권 사용" value={fmtMoney(booth.voucherUsed)} />
-            <PreviewKpi label="쿠폰 차감" value={fmtMoney(booth.couponDiscount)} />
+            <PreviewKpi label="쿠폰 사용" value={fmtMoney(booth.voucherUsed)} />
+            <PreviewKpi label="쿠폰 할인" value={fmtMoney(booth.couponDiscount)} />
             <PreviewKpi label="Toss 수수료" value={fmtMoney(booth.tossFee)} />
             <PreviewKpi label="송금액" value={fmtMoney(booth.boothPayout)} emphasis />
           </div>
@@ -435,11 +434,10 @@ function BoothPreviewModal({
                   <tr>
                     <th>주문번호</th>
                     <th>결제시각</th>
-                    <th>결제수단</th>
                     <th>메뉴</th>
                     <th className={styles.thRight}>매장 금액</th>
-                    <th className={styles.thRight}>식권 사용</th>
-                    <th className={styles.thRight}>쿠폰 분배</th>
+                    <th className={styles.thRight}>쿠폰 사용</th>
+                    <th className={styles.thRight}>쿠폰 할인 분배</th>
                     <th className={styles.thRight}>송금액</th>
                   </tr>
                 </thead>
@@ -448,7 +446,6 @@ function BoothPreviewModal({
                     <tr key={d.orderId}>
                       <td>{d.orderNumber}</td>
                       <td>{fmtDateKst(d.paidAt)}</td>
-                      <td>{PAYMENT_METHOD_SHORT[d.paymentMethod] ?? d.paymentMethod}</td>
                       <td>
                         {d.menuSummary}
                         {d.isTakeout && ' (포장)'}
@@ -519,9 +516,9 @@ async function exportBoothSettlement(
     { k: '기간', v: period },
     { k: '주문 건수', v: booth.orderCount },
     { k: '매장 매출 (정가 합)', v: booth.menuSales },
-    { k: '식권 사용', v: booth.voucherUsed },
-    { k: '식권 소멸', v: booth.voucherBurned },
-    { k: '쿠폰 차감 (부스 분배)', v: booth.couponDiscount },
+    { k: '쿠폰 사용', v: booth.voucherUsed },
+    { k: '쿠폰 소멸', v: booth.voucherBurned },
+    { k: '쿠폰 할인 (부스 분배)', v: booth.couponDiscount },
     { k: 'PG 거래액 (부스 분배)', v: booth.pgAmount },
     { k: 'Toss 수수료 (3.74%)', v: booth.tossFee },
     { k: '매장 송금액', v: booth.boothPayout },
@@ -529,7 +526,6 @@ async function exportBoothSettlement(
   const detailRows = details.map((d) => ({
     orderNumber: d.orderNumber,
     paidAt: fmtDateKst(d.paidAt),
-    paymentMethod: PAYMENT_METHOD_SHORT[d.paymentMethod] ?? d.paymentMethod,
     isTakeout: d.isTakeout ? '포장' : '매장',
     menuSummary: d.menuSummary,
     subtotal: d.subtotal,
@@ -556,13 +552,12 @@ async function exportBoothSettlement(
         columns: [
           { key: 'orderNumber', label: '주문번호' },
           { key: 'paidAt', label: '결제시각' },
-          { key: 'paymentMethod', label: '결제수단' },
           { key: 'isTakeout', label: '포장' },
           { key: 'menuSummary', label: '메뉴' },
           { key: 'subtotal', label: '매장 금액' },
-          { key: 'voucherConsumed', label: '식권 사용' },
-          { key: 'voucherBurned', label: '식권 소멸' },
-          { key: 'couponShare', label: '쿠폰 분배' },
+          { key: 'voucherConsumed', label: '쿠폰 사용' },
+          { key: 'voucherBurned', label: '쿠폰 소멸' },
+          { key: 'couponShare', label: '쿠폰 할인 분배' },
           { key: 'pgShare', label: 'PG 분배' },
           { key: 'payout', label: '송금액' },
         ],
@@ -583,7 +578,7 @@ function SummarySection({ totals }: { totals: SettlementRow }) {
         <Kpi label="매장 송금 합계" value={fmtMoney(totals.boothPayout)} emphasis />
         <Kpi label="Toss 수수료(매장)" value={fmtMoney(totals.tossFee)} />
         <Kpi label="운영자 PG 입금" value={fmtMoney(totals.organizerPgIn)} />
-        <Kpi label="운영자 부담(쿠폰+식권)" value={fmtMoney(totals.couponDiscount + totals.voucherUsed)} />
+        <Kpi label="운영자 부담(쿠폰)" value={fmtMoney(totals.couponDiscount + totals.voucherUsed)} />
         <Kpi label="운영자 순지출" value={fmtMoney(totals.organizerLoss)} emphasis />
       </div>
     </section>
@@ -697,8 +692,8 @@ const OVERALL_COLS: ColDef[] = [
   { key: 'label', label: '날짜', render: (r) => r.label },
   { key: 'paymentCount', label: '결제건수', right: true, render: (r) => r.paymentCount.toLocaleString() },
   { key: 'menuSales', label: '매장 매출', right: true, render: (r) => fmtMoney(r.menuSales) },
-  { key: 'voucherUsed', label: '식권 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
-  { key: 'couponDiscount', label: '쿠폰 차감', right: true, render: (r) => fmtMoney(r.couponDiscount) },
+  { key: 'voucherUsed', label: '쿠폰 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
+  { key: 'couponDiscount', label: '쿠폰 할인', right: true, render: (r) => fmtMoney(r.couponDiscount) },
   { key: 'pgAmount', label: 'PG 거래액', right: true, render: (r) => fmtMoney(r.pgAmount) },
   { key: 'tossFee', label: 'Toss 수수료', right: true, render: (r) => fmtMoney(r.tossFee) },
   { key: 'boothPayout', label: '매장 송금', right: true, render: (r) => fmtMoney(r.boothPayout) },
@@ -710,8 +705,8 @@ const BOOTH_COLS: ColDef[] = [
   { key: 'label', label: '매장명', render: (r) => r.label },
   { key: 'orderCount', label: '주문건수', right: true, render: (r) => r.orderCount.toLocaleString() },
   { key: 'menuSales', label: '매장 매출', right: true, render: (r) => fmtMoney(r.menuSales) },
-  { key: 'voucherUsed', label: '식권 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
-  { key: 'couponDiscount', label: '쿠폰 차감', right: true, render: (r) => fmtMoney(r.couponDiscount) },
+  { key: 'voucherUsed', label: '쿠폰 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
+  { key: 'couponDiscount', label: '쿠폰 할인', right: true, render: (r) => fmtMoney(r.couponDiscount) },
   { key: 'pgAmount', label: 'PG 거래액', right: true, render: (r) => fmtMoney(r.pgAmount) },
   { key: 'tossFee', label: 'Toss 수수료', right: true, render: (r) => fmtMoney(r.tossFee) },
   { key: 'boothPayout', label: '매장 송금액', right: true, render: (r) => fmtMoney(r.boothPayout) },
@@ -723,8 +718,10 @@ const OVERALL_EXPORT_COLS = [
   { key: 'date', label: '날짜' },
   { key: 'paymentCount', label: '결제건수' },
   { key: 'menuSales', label: '매장 매출' },
-  { key: 'voucherUsed', label: '식권 사용' },
-  { key: 'voucherBurned', label: '식권 소멸' },
+  { key: 'voucherUsed', label: '쿠폰 사용' },
+  { key: 'voucherBurned', label: '쿠폰 소멸' },
+  { key: 'couponDiscount', label: '쿠폰 할인' },
+  { key: 'pgAmount', label: 'PG 거래액' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금' },
   { key: 'organizerPgIn', label: '운영자 PG입금' },
@@ -735,7 +732,8 @@ const BOOTH_EXPORT_COLS = [
   { key: 'boothName', label: '매장명' },
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
-  { key: 'voucherUsed', label: '식권 사용' },
+  { key: 'voucherUsed', label: '쿠폰 사용' },
+  { key: 'couponDiscount', label: '쿠폰 할인' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
@@ -745,7 +743,8 @@ const BOOTH_DAILY_EXPORT_COLS = [
   { key: 'boothName', label: '매장명' },
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
-  { key: 'voucherUsed', label: '식권 사용' },
+  { key: 'voucherUsed', label: '쿠폰 사용' },
+  { key: 'couponDiscount', label: '쿠폰 할인' },
   { key: 'tossFee', label: 'Toss 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
@@ -757,6 +756,8 @@ function toOverallExportRow(r: SettlementRow): Record<string, unknown> {
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
     voucherBurned: r.voucherBurned,
+    couponDiscount: r.couponDiscount,
+    pgAmount: r.pgAmount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
     organizerPgIn: r.organizerPgIn,
@@ -770,6 +771,7 @@ function toBoothExportRow(r: SettlementRow): Record<string, unknown> {
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
+    couponDiscount: r.couponDiscount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
   }
@@ -782,6 +784,7 @@ function toBoothDailyExportRow(r: SettlementRow, date: string): Record<string, u
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
+    couponDiscount: r.couponDiscount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
   }

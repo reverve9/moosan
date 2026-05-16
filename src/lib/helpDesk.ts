@@ -214,19 +214,46 @@ export async function fetchTodayHelpDeskHistory(
 }
 
 // ─── method 라벨 ─────────────────────────────────────────
+// 운영 정책: "식권" 단어는 어드민 UI 에서 모두 "쿠폰" 으로 통일.
+// DB 컬럼/enum (voucher_only, voucher_consumed, type='meal_voucher') 은
+// 호환성을 위해 그대로 유지하고 표시 라벨만 변경.
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   pg: 'PG (앱 결제)',
   external_card: '직영카드',
   cash: '현금',
-  voucher_only: '식권 100%',
+  voucher_only: '쿠폰',
 }
 
 export const PAYMENT_METHOD_SHORT: Record<PaymentMethod, string> = {
   pg: 'PG',
   external_card: '직영카드',
   cash: '현금',
-  voucher_only: '식권',
+  voucher_only: '쿠폰',
+}
+
+/**
+ * 결제수단 복합 표시 — 어드민 결제수단 컬럼/상세 공통 helper.
+ *
+ * 정책:
+ *  - `voucher_only` (잔액 0, 쿠폰 단독) → `'쿠폰'`
+ *  - 그 외 결제수단 + 쿠폰 사용 (discount_amount>0 OR voucher_consumed>0)
+ *    → `'쿠폰 + PG' / '쿠폰 + 직영카드' / '쿠폰 + 현금'`
+ *  - 쿠폰 미사용 → `'PG' / '직영카드' / '현금'`
+ *
+ * 입력은 결제 단위(payments) 또는 부스 단위(orders) 어느 쪽에서든 호출 가능
+ * 하도록 평탄화한 인자만 받는다.
+ */
+export function formatPaymentMethodCompound(input: {
+  paymentMethod: PaymentMethod | null | undefined
+  discountAmount: number
+  voucherConsumed: number
+}): string {
+  const m = (input.paymentMethod ?? 'pg') as PaymentMethod
+  if (m === 'voucher_only') return '쿠폰'
+  const usedCoupon = (input.discountAmount ?? 0) > 0 || (input.voucherConsumed ?? 0) > 0
+  const base = PAYMENT_METHOD_SHORT[m] ?? m
+  return usedCoupon ? `쿠폰 + ${base}` : base
 }
 
 // ─── 헬프데스크 키오스크 — 결제 대기 큐 ────────────────────────────
@@ -241,6 +268,7 @@ export interface KioskQueueItem {
 export interface KioskQueueOrder {
   id: string
   order_number: string
+  booth_id: string
   booth_no: string
   booth_name: string
   subtotal: number
@@ -250,9 +278,11 @@ export interface KioskQueueOrder {
 export interface KioskQueueGroup {
   paymentId: string
   phone: string
-  /** 식권 차감 후 손님이 추가 결제해야 할 금액 (식권 단독 결제면 0). */
+  /** 메뉴 정가 합계 (= SUM(orders.subtotal)). 쿠폰 적용 전 기준. */
+  menuSubtotal: number
+  /** 결제 시점에 payments.total_amount 에 기록된 값 (쿠폰 적용 전이면 menuSubtotal 과 동일). */
   totalAmount: number
-  /** 식권 차감 합계 (orders.voucher_consumed 의 payment 단위 합). 식권 미사용이면 0. */
+  /** 키오스크 단계에서 손님이 미리 적용한 쿠폰 차감액 합계 (현 운영: 항상 0). */
   voucherConsumed: number
   createdAt: string
   /** 키오스크 단말 식별자. 키오스크 결제는 'helpdesk-1'/'helpdesk-2'/'helpdesk-3', 직원 직접 입력은 NULL. */
@@ -269,7 +299,7 @@ export async function fetchKioskPendingQueue(): Promise<KioskQueueGroup[]> {
   const { data: orders, error: oErr } = await supabase
     .from('orders')
     .select(
-      'id, payment_id, order_number, booth_no, booth_name, subtotal, voucher_consumed, phone, created_at, kiosk_station_id',
+      'id, payment_id, order_number, booth_id, booth_no, booth_name, subtotal, voucher_consumed, phone, created_at, kiosk_station_id',
     )
     .eq('status', 'payment_pending')
     .eq('payment_channel', 'helpdesk')
@@ -316,6 +346,7 @@ export async function fetchKioskPendingQueue(): Promise<KioskQueueGroup[]> {
       group = {
         paymentId: o.payment_id,
         phone: payment.phone,
+        menuSubtotal: 0,
         totalAmount: payment.total_amount,
         voucherConsumed: 0,
         createdAt: payment.created_at,
@@ -324,10 +355,12 @@ export async function fetchKioskPendingQueue(): Promise<KioskQueueGroup[]> {
       }
       grouped.set(o.payment_id, group)
     }
+    group.menuSubtotal += o.subtotal
     group.voucherConsumed += o.voucher_consumed ?? 0
     group.orders.push({
       id: o.id,
       order_number: o.order_number,
+      booth_id: o.booth_id ?? '',
       booth_no: o.booth_no,
       booth_name: o.booth_name,
       subtotal: o.subtotal,
@@ -341,21 +374,59 @@ export async function fetchKioskPendingQueue(): Promise<KioskQueueGroup[]> {
 /**
  * 헬프데스크 키오스크 결제 완료 처리.
  *
- * 직원이 카드/현금 결제를 받은 뒤 호출. 기존 `HelpDeskOrderTab` 패턴과 동일하게:
- *   1) `payments.payment_method` + `assisted_by` 를 UPDATE
- *   2) `markPaymentPaid(paymentId, null)` 호출
- *      → payments.status='paid', 하위 orders.status='paid', 쿠폰 처리(있다면)
+ * 직원이 카드/현금 결제를 받은 뒤 호출. 흐름:
+ *   1) (쿠폰 적용 시) payments.coupon_id/total_amount 업데이트 + 부스별
+ *      orders.voucher_consumed/burned 분배 업데이트
+ *   2) payments.payment_method + assisted_by 업데이트
+ *   3) markPaymentPaid(paymentId, null) → status='paid', orders 도 paid,
+ *      쿠폰 status='used' 원자 전이
  *
- * `method` 도메인 (식권 단독 결제 케이스 포함):
- *   - 'external_card' — 카드 (식권 + 카드 케이스도 포함)
- *   - 'cash'          — 현금 (식권 + 현금 케이스도 포함)
- *   - 'voucher_only'  — 식권 100% (잔액 0)
+ * `method` 도메인:
+ *   - 'external_card' — 카드 (쿠폰 + 카드 케이스 포함)
+ *   - 'cash'          — 현금 (쿠폰 + 현금 케이스 포함)
+ *   - 'voucher_only'  — 쿠폰 100% (잔액 0)
+ *
+ * `couponApplication` (선택):
+ *   헬프데스크 직원이 모달에서 손님 보유 쿠폰을 적용한 경우 전달.
+ *   주문 요청 시점엔 쿠폰 미적용 상태(메뉴 정가 합)로 들어오고, 결제 완료
+ *   처리 단계에서 적용 여부를 결정하는 흐름. 미전달 시 쿠폰 미적용으로 진행.
  */
 export async function confirmKioskPayment(
   paymentId: string,
   method: 'external_card' | 'cash' | 'voucher_only',
   adminId: string,
+  couponApplication?: {
+    couponId: string
+    /** 쿠폰 차감 후 손님이 추가 결제할 금액 (전액 쿠폰이면 0) */
+    totalAmount: number
+    distributions: { boothId: string; voucherConsumed: number; voucherBurned: number }[]
+  },
 ): Promise<void> {
+  // 1) 쿠폰 적용 — payments.coupon_id/total_amount + 부스별 orders 분배
+  if (couponApplication) {
+    const { error: cpErr } = await supabase
+      .from('payments')
+      .update({
+        coupon_id: couponApplication.couponId,
+        total_amount: couponApplication.totalAmount,
+      })
+      .eq('id', paymentId)
+    if (cpErr) throw new Error(`쿠폰 적용(결제) 실패: ${cpErr.message}`)
+
+    for (const d of couponApplication.distributions) {
+      const { error: oErr } = await supabase
+        .from('orders')
+        .update({
+          voucher_consumed: d.voucherConsumed,
+          voucher_burned: d.voucherBurned,
+        })
+        .eq('payment_id', paymentId)
+        .eq('booth_id', d.boothId)
+      if (oErr) throw new Error(`쿠폰 분배(주문) 실패: ${oErr.message}`)
+    }
+  }
+
+  // 2) 결제수단 + 처리 도우미 기록
   const { error: pErr } = await supabase
     .from('payments')
     .update({
@@ -365,6 +436,7 @@ export async function confirmKioskPayment(
     .eq('id', paymentId)
   if (pErr) throw new Error(`결제 수단 업데이트 실패: ${pErr.message}`)
 
+  // 3) paid 전이 (markPaymentPaid 가 쿠폰 status='used' 도 처리)
   await markPaymentPaid(paymentId, null)
 }
 
