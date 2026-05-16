@@ -333,6 +333,17 @@ export async function createMealVouchersBulk(
   return { count: data.length, codes: data.map((r) => r.code) }
 }
 
+/** 쿠폰 메모 단건 업데이트 — 어드민 수정용. */
+export async function updateCouponMemo(couponId: string, memo: string): Promise<void> {
+  const trimmed = memo.trim()
+  if (trimmed.length === 0) throw new Error('메모는 필수 입력입니다')
+  const { error } = await supabase
+    .from('coupons')
+    .update({ memo: trimmed })
+    .eq('id', couponId)
+  if (error) throw new Error(`메모 수정 실패: ${error.message}`)
+}
+
 // ─── 목록 조회 (어드민) ─────────────────────────────────────
 
 export interface CouponsListFilters {

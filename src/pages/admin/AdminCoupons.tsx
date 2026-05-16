@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createMealVouchersBulk,
   fetchCouponsList,
+  updateCouponMemo,
   type CouponRow,
   type CouponsListFilters,
   type VoucherSource,
@@ -50,6 +51,10 @@ export default function AdminCoupons() {
   const [error, setError] = useState<string | null>(null)
   const [issueModalOpen, setIssueModalOpen] = useState(false)
   const [page, setPage] = useState(1)
+  const [editingRowId, setEditingRowId] = useState<string | null>(null)
+  const [editingValue, setEditingValue] = useState('')
+  const [editingSaving, setEditingSaving] = useState(false)
+  const [editingError, setEditingError] = useState<string | null>(null)
   const PAGE_SIZE = DEFAULT_PAGE_SIZE
 
   const refetch = useCallback(async () => {
@@ -103,6 +108,39 @@ export default function AdminCoupons() {
       note: r.memo ?? r.note ?? '',
     }))
     await exportToExcel(data, cols, '쿠폰_관리')
+  }
+
+  const startEdit = (r: CouponRow) => {
+    setEditingRowId(r.id)
+    setEditingValue(r.memo ?? r.note ?? '')
+    setEditingError(null)
+  }
+
+  const cancelEdit = () => {
+    setEditingRowId(null)
+    setEditingValue('')
+    setEditingError(null)
+  }
+
+  const saveEdit = async () => {
+    if (!editingRowId) return
+    const trimmed = editingValue.trim()
+    if (trimmed.length === 0) {
+      setEditingError('메모는 필수 입력입니다')
+      return
+    }
+    setEditingSaving(true)
+    try {
+      await updateCouponMemo(editingRowId, trimmed)
+      setRows((prev) =>
+        prev.map((r) => (r.id === editingRowId ? { ...r, memo: trimmed } : r)),
+      )
+      cancelEdit()
+    } catch (e) {
+      setEditingError(e instanceof Error ? e.message : '메모 수정 실패')
+    } finally {
+      setEditingSaving(false)
+    }
   }
 
   const totals = useMemo(() => {
@@ -229,19 +267,20 @@ export default function AdminCoupons() {
               <th className={styles.alignRight}>금액</th>
               <th>상태</th>
               <th>발급</th>
+              <th>전화번호</th>
               <th>메모</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className={styles.tablePlaceholder}>
+                <td colSpan={10} className={styles.tablePlaceholder}>
                   불러오는 중...
                 </td>
               </tr>
             ) : pageRows.length === 0 ? (
               <tr>
-                <td colSpan={9} className={styles.tablePlaceholder}>
+                <td colSpan={10} className={styles.tablePlaceholder}>
                   조회된 쿠폰이 없습니다.
                 </td>
               </tr>
@@ -276,7 +315,55 @@ export default function AdminCoupons() {
                       </span>
                     </td>
                     <td>{SOURCE_LABEL[r.issued_source]}</td>
-                    <td className={styles.noteCell}>{r.memo ?? r.note ?? '—'}</td>
+                    <td className={styles.mono}>
+                      {r.phone ? formatPhone(r.phone) : '—'}
+                    </td>
+                    <td className={styles.noteCell}>
+                      {editingRowId === r.id ? (
+                        <span className={styles.memoEditWrap}>
+                          <input
+                            type="text"
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') void saveEdit()
+                              if (e.key === 'Escape') cancelEdit()
+                            }}
+                            disabled={editingSaving}
+                            autoFocus
+                            className={styles.memoEditInput}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void saveEdit()}
+                            disabled={editingSaving}
+                            className={styles.memoEditSave}
+                          >
+                            {editingSaving ? '저장 중…' : '저장'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEdit}
+                            disabled={editingSaving}
+                            className={styles.memoEditCancel}
+                          >
+                            취소
+                          </button>
+                          {editingError && (
+                            <span className={styles.memoEditError}>{editingError}</span>
+                          )}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.memoCellBtn}
+                          onClick={() => startEdit(r)}
+                          title="클릭하여 메모 수정"
+                        >
+                          {r.memo ?? r.note ?? '—'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })
@@ -452,6 +539,12 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
     // ─── 식권 ───
     if (voucherAmount <= 0) {
       setError('쿠폰 액면가를 입력해주세요')
+      return
+    }
+
+    // 메모 = 필수 입력. CSV 모드는 row.memo 가 우선이지만 공통 fallback 도 필수.
+    if (memo.trim().length === 0) {
+      setError('메모는 필수 입력입니다 (예: 세종초 사생대회 인솔교사)')
       return
     }
 
@@ -824,15 +917,16 @@ function IssueModal({ onClose, onIssued }: IssueModalProps) {
             />
           </label>
 
-          {/* 메모 */}
+          {/* 메모 — 필수 */}
           <label className={styles.field}>
-            <span className={styles.fieldLabel}>메모 (선택)</span>
+            <span className={styles.fieldLabel}>메모 (필수)</span>
             <input
               type="text"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               placeholder="예: 세종초 사생대회 인솔교사"
               className={styles.fieldInput}
+              required
             />
           </label>
 
