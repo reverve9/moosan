@@ -22,7 +22,7 @@ import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { parseOrderNumber } from '@/lib/orderNumber'
-import { playSound } from '@/lib/audioCue'
+import { playSound, unlockAudio } from '@/lib/audioCue'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import { useWakeLock } from '@/hooks/useWakeLock'
@@ -232,6 +232,22 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
+  }, [])
+
+  // 탭 포커스 복귀 시 AudioContext 재unlock — 갤탭 Chrome 에서 다른 앱
+  // (카톡 알림음 등) 에 audio focus 빼앗긴 뒤 복귀하면 무음으로 빠지는 케이스 방지.
+  // 1초 throttle 로 알림 슬라이드다운 등 연속 토글에 의한 폭주 차단.
+  useEffect(() => {
+    let lastUnlock = 0
+    const onVis = () => {
+      if (document.visibilityState !== 'visible') return
+      const t = Date.now()
+      if (t - lastUnlock < 1000) return
+      lastUnlock = t
+      unlockAudio()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
   // 미확인 주문 1분 간격 반복 알람
