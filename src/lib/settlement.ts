@@ -121,16 +121,32 @@ export async function fetchSettlementRawData(
   const paymentIds = paymentRows.map((p) => p.id)
   // cancelled 포함 전체 — aggregate 단계에서 status 분기. cancelled 부스의 voucher 는
   // 매장 매출/송금엔 미포함이지만 식권 액면가 정합성을 위해 burned 로 회수.
-  const { data: orders, error: oErr } = await supabase
-    .from('orders')
-    .select('id, payment_id, booth_id, booth_name, subtotal, voucher_consumed, voucher_burned, status')
-    .in('payment_id', paymentIds)
-  if (oErr) throw oErr
+  // PostgREST `in(...)` 는 URL 길이 한계(~8KB)가 있어 UUID 약 200건이면 400. 청크 분할.
+  const orders: RawOrder[] = []
+  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
+    const { data, error: oErr } = await supabase
+      .from('orders')
+      .select('id, payment_id, booth_id, booth_name, subtotal, voucher_consumed, voucher_burned, status')
+      .in('payment_id', chunk)
+    if (oErr) throw oErr
+    if (data) orders.push(...(data as RawOrder[]))
+  }
 
   return {
     payments: paymentRows,
-    orders: (orders ?? []) as RawOrder[],
+    orders,
   }
+}
+
+/** PostgREST `.in()` URL 길이 한계 회피용 청크 크기 — UUID 36자 × 150 ≈ 5.5KB.
+ *  헤더/select 컬럼 포함해도 8KB 안전 마진. */
+const IN_CHUNK_SIZE = 150
+
+function chunkArray<T>(arr: T[], size: number): T[][] {
+  if (arr.length === 0) return []
+  const out: T[][] = []
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+  return out
 }
 
 // ─── 행 계산 (수식 단일 진입점) ─────────────────────────────────
@@ -450,16 +466,21 @@ export async function fetchBoothSettlementDetail(
   )
   const paymentIds = [...paymentMap.keys()]
 
-  // 같은 결제 안에 다른 부스가 있을 수 있어서 비율 계산을 위해 모든 부스 주문 fetch
-  const { data: orders, error: oErr } = await supabase
-    .from('orders')
-    .select(
-      'id, payment_id, booth_id, order_number, subtotal, voucher_consumed, voucher_burned, is_takeout, status',
-    )
-    .in('payment_id', paymentIds)
-    .neq('status', 'cancelled')
-  if (oErr) throw oErr
-  if (!orders || orders.length === 0) return []
+  // 같은 결제 안에 다른 부스가 있을 수 있어서 비율 계산을 위해 모든 부스 주문 fetch.
+  // IN URL 길이 한계 회피 — fetchSettlementRawData 와 동일하게 청크 분할.
+  const orders: unknown[] = []
+  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
+    const { data, error: oErr } = await supabase
+      .from('orders')
+      .select(
+        'id, payment_id, booth_id, order_number, subtotal, voucher_consumed, voucher_burned, is_takeout, status',
+      )
+      .in('payment_id', chunk)
+      .neq('status', 'cancelled')
+    if (oErr) throw oErr
+    if (data) orders.push(...data)
+  }
+  if (orders.length === 0) return []
 
   type OrderLite = {
     id: string
@@ -485,14 +506,19 @@ export async function fetchBoothSettlementDetail(
   const myOrders = orderRows.filter((o) => o.booth_id === boothId)
   if (myOrders.length === 0) return []
 
-  // 메뉴 요약을 위해 order_items
+  // 메뉴 요약을 위해 order_items — 부스 단독 주문이라도 청크 한계 안전 마진.
   const myOrderIds = myOrders.map((o) => o.id)
-  const { data: items } = await supabase
-    .from('order_items')
-    .select('order_id, menu_name, quantity')
-    .in('order_id', myOrderIds)
+  type ItemLite = { order_id: string; menu_name: string; quantity: number }
+  const items: ItemLite[] = []
+  for (const chunk of chunkArray(myOrderIds, IN_CHUNK_SIZE)) {
+    const { data } = await supabase
+      .from('order_items')
+      .select('order_id, menu_name, quantity')
+      .in('order_id', chunk)
+    if (data) items.push(...(data as ItemLite[]))
+  }
   const itemsByOrder = new Map<string, { menu_name: string; quantity: number }[]>()
-  for (const it of (items ?? []) as { order_id: string; menu_name: string; quantity: number }[]) {
+  for (const it of items) {
     const list = itemsByOrder.get(it.order_id) ?? []
     list.push({ menu_name: it.menu_name, quantity: it.quantity })
     itemsByOrder.set(it.order_id, list)
