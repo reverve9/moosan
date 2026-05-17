@@ -44,7 +44,7 @@ self.addEventListener('push', (event) => {
     for (const c of clientsList) {
       try {
         const u = new URL(c.url)
-        if (c.visibilityState === 'visible' && u.pathname.startsWith('/booth')) {
+        if (c.visibilityState === 'visible' && u.pathname.startsWith('/dashboard')) {
           foregroundBooth = c
           break
         }
@@ -71,7 +71,7 @@ self.addEventListener('push', (event) => {
       // background: silent X (OS 기본음 — background mp3 재생 불가능)
       silent: !!foregroundBooth,
       data: {
-        url: data.url || '/booth',
+        url: data.url || '/dashboard',
         boothId: data.boothId,
       },
     }
@@ -81,13 +81,13 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const targetUrl = (event.notification.data && event.notification.data.url) || '/booth'
+  const targetUrl = (event.notification.data && event.notification.data.url) || '/dashboard'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
         if ('focus' in client) {
           const url = new URL(client.url)
-          if (url.pathname.startsWith('/booth')) {
+          if (url.pathname.startsWith('/dashboard')) {
             return client.focus()
           }
         }
