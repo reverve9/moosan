@@ -19,6 +19,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { decryptEdi, normalizePayMethod } from '../_lib/cookiepay.js'
+import { sendBoothPush } from '../_lib/pushSend.js'
 
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL
@@ -293,6 +294,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  // ── 7) 카트 비우기는 클라에서. ?from=checkout 마킹으로 OrderStatusPage 에서 처리 ──
+  // ── 7) 부스 푸시 발송 — paid 직후. 부스 태블릿 PWA background/screen-off
+  //       상태에서도 알림 받게. fire-and-forget + 2s 타임아웃 (redirect 지연 방지).
+  try {
+    const { data: paidOrders } = await supabase
+      .from('orders')
+      .select('booth_id')
+      .eq('payment_id', payment.id)
+      .eq('status', 'paid')
+    const boothIds = Array.from(
+      new Set((paidOrders ?? []).map((o) => o.booth_id).filter((b): b is string => !!b)),
+    )
+    if (boothIds.length > 0) {
+      await Promise.race([
+        Promise.allSettled(boothIds.map((bid) => sendBoothPush(bid))),
+        new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+      ])
+    }
+  } catch (e) {
+    console.warn('[cookiepay/return] push send error', e)
+  }
+
+  // ── 8) 카트 비우기는 클라에서. ?from=checkout 마킹으로 OrderStatusPage 에서 처리 ──
   return redirect(res, `/order/${payment.id}?from=checkout`)
 }

@@ -27,6 +27,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { sendRefundAlimtalk } from '../_lib/alimtalk.js'
 import { normalizePayMethod } from '../_lib/cookiepay.js'
+import { sendBoothPush } from '../_lib/pushSend.js'
 
 function getSupabase() {
   const url = process.env.VITE_SUPABASE_URL
@@ -163,6 +164,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (cErr) {
         console.error('[cookiepay/noti] approval coupon update failed', cErr)
       }
+    }
+
+    // 부스 푸시 발송 — paid 직후. 부스 태블릿 PWA background/screen-off
+    // 상태에서도 알림. fire-and-forget + 2s 타임아웃 (webhook 응답 지연 방지).
+    try {
+      const { data: paidOrders } = await supabase
+        .from('orders')
+        .select('booth_id')
+        .eq('payment_id', payApprov.id)
+        .eq('status', 'paid')
+      const boothIds = Array.from(
+        new Set((paidOrders ?? []).map((o) => o.booth_id).filter((b): b is string => !!b)),
+      )
+      if (boothIds.length > 0) {
+        await Promise.race([
+          Promise.allSettled(boothIds.map((bid) => sendBoothPush(bid))),
+          new Promise<void>((resolve) => setTimeout(resolve, 2000)),
+        ])
+      }
+    } catch (e) {
+      console.warn('[cookiepay/noti] push send error', e)
     }
 
     console.log('[cookiepay/noti] approval processed', { paymentId: payApprov.id })
