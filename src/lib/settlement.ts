@@ -39,8 +39,12 @@ export interface SettlementRow {
   voucherBurned: number
   /** 쿠폰 차감액 합계 — payments.discount_amount 기준 */
   couponDiscount: number
-  /** PG 거래액 합계 (= user_paid 합 = payments.total_amount) */
+  /** PG 거래액 합계 (= user_paid 합 = payments.total_amount) — pgPaidAmount + helpDeskPaidAmount */
   pgAmount: number
+  /** PG 결제 합계 (payment_method='pg' 의 user_paid 합) — 운영자 PG 계좌 입금 대상 */
+  pgPaidAmount: number
+  /** 헬프데스크 결제 합계 (payment_method ≠ 'pg' 의 user_paid 합) — 운영자 헬프데스크 계좌 입금 대상 */
+  helpDeskPaidAmount: number
   /** Toss 수수료 = menuSales × 0.0374 */
   tossFee: number
   /** 매장 송금액 = menuSales × 0.9626 */
@@ -73,6 +77,7 @@ interface RawPayment {
   discount_amount: number
   status: 'pending' | 'paid' | 'cancelled'
   coupon_id: string | null
+  payment_method: 'pg' | 'external_card' | 'cash' | 'voucher_only' | null
 }
 
 interface RawOrder {
@@ -105,7 +110,7 @@ export async function fetchSettlementRawData(
 ): Promise<SettlementRawData> {
   let pq = supabase
     .from('payments')
-    .select('id, paid_at, total_amount, discount_amount, status, coupon_id')
+    .select('id, paid_at, total_amount, discount_amount, status, coupon_id, payment_method')
     .eq('status', 'paid')
   if (filters.dateFrom) {
     pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
@@ -167,6 +172,8 @@ function computeDerived(
     | 'voucherBurned'
     | 'couponDiscount'
     | 'pgAmount'
+    | 'pgPaidAmount'
+    | 'helpDeskPaidAmount'
   >,
 ): SettlementRow {
   const tossFee = base.menuSales * TOSS_FEE_RATE
@@ -189,12 +196,14 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
   const paymentDate = new Map<string, string>()
   const paymentDiscount = new Map<string, number>()
   const paymentPgAmount = new Map<string, number>()
+  const paymentMethod = new Map<string, RawPayment['payment_method']>()
   for (const p of raw.payments) {
     if (!p.paid_at) continue
     const d = toKstDateString(p.paid_at)
     paymentDate.set(p.id, d)
     paymentDiscount.set(p.id, p.discount_amount)
     paymentPgAmount.set(p.id, p.total_amount)
+    paymentMethod.set(p.id, p.payment_method)
   }
 
   // 날짜별 누적 — cancelled 부스는 매장매출/주문수 제외하지만
@@ -234,9 +243,14 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
   for (const [date, b] of [...byDate.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
     let couponDiscount = 0
     let pgAmount = 0
+    let pgPaidAmount = 0
+    let helpDeskPaidAmount = 0
     for (const pid of b.paymentIds) {
+      const amt = paymentPgAmount.get(pid) ?? 0
       couponDiscount += paymentDiscount.get(pid) ?? 0
-      pgAmount += paymentPgAmount.get(pid) ?? 0
+      pgAmount += amt
+      if (paymentMethod.get(pid) === 'pg') pgPaidAmount += amt
+      else helpDeskPaidAmount += amt
     }
     rows.push(
       computeDerived({
@@ -249,6 +263,8 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
         voucherBurned: b.voucherBurned,
         couponDiscount,
         pgAmount,
+        pgPaidAmount,
+        helpDeskPaidAmount,
       }),
     )
   }
@@ -260,10 +276,12 @@ export function aggregateByDay(raw: SettlementRawData): SettlementRow[] {
 export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
   const paymentPgAmount = new Map<string, number>()
   const paymentDiscount = new Map<string, number>()
+  const paymentMethod = new Map<string, RawPayment['payment_method']>()
   const paymentOrderCount = new Map<string, number>() // payment 별 order 수 (PG 비례 분배용)
   for (const p of raw.payments) {
     paymentPgAmount.set(p.id, p.total_amount)
     paymentDiscount.set(p.id, p.discount_amount)
+    paymentMethod.set(p.id, p.payment_method)
   }
   for (const o of raw.orders) {
     paymentOrderCount.set(o.payment_id, (paymentOrderCount.get(o.payment_id) ?? 0) + 1)
@@ -281,6 +299,10 @@ export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
     pgAmountAccum: number
     /** 부스별 쿠폰 차감 분배 */
     couponDiscountAccum: number
+    /** 부스별 PG 결제 (method='pg') 분배 */
+    pgPaidAccum: number
+    /** 부스별 헬프데스크 결제 (method ≠ 'pg') 분배 */
+    helpDeskPaidAccum: number
   }
   const byBooth = new Map<string, Bucket>()
 
@@ -309,6 +331,8 @@ export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
       voucherBurned: 0,
       pgAmountAccum: 0,
       couponDiscountAccum: 0,
+      pgPaidAccum: 0,
+      helpDeskPaidAccum: 0,
     }
     b.paymentIds.add(o.payment_id)
     b.orderCount += 1
@@ -319,8 +343,11 @@ export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
     // 부스 비례 분배
     const pSubtotalSum = paymentSubtotalSum.get(o.payment_id) ?? 0
     const ratio = pSubtotalSum > 0 ? o.subtotal / pSubtotalSum : 0
-    b.pgAmountAccum += (paymentPgAmount.get(o.payment_id) ?? 0) * ratio
+    const pgAmtShare = (paymentPgAmount.get(o.payment_id) ?? 0) * ratio
+    b.pgAmountAccum += pgAmtShare
     b.couponDiscountAccum += (paymentDiscount.get(o.payment_id) ?? 0) * ratio
+    if (paymentMethod.get(o.payment_id) === 'pg') b.pgPaidAccum += pgAmtShare
+    else b.helpDeskPaidAccum += pgAmtShare
 
     byBooth.set(boothId, b)
   }
@@ -338,6 +365,8 @@ export function aggregateByBooth(raw: SettlementRawData): SettlementRow[] {
         voucherBurned: b.voucherBurned,
         couponDiscount: b.couponDiscountAccum,
         pgAmount: b.pgAmountAccum,
+        pgPaidAmount: b.pgPaidAccum,
+        helpDeskPaidAmount: b.helpDeskPaidAccum,
       }),
     )
   }
@@ -359,6 +388,8 @@ export function calcTotals(rows: SettlementRow[], label = '합계'): SettlementT
     voucherBurned: sum('voucherBurned'),
     couponDiscount: sum('couponDiscount'),
     pgAmount: sum('pgAmount'),
+    pgPaidAmount: sum('pgPaidAmount'),
+    helpDeskPaidAmount: sum('helpDeskPaidAmount'),
   })
 }
 
