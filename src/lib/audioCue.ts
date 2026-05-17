@@ -1,5 +1,5 @@
 /**
- * 부스 대시보드용 소리 재생 유틸.
+ * 부스 대시보드용 소리 재생 유틸 — Web Audio API 기반.
  *
  * 사운드 파일
  *  - /sounds/order_alarm.mp3   — 미확인 주문 1분 간격 알람 (≈ 3.5s)
@@ -7,18 +7,21 @@
  *
  * 정책
  *  - `playSound(repeat)` 기본 3회 순차 재생 (겹침 방지 위해 await)
- *  - 실패 (autoplay 차단 / 파일 없음 / 로딩 에러) 는 조용히 무시
- *  - iOS Safari autoplay 정책 — 사용자 제스처 이후에만 재생 가능.
- *    `unlockAudio()` 를 로그인 버튼 클릭 등 제스처 이벤트에서 호출해
- *    AudioContext 를 미리 깨워두면 이후 자동 재생이 통과함.
+ *  - 실패 (autoplay 차단 / 파일 로드 실패 / 디코드 실패) 는 조용히 무시
+ *  - iOS Safari / Android Chrome autoplay 정책 — AudioContext 는 사용자
+ *    제스처 이후에 resume 해야 'running' 상태가 됨.
+ *    `unlockAudio()` 를 로그인 버튼 클릭 등 제스처 이벤트에서 호출.
  *
- * 락 안전망
- *  - Android Chrome 에서 `audio.play()` 가 resolve/reject 둘 다 안 나오는
- *    케이스가 있어 (audio focus 빼앗김 / 백그라운드 전환 직후 등),
- *    iter 단위 타임아웃 + 전체 락 타임아웃으로 영구 lock 을 방지한다.
- *  - iter 내부에서 1회 실패 시 `unlockAudio()` 후 200ms 뒤 재시도. 부스
- *    태블릿 PWA standalone 에서 audio block 인 상황의 사실상 유일한 복구
- *    메커니즘 — 제거하면 mp3 가 영영 안 울리는 사례 확인됨.
+ * Web Audio API 채택 이유 (HTMLMediaElement → 전환)
+ *  - `audio.play()` 가 Android Chrome 일부 케이스에서 promise resolve/reject
+ *    둘 다 안 나오는 hang 발생 → 부스 알람 27초 지연 직접 원인
+ *  - `AudioBufferSourceNode.start()` 는 동기 — 호출 즉시 성공/실패. hang X
+ *  - `AudioContext.state` 로 'running'/'suspended'/'closed' 명시적 확인 가능
+ *  - `AudioContext.resume()` 으로 suspended → running 명시적 복구
+ *
+ * 버퍼 prewarm — 첫 getCtx() 시 양쪽 mp3 fetch + decode 비동기 진행.
+ * 첫 playSound 가 즉시 호출되어도 decode 가 늦으면 그 호출만 skip되고
+ * 다음 trigger 부터 정상 발화.
  */
 
 const SOUNDS = {
@@ -28,11 +31,55 @@ const SOUNDS = {
 
 type SoundKey = keyof typeof SOUNDS
 
-const ITER_TIMEOUT_MS = 7_000        // 1회 재생 (≈ 3.5s) + 재시도 여유 (3.5s)
-const PLAY_LOCK_TIMEOUT_MS = 25_000  // repeat=3 × 7s + 여유
-const RETRY_DELAY_MS = 200
+type WebkitWindow = Window & {
+  webkitAudioContext?: typeof AudioContext
+}
 
+let audioCtx: AudioContext | null = null
+const buffers = new Map<SoundKey, AudioBuffer>()
+const loading = new Map<SoundKey, Promise<void>>()
 let playing = false
+
+function getCtx(): AudioContext | null {
+  if (audioCtx && audioCtx.state !== 'closed') return audioCtx
+  if (typeof window === 'undefined') return null
+  try {
+    const w = window as WebkitWindow
+    const Ctx = window.AudioContext ?? w.webkitAudioContext
+    if (!Ctx) return null
+    audioCtx = new Ctx()
+    // 첫 생성 직후 양쪽 버퍼 prewarm (비동기 — 실패해도 무시)
+    void ensureBuffer('order')
+    void ensureBuffer('overdue')
+  } catch {
+    audioCtx = null
+    return null
+  }
+  return audioCtx
+}
+
+async function ensureBuffer(key: SoundKey): Promise<void> {
+  if (buffers.has(key)) return
+  const existing = loading.get(key)
+  if (existing) return existing
+  const ctx = getCtx()
+  if (!ctx) return
+  const p = (async () => {
+    try {
+      const res = await fetch(SOUNDS[key])
+      if (!res.ok) return
+      const arr = await res.arrayBuffer()
+      const buf = await ctx.decodeAudioData(arr)
+      buffers.set(key, buf)
+    } catch {
+      /* 무시 — 다음 호출에서 재시도 */
+    } finally {
+      loading.delete(key)
+    }
+  })()
+  loading.set(key, p)
+  return p
+}
 
 /**
  * 소리 재생. 기본 3회 순차 반복. Promise 는 마지막 반복 종료 시 resolve.
@@ -42,77 +89,60 @@ let playing = false
 export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): Promise<void> {
   if (playing) return
   playing = true
-  const lockTimer = window.setTimeout(() => { playing = false }, PLAY_LOCK_TIMEOUT_MS)
   try {
-    const src = SOUNDS[sound]
+    await ensureBuffer(sound)
+    const ctx = getCtx()
+    const buf = buffers.get(sound)
+    if (!ctx || !buf) return
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume()
+      } catch {
+        return
+      }
+    }
+    if (ctx.state !== 'running') return
     for (let i = 0; i < repeat; i += 1) {
-      await playOnce(src)
+      await new Promise<void>((resolve) => {
+        let settled = false
+        const finish = () => {
+          if (settled) return
+          settled = true
+          resolve()
+        }
+        try {
+          const src = ctx.createBufferSource()
+          src.buffer = buf
+          src.connect(ctx.destination)
+          src.onended = finish
+          src.start()
+          // 안전망 — onended 가 안 오는 드문 케이스 대비. buffer 길이 + 0.5s.
+          window.setTimeout(finish, buf.duration * 1000 + 500)
+        } catch {
+          finish()
+        }
+      })
     }
   } finally {
-    window.clearTimeout(lockTimer)
     playing = false
   }
 }
 
-function playOnce(src: string): Promise<void> {
-  return new Promise<void>((resolve) => {
-    let settled = false
-    let attempt = 0
-    const finish = () => {
-      if (settled) return
-      settled = true
-      window.clearTimeout(iterTimer)
-      resolve()
-    }
-    const tryPlay = () => {
-      if (settled) return
-      try {
-        const audio = new Audio(src)
-        audio.onended = finish
-        audio.onerror = onFail
-        audio.play().catch(onFail)
-      } catch {
-        finish()
-      }
-    }
-    const onFail = () => {
-      if (settled) return
-      if (attempt === 0) {
-        attempt = 1
-        unlockAudio()
-        window.setTimeout(tryPlay, RETRY_DELAY_MS)
-        return
-      }
-      finish()
-    }
-    const iterTimer = window.setTimeout(finish, ITER_TIMEOUT_MS)
-    tryPlay()
-  })
-}
-
 /**
- * iOS Safari / Android Chrome autoplay 우회 — 사용자 제스처 이벤트 또는
- * visibilitychange(→ visible) 직후에 호출해 AudioContext 를 unlock.
- * 무음 짧은 재생으로 unlock. 실패는 조용히 무시.
+ * AudioContext unlock — 사용자 제스처 이벤트에서 호출.
+ * suspended 상태면 resume 시도. 미지원/실패는 조용히 무시.
  *
  * 호출 지점
  *  - BoothLoginPage.handleSubmit 첫 줄 (최초 unlock)
  *  - BoothDashboardPage visibilitychange listener (포커스 복귀 시 재unlock)
- *  - BoothDashboardPage 30초 주기 interval (visibilitychange 안 뜨는 audio
- *    focus 빼앗김 케이스 보강)
- *  - playSound 의 iter 내부 첫 실패 시 (재시도 직전)
+ *  - BoothDashboardPage 30초 주기 interval (audio focus 빼앗김 보강)
  */
 export function unlockAudio(): void {
-  try {
-    const audio = new Audio(SOUNDS.order)
-    audio.volume = 0
-    void audio.play().then(() => {
-      audio.pause()
-      audio.currentTime = 0
-    }).catch(() => {
+  const ctx = getCtx()
+  if (!ctx) return
+  if (ctx.state === 'suspended') {
+    void ctx.resume().catch(() => {
       /* 무시 */
     })
-  } catch {
-    /* 무시 */
   }
 }
