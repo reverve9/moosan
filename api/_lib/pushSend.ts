@@ -49,7 +49,7 @@ export async function sendBoothPush(
       title: payload?.title ?? '새 주문',
       body: payload?.body ?? '미확인 주문을 확인하세요',
       tag: payload?.tag ?? `booth-${boothId}`,
-      url: payload?.url ?? '/booth',
+      url: payload?.url ?? '/dashboard',
       boothId,
     })
 
