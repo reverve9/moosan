@@ -23,6 +23,7 @@ import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { parseOrderNumber } from '@/lib/orderNumber'
 import { playSound, unlockAudio } from '@/lib/audioCue'
+import { registerBoothPush } from '@/lib/pushNotify'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import { useWakeLock } from '@/hooks/useWakeLock'
@@ -159,6 +160,13 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
   // 탭 활성인 동안 화면 절전 방지 (미지원 브라우저는 no-op)
   useWakeLock(true)
+
+  // Web Push 구독 등록 — Notification 권한 요청 + SW subscribe + 서버 저장.
+  // 부스 태블릿 PWA 가 background/screen-off 상태에서도 새 주문 알림 받을 수
+  // 있게 한다. 미지원/거부 시 silent — 기존 foreground 알람은 그대로 작동.
+  useEffect(() => {
+    void registerBoothPush(boothId)
+  }, [boothId])
 
   const [data, setData] = useState<BoothOrderCardData[]>([])
   const dataRef = useRef<BoothOrderCardData[]>([])

@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/Toast'
 import { supabase } from '@/lib/supabase'
 import { requestCookiePay } from '@/lib/cookiepay'
 import { createPendingPayment, markPaymentPaid } from '@/lib/orders'
+import { notifyBoothsForPayment } from '@/lib/pushNotify'
 import {
   fetchAvailableCouponsByPhone,
   validateCouponByCode,
@@ -414,6 +415,8 @@ export default function CheckoutPage() {
       // 4) 전액 식권 결제 (userPaid=0) — Toss 우회
       if (isVoucher && finalAmount === 0) {
         await markPaymentPaid(payment.id, null)
+        // 부스 푸시 (background PWA 대응) — fire-and-forget
+        void notifyBoothsForPayment(payment.id)
         clear()
         navigate(`/order/${payment.id}?from=checkout`, { replace: true })
         return

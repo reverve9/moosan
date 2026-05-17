@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { markPaymentPaid, startOfTodayKstAsUtc, todayKstString } from './orders'
+import { notifyBoothsForPayment } from './pushNotify'
 import type {
   CashSession,
   Json,
@@ -438,6 +439,10 @@ export async function confirmKioskPayment(
 
   // 3) paid 전이 (markPaymentPaid 가 쿠폰 status='used' 도 처리)
   await markPaymentPaid(paymentId, null)
+
+  // 4) 부스 푸시 발송 — 부스 태블릿 PWA background/screen-off 상태 대응.
+  //    fire-and-forget — 실패해도 결제 완료에 영향 X.
+  void notifyBoothsForPayment(paymentId)
 }
 
 /**

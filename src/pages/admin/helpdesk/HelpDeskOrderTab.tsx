@@ -9,6 +9,7 @@ import {
   type AvailableCouponOption,
 } from '@/lib/coupons'
 import { createPendingPayment, markPaymentPaid } from '@/lib/orders'
+import { notifyBoothsForPayment } from '@/lib/pushNotify'
 import { formatPhone, isValidPhone, normalizePhone } from '@/lib/phone'
 import {
   fetchFoodCategories,
@@ -328,6 +329,8 @@ export default function HelpDeskOrderTab({ adminId }: HelpDeskOrderTabProps) {
 
       // 결제 완료 — Toss 우회. paymentKey=null 로 markPaymentPaid 호출.
       await markPaymentPaid(payment.id, null)
+      // 부스 푸시 (background PWA 대응) — fire-and-forget
+      void notifyBoothsForPayment(payment.id)
 
       setOkMsg(`결제 완료 (${userPaid.toLocaleString()}원). 부스에서 픽업 안내드리세요`)
       resetAll()
