@@ -281,6 +281,36 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => navigator.serviceWorker.removeEventListener('message', onMsg)
   }, [])
 
+  // 미확인 주문 있으면 mount/visible 전환 직후 즉시 mp3 — 1분 interval 대기 X.
+  // OS web push 로 직원이 PWA 열었거나 background → foreground 전환 시 "바로
+  // 이어서 mp3" 가 울리도록.
+  //
+  // 이전 동작: setInterval(60s) 가 mount 시점부터 카운트 → 직원이 알림 보고
+  // 앱 열기까지 N초 걸리면 첫 발화는 N+60s 후 (= "1분20초 후 mp3" 증상).
+  // 이 hook 으로 mount 시 즉시 발화 후 1분 interval 은 그대로 진행.
+  //
+  // 30초 throttle — 탭 토글로 visibilitychange 가 짧게 반복돼도 폭주 X.
+  // 1분 interval (60s) 과 충돌 안 함.
+  const lastImmediateAlarmRef = useRef(0)
+  useEffect(() => {
+    if (loading) return
+    const fire = () => {
+      if (document.visibilityState !== 'visible') return
+      const hasUnconfirmed = dataRef.current.some(
+        (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
+      )
+      if (!hasUnconfirmed) return
+      const t = Date.now()
+      if (t - lastImmediateAlarmRef.current < 30_000) return
+      lastImmediateAlarmRef.current = t
+      void playSound(3)
+      vibrateSafe([300, 100, 300, 100, 300])
+    }
+    fire()  // mount 직후 (loading=false 시) 1회
+    document.addEventListener('visibilitychange', fire)
+    return () => document.removeEventListener('visibilitychange', fire)
+  }, [loading])
+
   // 미확인 주문 1분 간격 반복 알람.
   // dep array 빈 배열 — realtime refetch 로 data 가 자주 바뀌어도 interval
   // 이 reset 되지 않게 한 번만 set. 내부에서 dataRef.current 로 최신값 조회.
