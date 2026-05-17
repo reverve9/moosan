@@ -304,24 +304,19 @@ function PaymentMethodSection({
       <div className={styles.kpiGrid}>
         <Kpi
           label="PG (앱)"
-          value={`${fmtWon(pm.pg.revenue)} · ${pm.pg.count}건 · ${fmtPct(share(pm.pg.revenue))}`}
+          value={`${fmtWon(pm.pg.revenue)} · ${fmtPct(share(pm.pg.revenue))}`}
         />
         <Kpi
           label="카드 (헬프데스크)"
-          value={`${fmtWon(pm.card.revenue)} · ${pm.card.count}건 · ${fmtPct(share(pm.card.revenue))}`}
+          value={`${fmtWon(pm.card.revenue)} · ${fmtPct(share(pm.card.revenue))}`}
         />
         <Kpi
           label="현금 (헬프데스크)"
-          value={`${fmtWon(pm.cash.revenue)} · ${pm.cash.count}건 · ${fmtPct(share(pm.cash.revenue))}`}
+          value={`${fmtWon(pm.cash.revenue)} · ${fmtPct(share(pm.cash.revenue))}`}
         />
         <Kpi
           label="쿠폰 (전 채널)"
-          value={`${fmtWon(pm.voucher.revenue)} · ${pm.voucher.count}건 · ${fmtPct(share(pm.voucher.revenue))}`}
-        />
-        <Kpi
-          label="합계"
-          value={`${fmtWon(total.revenue)} · ${total.count}건`}
-          emphasis
+          value={`${fmtWon(pm.voucher.revenue)} · ${fmtPct(share(pm.voucher.revenue))}`}
         />
       </div>
     </section>
