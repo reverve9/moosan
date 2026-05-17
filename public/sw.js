@@ -3,14 +3,14 @@
 // 정책
 //  - install/activate: skipWaiting + clients.claim (새 SW 즉시 활성)
 //  - fetch: 캐시 안 함 (network-first passthrough) — 빌드 갱신 즉시 반영 우선
-//  - push: showNotification (소리/진동/태그) — 부스 태블릿 PWA background/screen-off
-//          상태에서도 OS 가 알림 표시 + 본 SW 가 mp3 + vibrate 실행
+//  - push:
+//      · visible 부스 client 가 있으면 → postMessage 로 client 에 위임 (client 가
+//        기존 audioCue.playSound 로 mp3 재생). notification 은 silent 로 표시
+//        (OS 기본음 안 울려서 mp3 와 이중 X).
+//      · visible client 없음 (background / screen-off) → notification + OS 기본음.
+//        SW 컨텍스트에선 임의 Audio 재생이 spec 상 불가 → background 는 OS 기본음
+//        이 한계.
 //  - notificationclick: 부스 대시보드 탭이 있으면 focus, 없으면 새 탭으로 open
-//
-// 호환성
-//  - notification.sound 는 deprecated 라 OS 기본 알림음만 가능. mp3 직접 재생은
-//    SW 컨텍스트에서 Audio 사용 불가 → 클라이언트(BoothDashboard) 가 visible 일 때만
-//    audioCue.playSound 가 추가로 울림. background 에선 진동 + OS 알림음만 보장.
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -28,27 +28,55 @@ self.addEventListener('fetch', (event) => {
 })
 
 self.addEventListener('push', (event) => {
-  let data = {}
-  try {
-    data = event.data ? event.data.json() : {}
-  } catch {
-    data = { title: '주문 알림', body: '' }
-  }
-  const title = data.title || '새 주문'
-  const options = {
-    body: data.body || '',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    tag: data.tag || 'booth-order',
-    renotify: true,
-    requireInteraction: false,
-    vibrate: [300, 100, 300, 100, 300],
-    data: {
-      url: data.url || '/booth',
-      boothId: data.boothId,
-    },
-  }
-  event.waitUntil(self.registration.showNotification(title, options))
+  event.waitUntil((async () => {
+    let data = {}
+    try {
+      data = event.data ? event.data.json() : {}
+    } catch {
+      data = { title: '새 주문', body: '' }
+    }
+
+    const clientsList = await self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true,
+    })
+    let foregroundBooth = null
+    for (const c of clientsList) {
+      try {
+        const u = new URL(c.url)
+        if (c.visibilityState === 'visible' && u.pathname.startsWith('/booth')) {
+          foregroundBooth = c
+          break
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    if (foregroundBooth) {
+      // 기존 audioCue.playSound (mp3) 가 울리도록 client 에 위임
+      foregroundBooth.postMessage({ type: 'booth-push', payload: data })
+    }
+
+    const title = data.title || '새 주문'
+    const options = {
+      body: data.body || '미확인 주문을 확인하세요',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      tag: data.tag || 'booth-order',
+      renotify: true,
+      requireInteraction: false,
+      vibrate: [300, 100, 300, 100, 300],
+      // foreground: silent (client 가 mp3 재생 — OS 기본음 이중 방지)
+      // background: silent X (OS 기본음 — background mp3 재생 불가능)
+      silent: !!foregroundBooth,
+      data: {
+        url: data.url || '/booth',
+        boothId: data.boothId,
+      },
+    }
+    return self.registration.showNotification(title, options)
+  })())
 })
 
 self.addEventListener('notificationclick', (event) => {

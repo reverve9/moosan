@@ -266,6 +266,21 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => window.clearInterval(id)
   }, [])
 
+  // SW push → foreground client postMessage 위임 — 기존 mp3 (audioCue) 재생.
+  // SW notification 은 silent 로 떠서 OS 기본음 이중 X. realtime onOrderPaid 가
+  // 같은 알람을 동시에 트리거해도 audioCue 의 playing 락이 중복 재생 방지.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data as { type?: string } | undefined
+      if (d?.type !== 'booth-push') return
+      void playSound(3)
+      vibrateSafe([300, 100, 300, 100, 300])
+    }
+    navigator.serviceWorker.addEventListener('message', onMsg)
+    return () => navigator.serviceWorker.removeEventListener('message', onMsg)
+  }, [])
+
   // 미확인 주문 1분 간격 반복 알람.
   // dep array 빈 배열 — realtime refetch 로 data 가 자주 바뀌어도 interval
   // 이 reset 되지 않게 한 번만 set. 내부에서 dataRef.current 로 최신값 조회.
