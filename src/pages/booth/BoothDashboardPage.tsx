@@ -281,35 +281,12 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => navigator.serviceWorker.removeEventListener('message', onMsg)
   }, [])
 
-  // PWA standalone 진입 시 첫 user gesture 까지 audio.play() 가 silent fail 하는
-  // autoplay block 보강. 부스 직원이 로그인 안 거치고 PWA 바로 열면 (session 살아
-  // 있는 경우) 첫 터치 전까지 mp3 안 울림. 이 hook 으로 document-level 첫 터치/
-  // 클릭에 unlockAudio 호출해 audio context 활성화.
-  useEffect(() => {
-    let unlocked = false
-    const onGesture = () => {
-      if (unlocked) return
-      unlocked = true
-      unlockAudio()
-    }
-    document.addEventListener('touchstart', onGesture, { passive: true, once: true })
-    document.addEventListener('click', onGesture, { once: true })
-    return () => {
-      document.removeEventListener('touchstart', onGesture)
-      document.removeEventListener('click', onGesture)
-    }
-  }, [])
-
   // 미확인 주문 transition (false→true) 감지 — realtime onChange / visibilitychange
-  // refetch / 초기 fetch 등 어떤 경로로든 data 가 갱신될 때마다 체크. 0→1+
+  // refetch / 초기 fetch 등 어떤 경로로든 data 가 갱신되어 unconfirmed 가 0→1+
   // 전환 시 즉시 mp3. 1분 interval 대기 X.
   //
   // realtime onOrderPaid 가 동일 paid 이벤트로 직접 mp3 를 트리거해도 audioCue.
   // playing 락이 중복 dedup → 안전.
-  //
-  // 1분20초 지연 원인은 setInterval(60s) 카운트가 mount 시점부터 시작인 점 +
-  // background 동안 audio 블록으로 첫 발화 silent fail 인 점. 이 hook 으로
-  // 데이터 기반 전환에서 즉시 발화.
   const prevHasUnconfirmedRef = useRef(false)
   useEffect(() => {
     if (loading) return
@@ -323,14 +300,27 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     prevHasUnconfirmedRef.current = hasUnconfirmed
   }, [data, loading])
 
-  // visibilitychange → visible 시 강제 refetch — PWA standalone 이 background
-  // 일 때 realtime WebSocket 이 freeze 되어 missed event 가 있을 수 있음. 복귀
-  // 시점에 최신 상태 강제 동기화. 결과적으로 data 가 갱신되면 위 transition
-  // useEffect 가 mp3 발화.
+  // visibilitychange → visible 시:
+  //  1) 강제 refetch — PWA standalone background 중 realtime WebSocket freeze
+  //     → missed event 보강
+  //  2) 그 시점에 이미 알려진 unconfirmed 있으면 즉시 mp3 — 위 transition
+  //     useEffect 는 false→true 전환만 잡으므로 "깨우니 이미 있던 미확인" 케이스
+  //     는 별도로 fire 필요
+  //  3) 30초 throttle — 짧은 visibility 토글 폭주 방지
+  const lastVisFireRef = useRef(0)
   useEffect(() => {
     const onVis = () => {
       if (document.visibilityState !== 'visible') return
       void refetch()
+      const hasUnconfirmed = dataRef.current.some(
+        (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
+      )
+      if (!hasUnconfirmed) return
+      const t = Date.now()
+      if (t - lastVisFireRef.current < 30_000) return
+      lastVisFireRef.current = t
+      void playSound(3)
+      vibrateSafe([300, 100, 300, 100, 300])
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
