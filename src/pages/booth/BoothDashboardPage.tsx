@@ -250,10 +250,22 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => document.removeEventListener('visibilitychange', onVis)
   }, [])
 
-  // 미확인 주문 1분 간격 반복 알람
+  // 30초 주기 silent unlockAudio — visibilitychange 가 안 뜨는 audio focus
+  // 빼앗김 (다른 앱 알림음 / 블루투스 연결 등 탭은 여전히 visible 인데 audio
+  // 만 stolen 되는 케이스) 대응. silent 짧은 재생이라 운영 무영향.
+  useEffect(() => {
+    const id = window.setInterval(() => { unlockAudio() }, 30_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  // 미확인 주문 1분 간격 반복 알람.
+  // dep array 빈 배열 — realtime refetch 로 data 가 자주 바뀌어도 interval
+  // 이 reset 되지 않게 한 번만 set. 내부에서 dataRef.current 로 최신값 조회.
+  // (이전: [data] 의존 → 60초 안에 주문/상태 변동 1회만 있어도 카운트가
+  // 매번 0초로 리셋되어 사실상 영원히 안 울리는 hang 발생)
   useEffect(() => {
     const id = window.setInterval(() => {
-      const hasUnconfirmed = data.some(
+      const hasUnconfirmed = dataRef.current.some(
         (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
       )
       if (hasUnconfirmed) {
@@ -262,7 +274,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       }
     }, ALARM_INTERVAL_MS)
     return () => window.clearInterval(id)
-  }, [data])
+  }, [])
 
   // 조리시간 초과 알람 — estimated_minutes + 2분 초과 시 1회
   const overdueAlertedIds = useRef<Set<string>>(new Set())

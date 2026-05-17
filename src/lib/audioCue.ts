@@ -18,6 +18,8 @@
  *    iter 단위 타임아웃 + 전체 락 타임아웃으로 영구 lock 을 방지한다.
  *    이 안전망이 없으면 한 번 hang 한 뒤로는 새 주문/1분 반복/지연 알람이
  *    모두 silent skip 됨.
+ *  - iter 내부에서 1회 실패 시 `unlockAudio()` 후 200ms 뒤 재시도 — 다른 앱
+ *    (카톡 알림음 등) 에 audio focus 일시적으로 빼앗긴 직후 케이스 복구.
  */
 
 const SOUNDS = {
@@ -27,8 +29,9 @@ const SOUNDS = {
 
 type SoundKey = keyof typeof SOUNDS
 
-const ITER_TIMEOUT_MS = 5_000        // 1회 재생 (≈ 3.5s) + 여유
-const PLAY_LOCK_TIMEOUT_MS = 15_000  // repeat=3 (≈ 10.5s) + 여유
+const ITER_TIMEOUT_MS = 7_000        // 1회 재생 (≈ 3.5s) + 재시도 여유 (3.5s)
+const PLAY_LOCK_TIMEOUT_MS = 25_000  // repeat=3 × 7s + 여유
+const RETRY_DELAY_MS = 200
 
 let playing = false
 
@@ -44,29 +47,50 @@ export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): 
   try {
     const src = SOUNDS[sound]
     for (let i = 0; i < repeat; i += 1) {
-      await new Promise<void>((resolve) => {
-        let settled = false
-        const finish = () => {
-          if (settled) return
-          settled = true
-          window.clearTimeout(iterTimer)
-          resolve()
-        }
-        const iterTimer = window.setTimeout(finish, ITER_TIMEOUT_MS)
-        try {
-          const audio = new Audio(src)
-          audio.onended = finish
-          audio.onerror = finish
-          audio.play().catch(finish)
-        } catch {
-          finish()
-        }
-      })
+      await playOnce(src)
     }
   } finally {
     window.clearTimeout(lockTimer)
     playing = false
   }
+}
+
+function playOnce(src: string): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let settled = false
+    let attempt = 0
+    const finish = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(iterTimer)
+      resolve()
+    }
+    const tryPlay = () => {
+      if (settled) return
+      try {
+        const audio = new Audio(src)
+        audio.onended = finish
+        audio.onerror = onFail
+        audio.play().catch(onFail)
+      } catch {
+        finish()
+      }
+    }
+    const onFail = () => {
+      if (settled) return
+      // 첫 시도 실패 시 unlockAudio + 1회 재시도. audio focus 일시적 빼앗김
+      // (다른 앱 알림음 등) 직후라면 unlock 으로 복구 가능.
+      if (attempt === 0) {
+        attempt = 1
+        unlockAudio()
+        window.setTimeout(tryPlay, RETRY_DELAY_MS)
+        return
+      }
+      finish()
+    }
+    const iterTimer = window.setTimeout(finish, ITER_TIMEOUT_MS)
+    tryPlay()
+  })
 }
 
 /**
@@ -77,6 +101,9 @@ export async function playSound(repeat: number = 3, sound: SoundKey = 'order'): 
  * 호출 지점
  *  - BoothLoginPage.handleSubmit 첫 줄 (최초 unlock)
  *  - BoothDashboardPage visibilitychange listener (포커스 복귀 시 재unlock)
+ *  - BoothDashboardPage 30초 주기 interval (visibilitychange 안 뜨는 audio
+ *    focus 빼앗김 케이스 보강)
+ *  - playSound 의 iter 내부 첫 실패 시 (재시도 직전)
  */
 export function unlockAudio(): void {
   try {
