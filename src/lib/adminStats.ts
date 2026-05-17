@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchAllPages } from './supabasePaginate'
 import type { FoodMenu, Order, OrderItem, Payment } from '@/types/database'
 
 /**
@@ -39,13 +40,19 @@ function kstDateToUtc(dateStr: string, endOfDay: boolean): string {
 }
 
 export async function fetchStatsData(filters: StatsFilters): Promise<StatsRawData> {
-  let q = supabase.from('payments').select().order('created_at', { ascending: true })
-  if (filters.dateFrom) q = q.gte('created_at', kstDateToUtc(filters.dateFrom, false))
-  if (filters.dateTo) q = q.lt('created_at', kstDateToUtc(filters.dateTo, true))
-
-  const { data: payments, error: pErr } = await q
-  if (pErr) throw pErr
-  if (!payments || payments.length === 0) {
+  // PostgREST max-rows(1000) 자동 절단 → 일별 결제 1000+ 누적 시 마지막 페이지
+  // 누락. ascending 정렬이라 가장 최근 데이터부터 잘려 매출 역전 발생.
+  const payments = await fetchAllPages<Payment>((from, to) => {
+    let q = supabase
+      .from('payments')
+      .select()
+      .order('created_at', { ascending: true })
+      .range(from, to)
+    if (filters.dateFrom) q = q.gte('created_at', kstDateToUtc(filters.dateFrom, false))
+    if (filters.dateTo) q = q.lt('created_at', kstDateToUtc(filters.dateTo, true))
+    return q
+  })
+  if (payments.length === 0) {
     return { payments: [], orders: [], orderItems: [], allMenus: [] }
   }
 
@@ -82,9 +89,11 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 async function fetchOrdersByPaymentIdsChunked(paymentIds: string[]): Promise<Order[]> {
   const all: Order[] = []
   for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
-    const { data, error } = await supabase.from('orders').select().in('payment_id', chunk)
-    if (error) throw error
-    if (data) all.push(...data)
+    // 청크 1개 안에서도 1000 초과 가능 (payment 당 orders 다수) — 페이지네이션 적용
+    const part = await fetchAllPages<Order>((from, to) =>
+      supabase.from('orders').select().in('payment_id', chunk).range(from, to),
+    )
+    all.push(...part)
   }
   return all
 }
@@ -92,9 +101,11 @@ async function fetchOrdersByPaymentIdsChunked(paymentIds: string[]): Promise<Ord
 async function fetchOrderItemsByOrderIdsChunked(orderIds: string[]): Promise<OrderItem[]> {
   const all: OrderItem[] = []
   for (const chunk of chunkArray(orderIds, IN_CHUNK_SIZE)) {
-    const { data, error } = await supabase.from('order_items').select().in('order_id', chunk)
-    if (error) throw error
-    if (data) all.push(...data)
+    // 청크 1개 안에서도 1000 초과 가능 (order 당 items 다수) — 페이지네이션 적용
+    const part = await fetchAllPages<OrderItem>((from, to) =>
+      supabase.from('order_items').select().in('order_id', chunk).range(from, to),
+    )
+    all.push(...part)
   }
   return all
 }

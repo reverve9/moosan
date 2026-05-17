@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchAllPages } from './supabasePaginate'
 
 /**
  * 정산관리 라이브러리.
@@ -111,33 +112,40 @@ export interface SettlementFilters {
 export async function fetchSettlementRawData(
   filters: SettlementFilters = {},
 ): Promise<SettlementRawData> {
-  let pq = supabase
-    .from('payments')
-    .select('id, paid_at, total_amount, discount_amount, status, coupon_id, payment_method')
-    .eq('status', 'paid')
-  if (filters.dateFrom) {
-    pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
-  }
-  if (filters.dateTo) {
-    pq = pq.lt('paid_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
-  }
-  const { data: payments, error: pErr } = await pq
-  if (pErr) throw pErr
-  const paymentRows = (payments ?? []) as RawPayment[]
+  // PostgREST max-rows(1000) 자동 절단 회피 — 페이지네이션. 행사일 paid 결제가
+  // 1000+ 누적 시 단일 fetch 로 마지막 페이지 누락되어 정산 매출 누락 발생.
+  const paymentRows = await fetchAllPages<RawPayment>((from, to) => {
+    let pq = supabase
+      .from('payments')
+      .select('id, paid_at, total_amount, discount_amount, status, coupon_id, payment_method')
+      .eq('status', 'paid')
+      .order('paid_at', { ascending: true })
+      .range(from, to)
+    if (filters.dateFrom) {
+      pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
+    }
+    if (filters.dateTo) {
+      pq = pq.lt('paid_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
+    }
+    return pq
+  })
   if (paymentRows.length === 0) return { payments: [], orders: [] }
 
   const paymentIds = paymentRows.map((p) => p.id)
   // cancelled 포함 전체 — aggregate 단계에서 status 분기. cancelled 부스의 voucher 는
   // 매장 매출/송금엔 미포함이지만 식권 액면가 정합성을 위해 burned 로 회수.
   // PostgREST `in(...)` 는 URL 길이 한계(~8KB)가 있어 UUID 약 200건이면 400. 청크 분할.
+  // 청크 1개 안에서도 1000 초과 가능 — fetchAllPages 로 페이지네이션.
   const orders: RawOrder[] = []
   for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
-    const { data, error: oErr } = await supabase
-      .from('orders')
-      .select('id, payment_id, booth_id, booth_name, subtotal, voucher_consumed, voucher_burned, status')
-      .in('payment_id', chunk)
-    if (oErr) throw oErr
-    if (data) orders.push(...(data as RawOrder[]))
+    const part = await fetchAllPages<RawOrder>((from, to) =>
+      supabase
+        .from('orders')
+        .select('id, payment_id, booth_id, booth_name, subtotal, voucher_consumed, voucher_burned, status')
+        .in('payment_id', chunk)
+        .range(from, to),
+    )
+    orders.push(...part)
   }
 
   return {
@@ -482,20 +490,6 @@ export async function fetchBoothSettlementDetail(
   boothId: string,
   filters: SettlementFilters = {},
 ): Promise<BoothSettlementDetailRow[]> {
-  let pq = supabase
-    .from('payments')
-    .select('id, paid_at, total_amount, discount_amount, payment_method, external_receipt_no, status')
-    .eq('status', 'paid')
-  if (filters.dateFrom) {
-    pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
-  }
-  if (filters.dateTo) {
-    pq = pq.lt('paid_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
-  }
-  const { data: payments, error: pErr } = await pq
-  if (pErr) throw pErr
-  if (!payments || payments.length === 0) return []
-
   type PaymentLite = {
     id: string
     paid_at: string | null
@@ -504,28 +498,30 @@ export async function fetchBoothSettlementDetail(
     payment_method: BoothSettlementDetailRow['paymentMethod'] | null
     external_receipt_no: string | null
   }
-  const paymentMap = new Map<string, PaymentLite>(
-    (payments as PaymentLite[]).map((p) => [p.id, p]),
-  )
+  // PostgREST max-rows(1000) 자동 절단 회피 — 페이지네이션.
+  const payments = await fetchAllPages<PaymentLite>((from, to) => {
+    let pq = supabase
+      .from('payments')
+      .select('id, paid_at, total_amount, discount_amount, payment_method, external_receipt_no, status')
+      .eq('status', 'paid')
+      .order('paid_at', { ascending: true })
+      .range(from, to)
+    if (filters.dateFrom) {
+      pq = pq.gte('paid_at', new Date(`${filters.dateFrom}T00:00:00+09:00`).toISOString())
+    }
+    if (filters.dateTo) {
+      pq = pq.lt('paid_at', new Date(`${filters.dateTo}T24:00:00+09:00`).toISOString())
+    }
+    return pq
+  })
+  if (payments.length === 0) return []
+
+  const paymentMap = new Map<string, PaymentLite>(payments.map((p) => [p.id, p]))
   const paymentIds = [...paymentMap.keys()]
 
   // 같은 결제 안에 다른 부스가 있을 수 있어서 비율 계산을 위해 모든 부스 주문 fetch.
-  // IN URL 길이 한계 회피 — fetchSettlementRawData 와 동일하게 청크 분할.
-  const orders: unknown[] = []
-  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
-    const { data, error: oErr } = await supabase
-      .from('orders')
-      .select(
-        'id, payment_id, booth_id, order_number, subtotal, voucher_consumed, voucher_burned, is_takeout, status',
-      )
-      .in('payment_id', chunk)
-      .neq('status', 'cancelled')
-    if (oErr) throw oErr
-    if (data) orders.push(...data)
-  }
-  if (orders.length === 0) return []
-
-  type OrderLite = {
+  // IN URL 길이 한계 회피 — 청크 분할 + 청크당 1000 초과 회피 페이지네이션.
+  type OrderLiteRaw = {
     id: string
     payment_id: string
     booth_id: string | null
@@ -536,7 +532,23 @@ export async function fetchBoothSettlementDetail(
     is_takeout: boolean | null
     status: string
   }
-  const orderRows = orders as OrderLite[]
+  const orders: OrderLiteRaw[] = []
+  for (const chunk of chunkArray(paymentIds, IN_CHUNK_SIZE)) {
+    const part = await fetchAllPages<OrderLiteRaw>((from, to) =>
+      supabase
+        .from('orders')
+        .select(
+          'id, payment_id, booth_id, order_number, subtotal, voucher_consumed, voucher_burned, is_takeout, status',
+        )
+        .in('payment_id', chunk)
+        .neq('status', 'cancelled')
+        .range(from, to),
+    )
+    orders.push(...part)
+  }
+  if (orders.length === 0) return []
+
+  const orderRows = orders
 
   const paymentSubtotalSum = new Map<string, number>()
   for (const o of orderRows) {
