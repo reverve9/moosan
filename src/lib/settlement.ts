@@ -49,9 +49,12 @@ export interface SettlementRow {
   tossFee: number
   /** 매장 송금액 = menuSales × 0.9626 */
   boothPayout: number
-  /** 운영자 PG 실입금 = pgAmount × 0.9626 */
+  /** 운영자 PG 실입금 = pgPaidAmount × 0.9626 (Toss 수수료 차감 후) */
   organizerPgIn: number
-  /** 운영자 순지출 = boothPayout − organizerPgIn */
+  /** 운영자 헬프데스크 실입금 = helpDeskPaidAmount × 1.0 (단말기 수수료는 후정산, 매출 그대로 잡음) */
+  organizerHelpDeskIn: number
+  /** 운영자 순지출 = boothPayout − organizerPgIn − organizerHelpDeskIn
+   *  양수: 운영자 부담 (쿠폰/식권), 음수: 운영자 마진 (PG 외 매출의 매장 수수료 차감분) */
   organizerLoss: number
 }
 
@@ -178,13 +181,19 @@ function computeDerived(
 ): SettlementRow {
   const tossFee = base.menuSales * TOSS_FEE_RATE
   const boothPayout = base.menuSales * PAYOUT_RATE
-  const organizerPgIn = base.pgAmount * PAYOUT_RATE
-  const organizerLoss = boothPayout - organizerPgIn
+  // 운영자 PG 실입금: cookiepay 가 Toss 수수료 차감 후 입금
+  const organizerPgIn = base.pgPaidAmount * PAYOUT_RATE
+  // 운영자 헬프데스크 실입금: 단말기/현금 수수료는 별도(후정산)이라 매출 그대로 잡음
+  const organizerHelpDeskIn = base.helpDeskPaidAmount
+  // 매장에는 결제수단 무관 0.9626 일괄 송금하므로, PG 외 매출의 0.0374 만큼은
+  // 운영자가 매장 수수료를 가상 차감해 송금한 셈 → organizerLoss 가 음수면 운영자 마진.
+  const organizerLoss = boothPayout - organizerPgIn - organizerHelpDeskIn
   return {
     ...base,
     tossFee,
     boothPayout,
     organizerPgIn,
+    organizerHelpDeskIn,
     organizerLoss,
   }
 }
@@ -401,11 +410,13 @@ export interface IntegrityCheck {
   boothPayoutTotal: number
   /** 운영자 PG 실입금 합계 */
   organizerPgInTotal: number
+  /** 운영자 헬프데스크 실입금 합계 */
+  organizerHelpDeskInTotal: number
   /** 운영자 순지출 합계 */
   organizerLossTotal: number
   /** 검증식 좌변 = 매장 송금 */
   lhs: number
-  /** 검증식 우변 = PG입금 + 운영자순지출 */
+  /** 검증식 우변 = PG입금 + 헬프데스크입금 + 운영자순지출 */
   rhs: number
   /** 차액 (|lhs − rhs|) — 부동소수 오차 0.5원 이내면 OK */
   diff: number
@@ -413,12 +424,13 @@ export interface IntegrityCheck {
 
 export function checkIntegrity(totals: SettlementTotals): IntegrityCheck {
   const lhs = totals.boothPayout
-  const rhs = totals.organizerPgIn + totals.organizerLoss
+  const rhs = totals.organizerPgIn + totals.organizerHelpDeskIn + totals.organizerLoss
   const diff = Math.abs(lhs - rhs)
   return {
     ok: diff < 0.5,
     boothPayoutTotal: totals.boothPayout,
     organizerPgInTotal: totals.organizerPgIn,
+    organizerHelpDeskInTotal: totals.organizerHelpDeskIn,
     organizerLossTotal: totals.organizerLoss,
     lhs,
     rhs,
