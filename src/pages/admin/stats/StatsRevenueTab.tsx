@@ -265,23 +265,23 @@ function ChannelSection({
       <div className={styles.kpiGrid}>
         <Kpi
           label="앱 결제"
-          value={`${fmtWon(channel.app.revenue)} · ${channel.app.count}건 · ${fmtPct(appShare)}`}
+          value={`${fmtWon(channel.app.revenue)} · ${fmtPct(appShare)}`}
         />
         <Kpi
           label="헬프데스크 결제"
-          value={`${fmtWon(channel.helpdesk.revenue)} · ${channel.helpdesk.count}건 · ${fmtPct(helpdeskShare)}`}
+          value={`${fmtWon(channel.helpdesk.revenue)} · ${fmtPct(helpdeskShare)}`}
         />
         <Kpi
           label="헬프데스크 — 카드"
-          value={`${fmtWon(channel.helpdeskCard.revenue)} · ${channel.helpdeskCard.count}건`}
+          value={`${fmtWon(channel.helpdeskCard.revenue)}`}
         />
         <Kpi
           label="헬프데스크 — 현금/쿠폰"
-          value={`${fmtWon(channel.helpdeskCashVoucher.revenue)} · ${channel.helpdeskCashVoucher.count}건 (현금 ${channel.helpdeskCashVoucher.breakdown.cashCount} · 쿠폰만 ${channel.helpdeskCashVoucher.breakdown.voucherOnlyCount})`}
+          value={`${fmtWon(channel.helpdeskCashVoucher.revenue)}`}
         />
         <Kpi
           label="합계"
-          value={`${fmtWon(total.revenue)} · ${total.count}건`}
+          value={`${fmtWon(total.revenue)}`}
           emphasis
         />
       </div>
@@ -300,7 +300,7 @@ function PaymentMethodSection({
   const share = (v: number) => (total.revenue > 0 ? v / total.revenue : 0)
   return (
     <section className={styles.section}>
-      <h2 className={styles.sectionTitle}>결제수단별 매출 (쿠폰 분리)</h2>
+      <h2 className={styles.sectionTitle}>결제수단별 매출</h2>
       <div className={styles.kpiGrid}>
         <Kpi
           label="PG (앱)"
@@ -317,6 +317,11 @@ function PaymentMethodSection({
         <Kpi
           label="쿠폰 (전 채널)"
           value={`${fmtWon(pm.voucher.revenue)} · ${fmtPct(share(pm.voucher.revenue))}`}
+        />
+        <Kpi
+          label="합계"
+          value={`${fmtWon(total.revenue)}`}
+          emphasis
         />
       </div>
     </section>
