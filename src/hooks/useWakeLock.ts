@@ -7,6 +7,8 @@ import { useEffect } from 'react'
  * 정책
  *  - 미지원 브라우저 / 비HTTPS / 실패 → no-op
  *  - 탭 비활성 시 브라우저가 자동으로 release → visibilitychange 에서 재요청
+ *  - 시스템 사유 release (저전력/포커스 빼앗김 등) 는 onrelease 이벤트로
+ *    sentinel 참조 해제 → 다음 visibility 체크에서 재취득 가능
  *  - 언마운트 시 수동 release
  *
  * 주의 — iOS Safari 는 최근 버전까지도 미지원. 탭 자체 keep-awake 설정이
@@ -14,6 +16,8 @@ import { useEffect } from 'react'
  */
 type WakeLockSentinelLike = {
   release: () => Promise<void> | void
+  addEventListener?: (type: 'release', listener: () => void) => void
+  removeEventListener?: (type: 'release', listener: () => void) => void
 }
 
 type WakeLockNavigator = Navigator & {
@@ -39,6 +43,12 @@ export function useWakeLock(enabled: boolean = true): void {
           return
         }
         sentinel = s
+        // 시스템 사유 release 시 sentinel 참조 해제 — 다음 visibilitychange
+        // 의 `!sentinel` 분기로 재취득 시도 가능. 해제 안 하면 sentinel 이
+        // 살아있다고 판단해 영원히 재취득 못 함.
+        s.addEventListener?.('release', () => {
+          if (sentinel === s) sentinel = null
+        })
       } catch {
         // 조용히 무시 — 권한/지원 문제
       }
