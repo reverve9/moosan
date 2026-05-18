@@ -299,15 +299,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { data: paidOrders } = await supabase
       .from('orders')
-      .select('booth_id')
+      .select('id, booth_id')
       .eq('payment_id', payment.id)
       .eq('status', 'paid')
-    const boothIds = Array.from(
-      new Set((paidOrders ?? []).map((o) => o.booth_id).filter((b): b is string => !!b)),
-    )
-    if (boothIds.length > 0) {
+    const firstOrderIdByBooth = new Map<string, string>()
+    for (const o of paidOrders ?? []) {
+      if (!o.booth_id || !o.id) continue
+      if (!firstOrderIdByBooth.has(o.booth_id)) {
+        firstOrderIdByBooth.set(o.booth_id, o.id)
+      }
+    }
+    if (firstOrderIdByBooth.size > 0) {
       await Promise.race([
-        Promise.allSettled(boothIds.map((bid) => sendBoothPush(bid))),
+        Promise.allSettled(
+          Array.from(firstOrderIdByBooth, ([bid, orderId]) =>
+            sendBoothPush(bid, { orderId }),
+          ),
+        ),
         new Promise<void>((resolve) => setTimeout(resolve, 2000)),
       ])
     }

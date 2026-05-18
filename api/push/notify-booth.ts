@@ -24,7 +24,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { boothId, payload } = (req.body ?? {}) as {
     boothId?: string
-    payload?: { title?: string; body?: string; tag?: string; url?: string }
+    payload?: {
+      title?: string
+      body?: string
+      tag?: string
+      url?: string
+      orderId?: string
+    }
   }
 
   if (!boothId) {

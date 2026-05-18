@@ -85,6 +85,9 @@ export interface NotifyPayload {
   body?: string
   tag?: string
   url?: string
+  /** 단일 주문 식별자. alarmEngine 의 dedup key 로 사용되어 realtime+push
+   *  중복 알람을 1회로 합침. 한 booth 에 여러 주문이면 첫 orderId 전달. */
+  orderId?: string
 }
 
 /**
@@ -106,20 +109,27 @@ export function notifyBoothPaid(boothId: string, payload?: NotifyPayload): void 
  * fire-and-forget — 실패는 silent.
  *
  * 호출 시점은 markPaymentPaid 직후 — 그 시점 supabase 에서 orders 조회로
- * booth_ids 산출. 중복 boothId 는 dedup.
+ * booth_ids 산출. 중복 boothId 는 dedup. 한 booth 에 여러 주문이면 첫 orderId
+ * 를 payload.orderId 로 전달 (alarmEngine dedup key).
  */
 export async function notifyBoothsForPayment(paymentId: string): Promise<void> {
   if (typeof window === 'undefined') return
   try {
     const { data } = await supabase
       .from('orders')
-      .select('booth_id')
+      .select('id, booth_id')
       .eq('payment_id', paymentId)
       .eq('status', 'paid')
-    const boothIds = Array.from(
-      new Set((data ?? []).map((o) => o.booth_id).filter((b): b is string => !!b)),
-    )
-    for (const bid of boothIds) notifyBoothPaid(bid)
+    const firstOrderIdByBooth = new Map<string, string>()
+    for (const o of data ?? []) {
+      if (!o.booth_id || !o.id) continue
+      if (!firstOrderIdByBooth.has(o.booth_id)) {
+        firstOrderIdByBooth.set(o.booth_id, o.id)
+      }
+    }
+    for (const [bid, orderId] of firstOrderIdByBooth) {
+      notifyBoothPaid(bid, { orderId })
+    }
   } catch {
     /* 무시 */
   }

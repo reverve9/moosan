@@ -13,7 +13,15 @@ import webpush from 'web-push'
  */
 export async function sendBoothPush(
   boothId: string,
-  payload?: { title?: string; body?: string; tag?: string; url?: string },
+  payload?: {
+    title?: string
+    body?: string
+    tag?: string
+    url?: string
+    /** 단일 주문 식별자. 같은 paid 이벤트에 대한 realtime+push 중복 알람을
+     *  클라이언트 alarmEngine 의 dedup key 로 흡수하기 위해 전달. */
+    orderId?: string
+  },
 ): Promise<{ sent: number; total: number; pruned: number } | null> {
   const supaUrl = process.env.VITE_SUPABASE_URL
   const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -51,6 +59,7 @@ export async function sendBoothPush(
       tag: payload?.tag ?? `booth-${boothId}`,
       url: payload?.url ?? '/dashboard',
       boothId,
+      orderId: payload?.orderId,
     })
 
     const staleEndpoints: string[] = []
