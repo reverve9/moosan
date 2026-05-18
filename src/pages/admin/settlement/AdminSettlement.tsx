@@ -694,14 +694,12 @@ const OVERALL_COLS: ColDef[] = [
   { key: 'paymentCount', label: '결제건수', right: true, render: (r) => r.paymentCount.toLocaleString() },
   { key: 'menuSales', label: '매장 매출', right: true, render: (r) => fmtMoney(r.menuSales) },
   { key: 'voucherUsed', label: '쿠폰 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
-  { key: 'couponDiscount', label: '쿠폰 할인', right: true, render: (r) => fmtMoney(r.couponDiscount) },
   { key: 'pgPaidAmount', label: 'PG 결제액', right: true, render: (r) => fmtMoney(r.pgPaidAmount) },
   { key: 'helpDeskPaidAmount', label: '헬프데스크 결제액', right: true, render: (r) => fmtMoney(r.helpDeskPaidAmount) },
-  { key: 'tossFee', label: 'Toss 수수료', right: true, render: (r) => fmtMoney(r.tossFee) },
+  { key: 'tossFee', label: '수수료 (3.74%)', right: true, render: (r) => fmtMoney(r.tossFee) },
   { key: 'boothPayout', label: '매장 송금', right: true, render: (r) => fmtMoney(r.boothPayout) },
-  { key: 'organizerPgIn', label: '운영자 PG입금', right: true, render: (r) => fmtMoney(r.organizerPgIn) },
-  { key: 'organizerHelpDeskIn', label: '운영자 헬프데스크 입금', right: true, render: (r) => fmtMoney(r.organizerHelpDeskIn) },
-  { key: 'organizerLoss', label: '운영자 순지출', right: true, render: (r) => fmtMoney(r.organizerLoss) },
+  { key: 'organizerPgIn', label: 'PG 입금', right: true, render: (r) => fmtMoney(r.organizerPgIn) },
+  { key: 'organizerHelpDeskIn', label: '헬프데스크(100%)', right: true, render: (r) => fmtMoney(r.organizerHelpDeskIn) },
 ]
 
 const BOOTH_COLS: ColDef[] = [
@@ -709,10 +707,9 @@ const BOOTH_COLS: ColDef[] = [
   { key: 'orderCount', label: '주문건수', right: true, render: (r) => r.orderCount.toLocaleString() },
   { key: 'menuSales', label: '매장 매출', right: true, render: (r) => fmtMoney(r.menuSales) },
   { key: 'voucherUsed', label: '쿠폰 사용', right: true, render: (r) => fmtMoney(r.voucherUsed) },
-  { key: 'couponDiscount', label: '쿠폰 할인', right: true, render: (r) => fmtMoney(r.couponDiscount) },
   { key: 'pgPaidAmount', label: 'PG 결제액', right: true, render: (r) => fmtMoney(r.pgPaidAmount) },
   { key: 'helpDeskPaidAmount', label: '헬프데스크 결제액', right: true, render: (r) => fmtMoney(r.helpDeskPaidAmount) },
-  { key: 'tossFee', label: 'Toss 수수료', right: true, render: (r) => fmtMoney(r.tossFee) },
+  { key: 'tossFee', label: '결제 수수료', right: true, render: (r) => fmtMoney(r.tossFee) },
   { key: 'boothPayout', label: '매장 송금액', right: true, render: (r) => fmtMoney(r.boothPayout) },
 ]
 
@@ -724,14 +721,12 @@ const OVERALL_EXPORT_COLS = [
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '쿠폰 사용' },
   { key: 'voucherBurned', label: '쿠폰 소멸' },
-  { key: 'couponDiscount', label: '쿠폰 할인' },
   { key: 'pgPaidAmount', label: 'PG 결제액' },
   { key: 'helpDeskPaidAmount', label: '헬프데스크 결제액' },
-  { key: 'tossFee', label: 'Toss 수수료' },
+  { key: 'tossFee', label: '수수료 (3.74%)' },
   { key: 'boothPayout', label: '매장 송금' },
-  { key: 'organizerPgIn', label: '운영자 PG입금' },
-  { key: 'organizerHelpDeskIn', label: '운영자 헬프데스크 입금' },
-  { key: 'organizerLoss', label: '운영자 순지출' },
+  { key: 'organizerPgIn', label: 'PG 입금' },
+  { key: 'organizerHelpDeskIn', label: '헬프데스크(100%)' },
 ]
 
 const BOOTH_EXPORT_COLS = [
@@ -739,10 +734,9 @@ const BOOTH_EXPORT_COLS = [
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '쿠폰 사용' },
-  { key: 'couponDiscount', label: '쿠폰 할인' },
   { key: 'pgPaidAmount', label: 'PG 결제액' },
   { key: 'helpDeskPaidAmount', label: '헬프데스크 결제액' },
-  { key: 'tossFee', label: 'Toss 수수료' },
+  { key: 'tossFee', label: '결제 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
 
@@ -752,10 +746,9 @@ const BOOTH_DAILY_EXPORT_COLS = [
   { key: 'orderCount', label: '주문건수' },
   { key: 'menuSales', label: '매장 매출' },
   { key: 'voucherUsed', label: '쿠폰 사용' },
-  { key: 'couponDiscount', label: '쿠폰 할인' },
   { key: 'pgPaidAmount', label: 'PG 결제액' },
   { key: 'helpDeskPaidAmount', label: '헬프데스크 결제액' },
-  { key: 'tossFee', label: 'Toss 수수료' },
+  { key: 'tossFee', label: '결제 수수료' },
   { key: 'boothPayout', label: '매장 송금액' },
 ]
 
@@ -766,14 +759,12 @@ function toOverallExportRow(r: SettlementRow): Record<string, unknown> {
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
     voucherBurned: r.voucherBurned,
-    couponDiscount: r.couponDiscount,
     pgPaidAmount: r.pgPaidAmount,
     helpDeskPaidAmount: r.helpDeskPaidAmount,
     tossFee: r.tossFee,
     boothPayout: r.boothPayout,
     organizerPgIn: r.organizerPgIn,
     organizerHelpDeskIn: r.organizerHelpDeskIn,
-    organizerLoss: r.organizerLoss,
   }
 }
 
@@ -783,7 +774,6 @@ function toBoothExportRow(r: SettlementRow): Record<string, unknown> {
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
-    couponDiscount: r.couponDiscount,
     pgPaidAmount: r.pgPaidAmount,
     helpDeskPaidAmount: r.helpDeskPaidAmount,
     tossFee: r.tossFee,
@@ -798,7 +788,6 @@ function toBoothDailyExportRow(r: SettlementRow, date: string): Record<string, u
     orderCount: r.orderCount,
     menuSales: r.menuSales,
     voucherUsed: r.voucherUsed,
-    couponDiscount: r.couponDiscount,
     pgPaidAmount: r.pgPaidAmount,
     helpDeskPaidAmount: r.helpDeskPaidAmount,
     tossFee: r.tossFee,
