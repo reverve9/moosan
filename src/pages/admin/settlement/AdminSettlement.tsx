@@ -6,7 +6,6 @@ import {
   aggregateByBooth,
   aggregateByDay,
   calcTotals,
-  checkIntegrity,
   fetchBoothSettlementDetail,
   fetchSettlementRawData,
   fmtMoney,
@@ -79,11 +78,6 @@ export default function AdminSettlement() {
   const overallTotals = useMemo(() => calcTotals(overallRows), [overallRows])
   const boothTotals = useMemo(() => calcTotals(boothRows), [boothRows])
 
-  const integrity = useMemo(
-    () => checkIntegrity(tab === 'overall' ? overallTotals : boothTotals),
-    [tab, overallTotals, boothTotals],
-  )
-
   const currentRows = tab === 'overall' ? overallRows : boothRows
   const currentTotals = tab === 'overall' ? overallTotals : boothTotals
 
@@ -141,7 +135,7 @@ export default function AdminSettlement() {
       <header className={dashStyles.pageHeader}>
         <h1 className={dashStyles.title}>정산 관리</h1>
         <p className={dashStyles.sub}>
-          매장 송금 · Toss 수수료(매장 부담 {(TOSS_FEE_RATE * 100).toFixed(2)}%) · 운영자 정산
+          매장 송금 · 결제 수수료(매장 부담 {(TOSS_FEE_RATE * 100).toFixed(2)}%) · 운영자 정산
         </p>
       </header>
 
@@ -261,7 +255,6 @@ export default function AdminSettlement() {
         ) : (
           <>
             <SummarySection totals={currentTotals} />
-            <IntegritySection integrity={integrity} />
             {tab === 'overall' ? (
               <SettlementTable rows={currentRows} totals={currentTotals} kind="overall" />
             ) : (
@@ -416,7 +409,7 @@ function BoothPreviewModal({
             <PreviewKpi label="매장 매출" value={fmtMoney(booth.menuSales)} />
             <PreviewKpi label="쿠폰 사용" value={fmtMoney(booth.voucherUsed)} />
             <PreviewKpi label="쿠폰 할인" value={fmtMoney(booth.couponDiscount)} />
-            <PreviewKpi label="Toss 수수료" value={fmtMoney(booth.tossFee)} />
+            <PreviewKpi label="결제 수수료" value={fmtMoney(booth.tossFee)} />
             <PreviewKpi label="송금액" value={fmtMoney(booth.boothPayout)} emphasis />
           </div>
 
@@ -520,7 +513,7 @@ async function exportBoothSettlement(
     { k: '쿠폰 소멸', v: booth.voucherBurned },
     { k: '쿠폰 할인 (부스 분배)', v: booth.couponDiscount },
     { k: 'PG 거래액 (부스 분배)', v: booth.pgAmount },
-    { k: 'Toss 수수료 (3.74%)', v: booth.tossFee },
+    { k: '결제 수수료', v: booth.tossFee },
     { k: '매장 송금액', v: booth.boothPayout },
   ]
   const detailRows = details.map((d) => ({
@@ -576,11 +569,10 @@ function SummarySection({ totals }: { totals: SettlementRow }) {
       <div className={styles.kpiGrid}>
         <Kpi label="매장 매출" value={fmtMoney(totals.menuSales)} />
         <Kpi label="매장 송금 합계" value={fmtMoney(totals.boothPayout)} emphasis />
-        <Kpi label="Toss 수수료(매장)" value={fmtMoney(totals.tossFee)} />
-        <Kpi label="운영자 PG 입금" value={fmtMoney(totals.organizerPgIn)} />
-        <Kpi label="운영자 헬프데스크 입금" value={fmtMoney(totals.organizerHelpDeskIn)} />
-        <Kpi label="운영자 부담(쿠폰)" value={fmtMoney(totals.couponDiscount + totals.voucherUsed)} />
-        <Kpi label="운영자 순지출" value={fmtMoney(totals.organizerLoss)} emphasis />
+        <Kpi label="수수료 (3.74%)" value={fmtMoney(totals.tossFee)} />
+        <Kpi label="PG 입금" value={fmtMoney(totals.organizerPgIn)} />
+        <Kpi label="헬프데스크(100%)" value={fmtMoney(totals.organizerHelpDeskIn)} />
+        <Kpi label="쿠폰 부담" value={fmtMoney(totals.couponDiscount + totals.voucherUsed)} />
       </div>
     </section>
   )
@@ -592,37 +584,6 @@ function Kpi({ label, value, emphasis }: { label: string; value: string; emphasi
       <div className={styles.kpiLabel}>{label}</div>
       <div className={styles.kpiValue}>{value}</div>
     </div>
-  )
-}
-
-// ─── 정합성 검증 ─────────────────────────────────────
-
-function IntegritySection({ integrity }: { integrity: ReturnType<typeof checkIntegrity> }) {
-  return (
-    <section className={`${styles.section} ${integrity.ok ? styles.integOk : styles.integErr}`}>
-      <h2 className={styles.sectionTitle}>
-        정산 정합성 검증 {integrity.ok ? '✅' : '❌'}
-      </h2>
-      <ul className={styles.integList}>
-        <li>
-          <span>매장 송금</span>
-          <span>{fmtMoney(integrity.lhs)}</span>
-        </li>
-        <li>
-          <span>운영자 PG 입금 + 헬프데스크 입금 + 순지출</span>
-          <span>{fmtMoney(integrity.rhs)}</span>
-        </li>
-        <li>
-          <span>차액</span>
-          <span>{fmtMoney(integrity.diff)}</span>
-        </li>
-      </ul>
-      {!integrity.ok && (
-        <div className={styles.integWarn}>
-          ❌ 매장 송금 ≠ PG입금 + 헬프데스크입금 + 운영자 순지출 — 데이터 정합성 점검 필요
-        </div>
-      )}
-    </section>
   )
 }
 
