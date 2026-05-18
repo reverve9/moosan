@@ -102,6 +102,28 @@
   height: 18px;
 }
 
+/* ── 미확인 주문 영구 배너 ── */
+/* 미확인 주문이 1건 이상 있는 동안 헤더 바로 아래 표시. 빨강↔주황 펄스로
+   주의 환기. 소리 알람이 실패해도 화면이 끝까지 깜빡여 운영자가 인지. */
+.unconfirmedBanner {
+  padding: 14px 20px;
+  color: #FFFFFF;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+  animation: unconfirmedBannerPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes unconfirmedBannerPulse {
+  0%, 100% {
+    background-color: #DC2626;
+  }
+  50% {
+    background-color: #F59E0B;
+  }
+}
+
 /* ── 콘텐츠 (대기 + 우측 패널) ── */
 .content {
   display: grid;

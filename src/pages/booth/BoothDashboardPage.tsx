@@ -1,4 +1,4 @@
-import { LogOut, Ban } from 'lucide-react'
+import { LogOut, Ban, Bell } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -27,6 +27,7 @@ import {
   enqueueNewOrderAlarm,
   enqueueOverdueAlarm,
   enqueueRecallAlarm,
+  testAlarm,
 } from '@/lib/alarmEngine'
 import { registerBoothPush } from '@/lib/pushNotify'
 import { useToast } from '@/components/ui/Toast'
@@ -374,6 +375,16 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
   const cards = useMemo(() => buildCards(data), [data])
 
+  // 미확인 주문 수 — 소리 알람 실패 시 시각 fallback (영구 배너 + 펄스).
+  const unconfirmedCount = useMemo(
+    () =>
+      data.filter(
+        (d) =>
+          d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
+      ).length,
+    [data],
+  )
+
   // 좌측: 대기 + 진행중 (= !completed). highlight 카드 먼저, 그 다음 오래된 순.
   const waitingCards = useMemo(() => {
     const list = cards.filter((c) => c.status !== 'completed')
@@ -542,6 +553,20 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
           <button
             type="button"
             className={styles.headerBtn}
+            onClick={() => {
+              // 사용자 제스처로 AudioContext 강제 unlock 후 1회 재생.
+              // 시프트 시작 전에 눌러 소리/볼륨/오토플레이 정책 사전 검증.
+              unlockAudio()
+              void testAlarm()
+            }}
+            title="알람 소리 작동 확인"
+          >
+            <Bell className={styles.headerBtnIcon} />
+            <span>알람 테스트</span>
+          </button>
+          <button
+            type="button"
+            className={styles.headerBtn}
             onClick={() => setMenuModalOpen(true)}
           >
             <Ban className={styles.headerBtnIcon} />
@@ -557,6 +582,14 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
           </button>
         </div>
       </header>
+
+      {/* 미확인 주문 시각 배너 — 소리 알람이 autoplay/audio focus 로 실패해도
+          화면이 끝까지 깜빡여 운영자에게 알림. unconfirmedCount=0 이면 자동 해제. */}
+      {unconfirmedCount > 0 && (
+        <div className={styles.unconfirmedBanner} role="alert">
+          ⚠️ 미확인 주문 {unconfirmedCount}건 — 확인 버튼을 눌러주세요
+        </div>
+      )}
 
       {/* ── 콘텐츠 (1fr / 360px) ── */}
       <div className={styles.content}>
