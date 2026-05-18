@@ -22,7 +22,12 @@ import BoothCancelOrderModal from '@/components/booth/BoothCancelOrderModal'
 import ConnectionBanner from '@/components/ui/ConnectionBanner'
 import { formatPhoneDisplay } from '@/lib/phone'
 import { parseOrderNumber } from '@/lib/orderNumber'
-import { playSound, unlockAudio } from '@/lib/audioCue'
+import { unlockAudio } from '@/lib/audioCue'
+import {
+  enqueueNewOrderAlarm,
+  enqueueOverdueAlarm,
+  enqueueRecallAlarm,
+} from '@/lib/alarmEngine'
 import { registerBoothPush } from '@/lib/pushNotify'
 import { useToast } from '@/components/ui/Toast'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
@@ -204,7 +209,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
     const unsubscribe = subscribeBoothOrders(boothId, {
       onOrderPaid: (orderId) => {
-        void playSound(3)
+        enqueueNewOrderAlarm(orderId)
         vibrateSafe([300, 100, 300, 100, 300])
         setHighlightOrderIds((prev) => {
           const set = new Set(prev)
@@ -266,15 +271,16 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
     return () => window.clearInterval(id)
   }, [])
 
-  // SW push → foreground client postMessage 위임 — 기존 mp3 (audioCue) 재생.
-  // SW notification 은 silent 로 떠서 OS 기본음 이중 X. realtime onOrderPaid 가
-  // 같은 알람을 동시에 트리거해도 audioCue 의 playing 락이 중복 재생 방지.
+  // SW push → foreground client postMessage 위임 — mp3 재생.
+  // 페이로드에 orderId 가 없을 수 있어 dedup 없이 enqueue (alarmEngine 큐가
+  // newOrder 종류를 1개로 coalesce). realtime onOrderPaid 와 같은 주문에 대해
+  // 동시 발화하면 큐 coalesce + dedup 으로 1회만 재생.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.serviceWorker) return
     const onMsg = (e: MessageEvent) => {
-      const d = e.data as { type?: string } | undefined
+      const d = e.data as { type?: string; payload?: { orderId?: string } } | undefined
       if (d?.type !== 'booth-push') return
-      void playSound(3)
+      enqueueNewOrderAlarm(d.payload?.orderId)
       vibrateSafe([300, 100, 300, 100, 300])
     }
     navigator.serviceWorker.addEventListener('message', onMsg)
@@ -283,10 +289,10 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
 
   // 미확인 주문 transition (false→true) 감지 — realtime onChange / visibilitychange
   // refetch / 초기 fetch 등 어떤 경로로든 data 가 갱신되어 unconfirmed 가 0→1+
-  // 전환 시 즉시 mp3. 1분 interval 대기 X.
+  // 전환 시 즉시 알람. 1분 interval 대기 X.
   //
-  // realtime onOrderPaid 가 동일 paid 이벤트로 직접 mp3 를 트리거해도 audioCue.
-  // playing 락이 중복 dedup → 안전.
+  // realtime onOrderPaid 가 동일 paid 이벤트로 newOrder 도 트리거하면 큐가
+  // newOrder 우선으로 coalesce — 신규 우선 정책.
   const prevHasUnconfirmedRef = useRef(false)
   useEffect(() => {
     if (loading) return
@@ -294,7 +300,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
     )
     if (hasUnconfirmed && !prevHasUnconfirmedRef.current) {
-      void playSound(3)
+      enqueueRecallAlarm()
       vibrateSafe([300, 100, 300, 100, 300])
     }
     prevHasUnconfirmedRef.current = hasUnconfirmed
@@ -319,7 +325,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
       const t = Date.now()
       if (t - lastVisFireRef.current < 30_000) return
       lastVisFireRef.current = t
-      void playSound(3)
+      enqueueRecallAlarm()
       vibrateSafe([300, 100, 300, 100, 300])
     }
     document.addEventListener('visibilitychange', onVis)
@@ -337,7 +343,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         (d) => d.order.status === 'paid' && !d.order.confirmed_at && !d.order.cancelled_at,
       )
       if (hasUnconfirmed) {
-        void playSound(3)
+        enqueueRecallAlarm()
         vibrateSafe([300, 100, 300, 100, 300])
       }
     }, ALARM_INTERVAL_MS)
@@ -359,7 +365,7 @@ function DashboardInner({ session, onLogout }: DashboardInnerProps) {
         const deadline = confirmedMs + (d.order.estimated_minutes + 2) * 60 * 1000
         if (nowMs > deadline) {
           overdueAlertedIds.current.add(d.order.id)
-          void playSound(3, 'overdue')
+          enqueueOverdueAlarm()
           vibrateSafe([300, 100, 300, 100, 300])
         }
       }

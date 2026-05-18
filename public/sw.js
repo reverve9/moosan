@@ -4,12 +4,14 @@
 //  - install/activate: skipWaiting + clients.claim (새 SW 즉시 활성)
 //  - fetch: 캐시 안 함 (network-first passthrough) — 빌드 갱신 즉시 반영 우선
 //  - push:
+//      · 항상 OS notification + 기본 알림음 발화 (belt-and-suspenders).
+//        예전엔 foreground 일 때 silent 처리로 mp3 와 이중 방지했으나, 첫 행사
+//        (2026-05)에서 mp3 가 락 stuck 으로 silent drop 되는 케이스가 있었음.
+//        OS 기본음은 짧지만 신뢰성이 매우 높아 mp3 실패 시 백업으로 작동시킴.
 //      · visible 부스 client 가 있으면 → postMessage 로 client 에 위임 (client 가
-//        기존 audioCue.playSound 로 mp3 재생). notification 은 silent 로 표시
-//        (OS 기본음 안 울려서 mp3 와 이중 X).
-//      · visible client 없음 (background / screen-off) → notification + OS 기본음.
-//        SW 컨텍스트에선 임의 Audio 재생이 spec 상 불가 → background 는 OS 기본음
-//        이 한계.
+//        alarmEngine 큐로 mp3 재생). 큐가 중복 알람을 coalesce 하므로 안전.
+//      · visible client 없음 (background / screen-off) → OS 기본음만. SW 컨텍스트
+//        에선 임의 Audio 재생이 spec 상 불가.
 //  - notificationclick: 부스 대시보드 탭이 있으면 focus, 없으면 새 탭으로 open
 
 self.addEventListener('install', () => {
@@ -67,9 +69,8 @@ self.addEventListener('push', (event) => {
       renotify: true,
       requireInteraction: false,
       vibrate: [300, 100, 300, 100, 300],
-      // foreground: silent (client 가 mp3 재생 — OS 기본음 이중 방지)
-      // background: silent X (OS 기본음 — background mp3 재생 불가능)
-      silent: !!foregroundBooth,
+      // 항상 OS 기본음 발화 (belt-and-suspenders) — mp3 실패 백업.
+      silent: false,
       data: {
         url: data.url || '/dashboard',
         boothId: data.boothId,
